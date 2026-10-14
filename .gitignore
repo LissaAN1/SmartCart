@@ -1,3 +1,6 @@
+# Secretos
+.env
+
 # Miscellaneous
 *.class
 *.log
