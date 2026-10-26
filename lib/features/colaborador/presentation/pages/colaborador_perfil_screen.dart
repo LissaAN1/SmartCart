@@ -6,7 +6,13 @@ import '../widgets/colaborador_widgets.dart';
 class ColaboradorPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  const ColaboradorPerfilScreen({super.key, this.onTab, this.onCerrarSesion});
+  final String nombre;
+  const ColaboradorPerfilScreen({
+    super.key,
+    this.onTab,
+    this.onCerrarSesion,
+    required this.nombre,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,17 +22,22 @@ class ColaboradorPerfilScreen extends StatelessWidget {
       navItems: navColaborador(misionesNuevas: 3),
       tabActiva: 3,
       onTab: onTab,
-      barraSuperior: const BarraTituloRol(titulo: 'Mi Perfil', mostrarAtras: true),
+      // El perfil es una pestaña del shell, no una ruta apilada: "atrás"
+      // vuelve a la pestaña Home en lugar de intentar cerrar la pantalla.
+      barraSuperior: BarraTituloRol(
+        titulo: 'Mi Perfil',
+        mostrarAtras: true,
+        onAtras: () => onTab?.call(0),
+      ),
       cuerpo: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: 'Camila Rodríguez',
+            nombre: nombre,
             insignia: Icons.verified_outlined,
-            ubicacion: 'Bogotá, Colombia',
             etiquetas: [
-              EtiquetaEstado.marca('Colaborador Nivel Plata'),
+              EtiquetaEstado.marca('Colaborador'),
             ],
           ),
           const SizedBox(height: 22),

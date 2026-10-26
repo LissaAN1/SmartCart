@@ -3,6 +3,7 @@
 // (lo hace PantallaRol) y los componentes leen los colores con
 // TemaRol.of(context), así un mismo widget sirve para los 5 roles.
 import 'package:flutter/material.dart';
+import 'package:smartcart/core/constants/app_assets.dart';
 
 enum RolTema { cliente, colaborador, repartidor, comercio, admin }
 
@@ -16,6 +17,7 @@ class TemaRol {
   final Color borde;
   final Color texto;
   final Color textoGris;
+  final String avatarAsset; // persona de muestra cuando no hay foto real
 
   const TemaRol({
     required this.primario,
@@ -26,6 +28,7 @@ class TemaRol {
     required this.borde,
     this.texto = const Color(0xFF1B1D21),
     this.textoGris = const Color(0xFF6B7078),
+    required this.avatarAsset,
   });
 
   // ── Cliente: verde ──
@@ -35,6 +38,7 @@ class TemaRol {
     suave: Color(0xFFE2F4EB),
     fondo: Color(0xFFF3F6F5),
     borde: Color(0xFFE3E8E6),
+    avatarAsset: AppAssets.avatarCliente,
   );
 
   // ── Colaborador: naranja ──
@@ -45,6 +49,7 @@ class TemaRol {
     fondo: Color(0xFFFBF8F5),
     borde: Color(0xFFF1E8E1),
     texto: Color(0xFF3A1F12),
+    avatarAsset: AppAssets.avatarColaborador,
   );
 
   // ── Repartidor: morado ──
@@ -54,6 +59,7 @@ class TemaRol {
     suave: Color(0xFFECE7FB),
     fondo: Color(0xFFF6F5FD),
     borde: Color(0xFFE4DFF7),
+    avatarAsset: AppAssets.avatarRepartidor,
   );
 
   // ── Comercio: rosa ──
@@ -63,6 +69,7 @@ class TemaRol {
     suave: Color(0xFFFBE3EE),
     fondo: Color(0xFFFCF1F5),
     borde: Color(0xFFF5D9E5),
+    avatarAsset: AppAssets.avatarComercio,
   );
 
   // ── Administrador: verde azulado ──
@@ -73,6 +80,7 @@ class TemaRol {
     fondo: Color(0xFFE3F7F5),
     borde: Color(0xFFCDEAE6),
     texto: Color(0xFF0D1F1D),
+    avatarAsset: AppAssets.avatarAdmin,
   );
 
   static TemaRol de(RolTema rol) => switch (rol) {

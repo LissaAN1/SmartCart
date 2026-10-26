@@ -2,7 +2,8 @@
 import 'package:flutter/material.dart';
 import '../tema_rol.dart';
 
-/// Avatar circular. Si no hay foto muestra las iniciales.
+/// Avatar circular. Si no hay foto real usa la persona de muestra del perfil
+/// (`TemaRol.avatarAsset`) y, si tampoco carga, las iniciales.
 /// - [insignia]: ícono en un círculo de color primario abajo a la derecha
 ///   (escudo del repartidor, tienda del comercio...).
 /// - [enLinea]: punto verde abajo a la derecha.
@@ -28,6 +29,26 @@ class AvatarPerfil extends StatelessWidget {
     return partes.take(2).map((p) => p[0].toUpperCase()).join();
   }
 
+  /// Persona de muestra del perfil. Si la imagen no carga, mostramos las
+  /// iniciales (o un ícono si todavía no hay nombre).
+  Widget _imagenMuestra(TemaRol t) {
+    return Image.asset(
+      t.avatarAsset,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        color: t.suave,
+        alignment: Alignment.center,
+        child: _iniciales.isEmpty
+            ? Icon(Icons.person, size: radio, color: t.primario)
+            : Text(_iniciales,
+                style: TextStyle(
+                    fontSize: radio * 0.6,
+                    fontWeight: FontWeight.w700,
+                    color: t.primario)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.of(context);
@@ -40,19 +61,18 @@ class AvatarPerfil extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          CircleAvatar(
-              radius: radio,
-              backgroundColor: t.suave,
-              backgroundImage: tieneFoto ? NetworkImage(fotoUrl!) : null,
+          ClipOval(
+            child: SizedBox(
+              width: radio * 2,
+              height: radio * 2,
               child: tieneFoto
-                  ? null
-                  : (_iniciales.isEmpty
-                      ? Icon(Icons.person, size: radio, color: t.primario)
-                      : Text(_iniciales,
-                          style: TextStyle(
-                              fontSize: radio * 0.6,
-                              fontWeight: FontWeight.w700,
-                              color: t.primario))),
+                  ? Image.network(
+                      fotoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _imagenMuestra(t),
+                    )
+                  : _imagenMuestra(t),
+            ),
           ),
           if (insignia != null)
             Positioned(

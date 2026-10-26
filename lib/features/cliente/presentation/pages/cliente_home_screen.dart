@@ -7,7 +7,8 @@ import '../widgets/cliente_widgets.dart';
 
 class ClienteHomeScreen extends StatefulWidget {
   final ValueChanged<int>? onTab;
-  const ClienteHomeScreen({super.key, this.onTab});
+  final String nombre;
+  const ClienteHomeScreen({super.key, this.onTab, required this.nombre});
 
   @override
   State<ClienteHomeScreen> createState() => _ClienteHomeScreenState();
@@ -39,8 +40,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
       tabActiva: 0,
       onTab: widget.onTab,
       barraSuperior: EncabezadoSaludo(
-        nombre: 'Camila',
-        ubicacion: 'Bogotá, Colombia',
+        nombre: widget.nombre,
         acciones: [
           BotonCircular(icono: Icons.search, onTap: () {}),
           BotonCircular(

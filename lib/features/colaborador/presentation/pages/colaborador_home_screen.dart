@@ -6,7 +6,8 @@ import '../widgets/colaborador_widgets.dart';
 
 class ColaboradorHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
-  const ColaboradorHomeScreen({super.key, this.onTab});
+  final String nombre;
+  const ColaboradorHomeScreen({super.key, this.onTab, required this.nombre});
 
   static const _misiones = [
     (titulo: 'Verifica precios de lácteos', tienda: 'Éxito Calle 80', km: '1.2 km', pts: 150, hechos: 2, total: 5),
@@ -28,8 +29,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
       tabActiva: 0,
       onTab: onTab,
       barraSuperior: EncabezadoSaludo(
-        nombre: 'Camila',
-        ubicacion: 'Bogotá, Colombia',
+        nombre: nombre,
         acciones: [
           BotonCircular(icono: Icons.search, onTap: () {}),
           BotonCircular(

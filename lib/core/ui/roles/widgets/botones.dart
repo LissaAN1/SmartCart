@@ -9,36 +9,50 @@ class BotonPrimario extends StatelessWidget {
   final VoidCallback? onTap;
   final bool expandido;
 
+  /// Mientras es `true` muestra un indicador y no acepta toques, así el
+  /// formulario no se envía dos veces.
+  final bool cargando;
+
   const BotonPrimario({
     super.key,
     required this.texto,
     this.iconoFinal,
     this.onTap,
     this.expandido = true,
+    this.cargando = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.of(context);
     final boton = FilledButton(
-      onPressed: onTap,
+      onPressed: cargando ? null : onTap,
       style: FilledButton.styleFrom(
         backgroundColor: t.primario,
         foregroundColor: Colors.white,
+        disabledBackgroundColor: t.primario.withValues(alpha: 0.7),
+        disabledForegroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(texto),
-          if (iconoFinal != null) ...[
-            const SizedBox(width: 8),
-            Icon(iconoFinal, size: 18),
-          ],
-        ],
-      ),
+      child: cargando
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2.5, color: Colors.white),
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(texto),
+                if (iconoFinal != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(iconoFinal, size: 18),
+                ],
+              ],
+            ),
     );
     return expandido ? SizedBox(width: double.infinity, child: boton) : boton;
   }
