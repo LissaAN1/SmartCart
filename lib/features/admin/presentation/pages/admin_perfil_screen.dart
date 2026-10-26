@@ -6,7 +6,17 @@ import '../widgets/admin_widgets.dart';
 class AdminPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  const AdminPerfilScreen({super.key, this.onTab, this.onCerrarSesion});
+  final String nombre;
+  final String correo;
+  final String? telefono;
+  const AdminPerfilScreen({
+    super.key,
+    this.onTab,
+    this.onCerrarSesion,
+    required this.nombre,
+    required this.correo,
+    this.telefono,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +32,9 @@ class AdminPerfilScreen extends StatelessWidget {
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: 'Carlos Mendoza',
+            nombre: nombre,
             insignia: Icons.admin_panel_settings_outlined,
-            ubicacion: 'Bogotá, Colombia',
-            etiquetas: [EtiquetaEstado.marca('Super Administrador')],
+            etiquetas: [EtiquetaEstado.marca('Administrador')],
           ),
           const SizedBox(height: 22),
 
@@ -74,19 +83,19 @@ class AdminPerfilScreen extends StatelessWidget {
 
           // ══ CONTACTO ══
           const TituloSeccion(titulo: 'INFORMACIÓN DE CONTACTO'),
-          const TarjetaSuave(
+          TarjetaSuave(
             radio: 22,
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             child: Column(
               children: [
                 FilaContacto(
                     icono: Icons.mail_outline,
                     etiqueta: 'Correo electrónico',
-                    valor: 'c.mendoza@smartcart.com.co'),
+                    valor: correo),
                 FilaContacto(
                     icono: Icons.phone_iphone,
                     etiqueta: 'Teléfono de contacto',
-                    valor: '+57 310 456 7890'),
+                    valor: telefono ?? 'No registrado'),
               ],
             ),
           ),

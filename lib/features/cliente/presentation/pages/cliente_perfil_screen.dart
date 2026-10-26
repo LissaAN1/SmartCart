@@ -6,7 +6,15 @@ import '../widgets/cliente_widgets.dart';
 class ClientePerfilScreen extends StatefulWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  const ClientePerfilScreen({super.key, this.onTab, this.onCerrarSesion});
+  final String nombre;
+  final String correo;
+  const ClientePerfilScreen({
+    super.key,
+    this.onTab,
+    this.onCerrarSesion,
+    required this.nombre,
+    required this.correo,
+  });
 
   @override
   State<ClientePerfilScreen> createState() => _ClientePerfilScreenState();
@@ -31,11 +39,10 @@ class _ClientePerfilScreenState extends State<ClientePerfilScreen> {
         children: [
           // ══ CABECERA ══
           CabeceraPerfilCliente(
-            nombre: 'Camila R.',
-            correo: 'camila.rodriguez@smartcart.co',
+            nombre: widget.nombre,
+            correo: widget.correo,
             etiquetas: [
-              EtiquetaEstado.marca('Usuario Premium'),
-              EtiquetaEstado.marca('Bogotá, CL', contorno: true),
+              EtiquetaEstado.marca('Cliente'),
             ],
           ),
           const SizedBox(height: 26),

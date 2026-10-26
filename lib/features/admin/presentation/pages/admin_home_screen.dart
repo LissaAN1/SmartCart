@@ -6,7 +6,8 @@ import '../widgets/admin_widgets.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
-  const AdminHomeScreen({super.key, this.onTab});
+  final String nombre;
+  const AdminHomeScreen({super.key, this.onTab, required this.nombre});
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +17,9 @@ class AdminHomeScreen extends StatelessWidget {
       navItems: navAdmin(pendientes: 12),
       tabActiva: 0,
       onTab: onTab,
-      barraSuperior: const BarraMarca(
+      barraSuperior: BarraMarca(
         iconoLogo: Icons.shopping_basket_outlined,
-        trailing: AvatarPerfil(radio: 22, nombre: 'Carlos Mendoza', enLinea: true),
+        trailing: AvatarPerfil(radio: 22, nombre: nombre, enLinea: true),
       ),
       cuerpo: ListView(
         padding: const EdgeInsets.fromLTRB(16, 22, 16, 32),

@@ -14,6 +14,9 @@ class PantallaRol extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final Widget? fab;
 
+  /// Ancho máximo del contenido en pantallas grandes.
+  static const double anchoMaximo = 640;
+
   const PantallaRol({
     super.key,
     required this.tema,
@@ -32,7 +35,19 @@ class PantallaRol extends StatelessWidget {
       child: Scaffold(
         backgroundColor: tema.fondo,
         appBar: barraSuperior,
-        body: SafeArea(top: barraSuperior == null, bottom: false, child: cuerpo),
+        // En tablet y escritorio centramos el contenido con un ancho máximo
+        // para que las listas no se estiren de lado a lado.
+        body: SafeArea(
+          top: barraSuperior == null,
+          bottom: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: anchoMaximo),
+              child: cuerpo,
+            ),
+          ),
+        ),
         floatingActionButton: fab,
         bottomNavigationBar: navItems.isEmpty
             ? null

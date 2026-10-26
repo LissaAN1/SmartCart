@@ -1,6 +1,7 @@
 // lib/src/core/ui/roles/roles_ui.dart
 // Barril del kit visual compartido por los 5 roles.
 export 'pantalla_rol.dart';
+export 'perfil_visual.dart';
 export 'tema_rol.dart';
 export 'widgets/avatar_perfil.dart';
 export 'widgets/banners.dart';

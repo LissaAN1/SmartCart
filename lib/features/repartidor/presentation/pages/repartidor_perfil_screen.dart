@@ -6,7 +6,13 @@ import '../widgets/repartidor_widgets.dart';
 class RepartidorPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  const RepartidorPerfilScreen({super.key, this.onTab, this.onCerrarSesion});
+  final String nombre;
+  const RepartidorPerfilScreen({
+    super.key,
+    this.onTab,
+    this.onCerrarSesion,
+    required this.nombre,
+  });
 
   static const _documentos = [
     ('Licencia de Conducir', EstadoDocumento.verificado),
@@ -35,10 +41,9 @@ class RepartidorPerfilScreen extends StatelessWidget {
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: 'Carlos Ramírez',
+            nombre: nombre,
             insignia: Icons.shield_outlined,
-            ubicacion: 'Bogotá, Colombia',
-            etiquetas: [EtiquetaEstado.marca('Repartidor aprobado')],
+            etiquetas: [EtiquetaEstado.marca('Repartidor')],
           ),
           const SizedBox(height: 22),
 
