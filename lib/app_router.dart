@@ -6,7 +6,7 @@ import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/home/presentation/pages/role_shell.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
 import 'package:smartcart/features/login/ui/screens/login_screen.dart';
-import 'package:smartcart/features/onboarding/presentation/pages/onboarding_placeholder_page.dart';
+import 'package:smartcart/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:smartcart/features/profile_selection/presentation/pages/profile_selection_page.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
@@ -23,7 +23,7 @@ abstract final class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final args = settings.arguments;
     final Widget page = switch (settings.name) {
-      AppRoutes.onboarding => const OnboardingPlaceholderPage(),
+      AppRoutes.onboarding => const OnboardingPage(),
       AppRoutes.login when args is UserRole => BlocProvider(
           create: (_) => LoginBloc(),
           child: LoginScreen(role: args),
