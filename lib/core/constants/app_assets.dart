@@ -8,4 +8,5 @@ abstract final class AppAssets {
   static const avatarRepartidor = 'assets/images/avatars/repartidor.png';
   static const avatarAdmin = 'assets/images/avatars/admin.png';
   static const onboardingComparacion = 'assets/images/onboarding_comparacion.png';
+  static const logoSmartcart = 'assets/images/logo_smartcart.png';
 }
