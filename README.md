@@ -4,14 +4,6 @@
 
 Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi). Es una app móvil hecha con **Flutter** y **Supabase**. Este README documenta la entrega del **Sprint 1**: registro, inicio de sesión y pantalla de resumen del perfil para cada tipo de usuario.
 
-## Entrega del Sprint 1
-
-| Ítem | Dónde está |
-|---|---|
-| Commit de entrega | [pegar aquí el link del commit] |
-| Tag de la primera versión | [pegar aquí el nombre del tag] |
-| Video del demo (máx. 2 min) | [pegar aquí el link del video] |
-
 **Objetivo del sprint.** Que una persona pueda crear su cuenta, iniciar sesión con credenciales válidas y llegar a la vista de resumen de su perfil. Lo hicimos para los cinco perfiles de la app.
 
 ## ¿Qué es SmartCart?
