@@ -307,9 +307,6 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 ## Limitaciones conocidas y pasos pendientes
 
 - **Continuar con Google** y **¿Olvidaste tu contraseña?** están en el diseño pero no están implementados: muestran un aviso. Google requiere configurar el proveedor y los enlaces de retorno en Supabase.
-- El registro de **comercio** no crea la fila en `comercio` (exige `nombre` y `direccion`, que el diseño no pide). El onboarding por perfil sigue pendiente.
-- Crear la cuenta y guardar el perfil son operaciones separadas: si falla la segunda, la cuenta queda sin perfil (la app cierra la sesión y lo avisa). No hay política para borrarla desde la app; se resuelve desde el panel de Supabase.
-- Los datos propios del colaborador (puntos, nivel) y del comercio todavía no se leen de la base de datos.
 - El paginado está como base y falta conectarlo a una lista real (ver el informe de calidad).
 - Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes.
 - `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc` y `get_it`).
