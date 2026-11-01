@@ -43,7 +43,7 @@ void main() {
     expect(find.text('ana@correo.com'), findsOneWidget);
   });
 
-  testWidgets('cerrar sesión cierra la sesión y vuelve a la selección',
+  testWidgets('cerrar sesión cierra la sesión y vuelve a la primera pantalla',
       (tester) async {
     final env = await _pumpShell(tester, UserRole.cliente);
 
@@ -52,13 +52,20 @@ void main() {
     final logout = find.text('Cerrar sesión');
     await tester.scrollUntilVisible(logout, 200,
         scrollable: find.byType(Scrollable).first);
+    // El ListView construye elementos fuera de pantalla: se asegura que el
+    // botón quede dentro del área visible antes de tocarlo.
+    await tester.ensureVisible(logout);
+    await tester.pumpAndSettle();
     await tester.tap(logout);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Salir'));
     await tester.pumpAndSettle();
 
     expect(env.auth.signOutCalls, 1);
-    expect(find.text('SELECTION'), findsOneWidget);
+    expect(find.text('INICIO'), findsOneWidget);
+    expect(find.text('SELECTION'), findsNothing);
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    expect(navigator.canPop(), isFalse);
   });
 
   for (final role in const [

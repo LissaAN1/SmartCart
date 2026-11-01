@@ -26,7 +26,7 @@ class ComercioPerfilScreen extends StatelessWidget {
         acciones: [
           IconButton(
             icon: Icon(Icons.notifications_none, color: t.texto),
-            onPressed: () {},
+            onPressed: () => mostrarProximamente(context),
           ),
         ],
       ),
@@ -59,7 +59,7 @@ class ComercioPerfilScreen extends StatelessWidget {
             titulo: 'Quejas y Reclamos',
             estilo: EstiloTitulo.grande,
             accion: 'Ver histórico',
-            onAccion: () {},
+            onAccion: () => mostrarProximamente(context),
           ),
           for (final q in _quejas) ...[
             QuejaCard(
@@ -67,7 +67,7 @@ class ComercioPerfilScreen extends StatelessWidget {
               fecha: q.fecha,
               descripcion: q.desc,
               estado: q.estado,
-              onTap: () {},
+              onTap: () => mostrarProximamente(context),
             ),
             const SizedBox(height: 14),
           ],
@@ -84,21 +84,21 @@ class ComercioPerfilScreen extends StatelessWidget {
                   icono: Icons.store_mall_directory_outlined,
                   titulo: 'Ajustes del Negocio',
                   subtitulo: 'Nombre, logo, categoría y dirección',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.schedule,
                   titulo: 'Horarios de atención',
                   subtitulo: 'Lun - Sáb • 7:00 a.m. - 8:00 p.m.',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.account_balance_wallet_outlined,
                   titulo: 'Métodos de Pago',
                   subtitulo: 'Cuenta para recibir tus ventas',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.help_outline,
                   titulo: 'Ayuda y Soporte',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
             ],
           ),
           const SizedBox(height: 24),

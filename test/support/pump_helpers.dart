@@ -18,6 +18,7 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.login => 'LOGIN $args',
     AppRoutes.register => 'REGISTER $args',
     AppRoutes.profileSelection => 'SELECTION',
+    AppRoutes.onboarding => 'INICIO',
     _ => null,
   };
   if (label == null) return null;

@@ -11,9 +11,11 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
   final GetMyProfileUseCase _getMyProfile;
   final SignOutUseCase _signOut;
 
-  SessionBloc({GetMyProfileUseCase? getMyProfile, SignOutUseCase? signOut})
-      : _getMyProfile = getMyProfile ?? GetMyProfileUseCase(),
-        _signOut = signOut ?? SignOutUseCase(),
+  SessionBloc({
+    required GetMyProfileUseCase getMyProfile,
+    required SignOutUseCase signOut,
+  })  : _getMyProfile = getMyProfile,
+        _signOut = signOut,
         super(const SessionState()) {
     on<SessionStarted>(_onStarted);
     on<SignOutRequested>(_onSignOutRequested);

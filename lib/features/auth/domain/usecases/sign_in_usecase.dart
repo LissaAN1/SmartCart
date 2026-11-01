@@ -1,6 +1,4 @@
 import 'package:smartcart/core/domain/user_role.dart';
-import 'package:smartcart/features/auth/data/repository/auth_repository_impl.dart';
-import 'package:smartcart/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
@@ -17,11 +15,13 @@ class SignInUseCase {
   final AuthRepository _auth;
   final ProfileRepository _profiles;
 
-  // Cada capa crea la siguiente, como en los laboratorios; los parámetros
-  // opcionales solo existen para poder probar con repositorios falsos.
-  SignInUseCase({AuthRepository? auth, ProfileRepository? profiles})
-      : _auth = auth ?? AuthRepositoryImpl(),
-        _profiles = profiles ?? ProfileRepositoryImpl();
+  // Los repositorios llegan ya armados (los ensambla `AppRouter`): el dominio
+  // solo conoce los contratos, no sus implementaciones.
+  SignInUseCase({
+    required AuthRepository auth,
+    required ProfileRepository profiles,
+  })  : _auth = auth,
+        _profiles = profiles;
 
   Future<Profile> call({
     required String email,

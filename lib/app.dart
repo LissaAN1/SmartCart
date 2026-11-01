@@ -15,6 +15,9 @@ class SmartCartApp extends StatelessWidget {
         useMaterial3: true,
       ),
       initialRoute: AppRoutes.initial,
+      onGenerateInitialRoutes: (name) => [
+        AppRouter.onGenerateRoute(RouteSettings(name: name)),
+      ],
       onGenerateRoute: AppRouter.onGenerateRoute,
     );
   }

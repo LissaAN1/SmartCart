@@ -65,7 +65,7 @@ class _RolShellState extends State<RolShell> {
       listenWhen: (previous, current) => previous.status != current.status,
       listener: (context, state) {
         if (state.status == SessionStatus.unauthenticated) {
-          context.goProfileSelection();
+          context.goInicio();
         } else if (state.status == SessionStatus.failure) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()

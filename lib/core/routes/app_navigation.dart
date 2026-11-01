@@ -25,9 +25,12 @@ extension AppNavigation on BuildContext {
     );
   }
 
-  void goProfileSelection() {
+  /// Vuelve a la primera pantalla de la app (el onboarding) y borra el resto
+  /// de la pila. Se usa al cerrar sesión: desde ahí la selección de perfil se
+  /// abre encima, así que conserva su flecha "atrás".
+  void goInicio() {
     Navigator.of(this).pushNamedAndRemoveUntil(
-      AppRoutes.profileSelection,
+      AppRoutes.initial,
       (route) => false,
     );
   }

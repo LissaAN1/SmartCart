@@ -121,12 +121,16 @@ class TarjetaEstadoSistema extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Estado del sistema',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: t.texto)),
-              const Spacer(),
+              Expanded(
+                child: Text('Estado del sistema',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: t.texto)),
+              ),
+              const SizedBox(width: 8),
               todoOk
                   ? const EtiquetaEstado.exito('Operativo')
                   : const EtiquetaEstado.pendiente('Con incidencias'),

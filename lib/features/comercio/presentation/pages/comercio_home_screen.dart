@@ -27,7 +27,7 @@ class ComercioHomeScreen extends StatelessWidget {
         acciones: [
           IconButton(
             icon: Icon(Icons.notifications_none, color: t.texto),
-            onPressed: () {},
+            onPressed: () => mostrarProximamente(context),
           ),
           const Padding(
             padding: EdgeInsets.only(left: 4),
@@ -38,7 +38,7 @@ class ComercioHomeScreen extends StatelessWidget {
       fab: FloatingActionButton(
         backgroundColor: t.primario,
         shape: const CircleBorder(),
-        onPressed: () {},
+        onPressed: () => mostrarProximamente(context),
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
       cuerpo: ListView(
@@ -72,7 +72,7 @@ class ComercioHomeScreen extends StatelessWidget {
             titulo: 'Órdenes Recientes',
             estilo: EstiloTitulo.grande,
             accion: 'Ver todas',
-            onAccion: () {},
+            onAccion: () => mostrarProximamente(context),
           ),
           for (final o in _ordenes) ...[
             OrdenComercioCard(
@@ -82,7 +82,7 @@ class ComercioHomeScreen extends StatelessWidget {
               cliente: o.cliente,
               productos: o.productos,
               total: o.total,
-              onVerDetalle: () {},
+              onVerDetalle: () => mostrarProximamente(context),
             ),
             const SizedBox(height: 14),
           ],
@@ -96,7 +96,7 @@ class ComercioHomeScreen extends StatelessWidget {
             resaltado: '20% más',
             textoDespues: '.',
             textoBoton: 'Ir al Catálogo',
-            onBoton: () {},
+            onBoton: () => mostrarProximamente(context),
           ),
         ],
       ),

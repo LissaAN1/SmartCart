@@ -62,9 +62,14 @@ class SocialLoginSection extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 10),
-                Text(
-                  'Continuar con Google',
-                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                Flexible(
+                  child: Text(
+                    'Continuar con Google',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),

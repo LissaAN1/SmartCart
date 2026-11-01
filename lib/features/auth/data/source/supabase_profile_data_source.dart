@@ -11,7 +11,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Consultamos `rol` y `usuario_rol` por separado en lugar de pedir la
 /// relación embebida para no depender de que exista la llave foránea.
 class SupabaseProfileDataSource {
-  final SupabaseClient _client = Supabase.instance.client;
+  final SupabaseClient _client;
+
+  SupabaseProfileDataSource({required SupabaseClient client})
+      : _client = client;
 
   Future<void> createProfile(Profile profile) async {
     try {

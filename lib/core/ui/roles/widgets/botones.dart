@@ -97,6 +97,25 @@ class BotonSuave extends StatelessWidget {
   }
 }
 
+/// Flecha de regreso con el estilo de las barras de SmartCart. Sin [onTap]
+/// vuelve a la pantalla anterior con `Navigator.maybePop`.
+class BotonAtras extends StatelessWidget {
+  final VoidCallback? onTap;
+
+  const BotonAtras({super.key, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    return IconButton(
+      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      icon: Icon(Icons.arrow_back_ios_new, size: 20, color: t.texto),
+      onPressed: onTap ?? () => Navigator.maybePop(context),
+    );
+  }
+}
+
 /// "Cerrar Sesión" con borde. Pide confirmación antes de llamar [onConfirmar].
 class BotonCerrarSesion extends StatelessWidget {
   final VoidCallback? onConfirmar;

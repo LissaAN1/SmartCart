@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'core/di/injector.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,8 @@ void main() async {
     url: dotenv.env['SUPABASE_URL'] ?? '',
     publishableKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
+
+  setupDependencies();
 
   runApp(const SmartCartApp());
 }

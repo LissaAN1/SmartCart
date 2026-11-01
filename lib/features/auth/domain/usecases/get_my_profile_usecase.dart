@@ -1,5 +1,3 @@
-import 'package:smartcart/features/auth/data/repository/auth_repository_impl.dart';
-import 'package:smartcart/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
 import 'package:smartcart/features/auth/domain/repository/profile_repository.dart';
@@ -10,9 +8,11 @@ class GetMyProfileUseCase {
   final AuthRepository _auth;
   final ProfileRepository _profiles;
 
-  GetMyProfileUseCase({AuthRepository? auth, ProfileRepository? profiles})
-      : _auth = auth ?? AuthRepositoryImpl(),
-        _profiles = profiles ?? ProfileRepositoryImpl();
+  GetMyProfileUseCase({
+    required AuthRepository auth,
+    required ProfileRepository profiles,
+  })  : _auth = auth,
+        _profiles = profiles;
 
   Future<Profile?> call() async {
     final user = _auth.currentUser();

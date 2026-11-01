@@ -9,8 +9,8 @@ import 'package:smartcart/features/register/ui/bloc/register_state.dart';
 class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
   final SignUpUseCase _signUp;
 
-  RegisterBloc({SignUpUseCase? signUp})
-      : _signUp = signUp ?? SignUpUseCase(),
+  RegisterBloc({required SignUpUseCase signUp})
+      : _signUp = signUp,
         super(const RegisterState()) {
     on<RegisterSubmitted>(_onSubmitted);
   }

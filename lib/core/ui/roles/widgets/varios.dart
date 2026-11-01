@@ -228,3 +228,15 @@ class PieVersion extends StatelessWidget {
     );
   }
 }
+
+/// Aviso para los botones cuya función llega en un sprint posterior: así el
+/// botón responde en vez de quedarse mudo.
+void mostrarProximamente(BuildContext context) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      const SnackBar(
+        content: Text('Esta función estará disponible próximamente.'),
+      ),
+    );
+}

@@ -42,9 +42,9 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
       barraSuperior: EncabezadoSaludo(
         nombre: widget.nombre,
         acciones: [
-          BotonCircular(icono: Icons.search, onTap: () {}),
+          BotonCircular(icono: Icons.search, onTap: () => mostrarProximamente(context)),
           BotonCircular(
-              icono: Icons.notifications_none, conPunto: true, onTap: () {}),
+              icono: Icons.notifications_none, conPunto: true, onTap: () => mostrarProximamente(context)),
         ],
       ),
       cuerpo: ListView(
@@ -53,7 +53,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
           // ══ BÚSQUEDA ══
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: BuscadorComparar(onComparar: () {}),
+            child: BuscadorComparar(onComparar: () => mostrarProximamente(context)),
           ),
 
           // ══ CATEGORÍAS ══
@@ -88,7 +88,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
               descripcion: 'Encuentra el mejor precio entre Carulla, Éxito y más.',
               textoBoton: 'Comenzar ahora',
               iconoGrande: Icons.shopping_cart_outlined,
-              onBoton: () {},
+              onBoton: () => mostrarProximamente(context),
             ),
           ),
 
@@ -98,7 +98,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
             child: TituloSeccion(
               titulo: 'OFERTAS CERCA DE TI',
               accion: 'Ver todas  ›',
-              onAccion: () {},
+              onAccion: () => mostrarProximamente(context),
             ),
           ),
           SizedBox(
@@ -118,8 +118,8 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
                     precio: o.precio,
                     precioAnterior: o.antes,
                     etiqueta: o.tag,
-                    onTap: () {},
-                    onAgregar: () {},
+                    onTap: () => mostrarProximamente(context),
+                    onAgregar: () => mostrarProximamente(context),
                   ),
                 );
               },

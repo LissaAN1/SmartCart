@@ -185,7 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             AuthTextField(
               controller: _confirmController,
               label: 'Confirmar contraseña',
-              hint: 'Repite tu contraseña',
+              hint: 'Confirma tu contraseña',
               icon: Icons.lock_outline,
               isPassword: true,
               textInputAction: TextInputAction.done,

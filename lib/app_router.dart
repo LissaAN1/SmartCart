@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartcart/core/domain/user_role.dart';
+import 'package:smartcart/core/di/injector.dart';
 import 'package:smartcart/core/routes/app_navigation.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/home/presentation/pages/role_shell.dart';
@@ -25,21 +26,21 @@ abstract final class AppRouter {
     final Widget page = switch (settings.name) {
       AppRoutes.onboarding => const OnboardingPage(),
       AppRoutes.login when args is UserRole => BlocProvider(
-          create: (_) => LoginBloc(),
+          create: (_) => sl<LoginBloc>(),
           child: LoginScreen(role: args),
         ),
       AppRoutes.register => BlocProvider(
-          create: (_) => RegisterBloc(),
+          create: (_) => sl<RegisterBloc>(),
           child: RegisterScreen(initialRole: args is UserRole ? args : null),
         ),
       AppRoutes.home when args is HomeArguments => BlocProvider(
-          create: (_) => SessionBloc(),
+          create: (_) => sl<SessionBloc>(),
           child: RolShell(rol: args.role, profile: args.profile),
         ),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.
       _ => BlocProvider(
-          create: (_) => SessionBloc()..add(SessionStarted()),
+          create: (_) => sl<SessionBloc>()..add(SessionStarted()),
           child: const ProfileSelectionPage(),
         ),
     };

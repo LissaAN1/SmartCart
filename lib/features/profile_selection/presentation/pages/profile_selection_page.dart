@@ -30,6 +30,7 @@ class ProfileSelectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tema = TemaRol.of(context);
     return BlocListener<SessionBloc, SessionState>(
       listenWhen: (previous, current) =>
           previous.status != SessionStatus.authenticated &&
@@ -42,55 +43,57 @@ class ProfileSelectionPage extends StatelessWidget {
       },
       child: Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFF3F8F6), Color(0xFFEDF2F0)],
-            ),
-          ),
+          color: tema.fondo,
           child: SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: _maxContentWidth),
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 36),
-                  children: [
-                    BlocBuilder<SessionBloc, SessionState>(
-                      buildWhen: (previous, current) =>
-                          previous.status != current.status,
-                      builder: (context, state) => SizedBox(
-                        height: 4,
-                        child: state.status == SessionStatus.loading
-                            ? const LinearProgressIndicator()
-                            : null,
-                      ),
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: _maxContentWidth),
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 36),
+                      children: [
+                        BlocBuilder<SessionBloc, SessionState>(
+                          buildWhen: (previous, current) =>
+                              previous.status != current.status,
+                          builder: (context, state) => SizedBox(
+                            height: 4,
+                            child: state.status == SessionStatus.loading
+                                ? const LinearProgressIndicator()
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 76),
+                        Text('Bienvenido',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w800,
+                                color: tema.primarioOscuro)),
+                        const SizedBox(height: 28),
+                        Text('Selecciona tu perfil para continuar',
+                            textAlign: TextAlign.center,
+                            style:
+                                TextStyle(fontSize: 16, color: tema.textoGris)),
+                        const SizedBox(height: 36),
+                        for (final perfil in PerfilVisual.todos) ...[
+                          _BotonPerfil(
+                            perfil: perfil,
+                            onTap: () => _onSelect(context, perfil),
+                          ),
+                          const SizedBox(height: 18),
+                        ],
+                        const SizedBox(height: 12),
+                      ],
                     ),
-                    const SizedBox(height: 76),
-                    const Text('Bienvenido',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F5C3F))),
-                    const SizedBox(height: 28),
-                    const Text('Selecciona tu perfil para continuar',
-                        textAlign: TextAlign.center,
-                        style:
-                            TextStyle(fontSize: 16, color: Color(0xFF4F7A68))),
-                    const SizedBox(height: 36),
-                    for (final perfil in PerfilVisual.todos) ...[
-                      _BotonPerfil(
-                        perfil: perfil,
-                        onTap: () => _onSelect(context, perfil),
-                      ),
-                      const SizedBox(height: 18),
-                    ],
-                    const SizedBox(height: 12),
-                  ],
+                  ),
                 ),
-              ),
+                // La flecha solo aparece si hay una pantalla a la que volver:
+                // después de cerrar sesión la pila se vacía y no hay a dónde ir.
+                if (Navigator.canPop(context))
+                  const Positioned(top: 0, left: 8, child: BotonAtras()),
+              ],
             ),
           ),
         ),

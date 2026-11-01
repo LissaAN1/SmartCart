@@ -9,8 +9,8 @@ import 'package:smartcart/features/login/ui/bloc/login_state.dart';
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final SignInUseCase _signIn;
 
-  LoginBloc({SignInUseCase? signIn})
-      : _signIn = signIn ?? SignInUseCase(),
+  LoginBloc({required SignInUseCase signIn})
+      : _signIn = signIn,
         super(const LoginState()) {
     on<LoginSubmitted>(_onSubmitted);
   }

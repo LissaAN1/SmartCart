@@ -70,7 +70,8 @@ class _AuthTextFieldState extends State<AuthTextField> {
                 ),
               ),
             ),
-            if (widget.labelTrailing != null) widget.labelTrailing!,
+            if (widget.labelTrailing != null)
+              Flexible(child: widget.labelTrailing!),
           ],
         ),
         const SizedBox(height: 8),

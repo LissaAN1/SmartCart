@@ -75,17 +75,17 @@ class ColaboradorPerfilScreen extends StatelessWidget {
                   icono: Icons.chat_bubble_outline,
                   titulo: 'Historial de reportes',
                   subtitulo: 'Ver precios y ofertas enviadas',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.credit_card,
                   titulo: 'Métodos de pago',
                   subtitulo: 'Retirar mis ganancias',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.share_outlined,
                   titulo: 'Referir a un amigo',
                   subtitulo: r'Gana $5.000 por invitado',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
             ],
           ),
 
@@ -96,11 +96,11 @@ class ColaboradorPerfilScreen extends StatelessWidget {
               ItemMenu(
                   icono: Icons.settings_outlined,
                   titulo: 'Ajustes de cuenta',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.help_outline,
                   titulo: 'Ayuda y Soporte',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                 icono: Icons.logout,
                 titulo: 'Cerrar sesión',

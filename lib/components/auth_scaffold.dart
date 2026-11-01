@@ -32,11 +32,7 @@ class AuthScaffold extends StatelessWidget {
           elevation: 0,
           scrolledUnderElevation: 0,
           centerTitle: true,
-          leading: IconButton(
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            icon: Icon(Icons.arrow_back_ios_new, size: 20, color: tema.texto),
-            onPressed: () => Navigator.maybePop(context),
-          ),
+          leading: const BotonAtras(),
           title: title == null
               ? null
               : Text(

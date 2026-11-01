@@ -31,9 +31,9 @@ class ColaboradorHomeScreen extends StatelessWidget {
       barraSuperior: EncabezadoSaludo(
         nombre: nombre,
         acciones: [
-          BotonCircular(icono: Icons.search, onTap: () {}),
+          BotonCircular(icono: Icons.search, onTap: () => mostrarProximamente(context)),
           BotonCircular(
-              icono: Icons.notifications_none, conPunto: true, onTap: () {}),
+              icono: Icons.notifications_none, conPunto: true, onTap: () => mostrarProximamente(context)),
         ],
       ),
       cuerpo: ListView(
@@ -45,7 +45,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
             nivel: 'Nivel Plata',
             siguienteNivel: 'Nivel Oro',
             progreso: 0.68,
-            onCanjear: () {},
+            onCanjear: () => mostrarProximamente(context),
           ),
           const SizedBox(height: 16),
 
@@ -57,7 +57,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   icono: Icons.photo_camera_outlined,
                   titulo: 'Reportar precio',
                   subtitulo: 'Foto + precio',
-                  onTap: () {},
+                  onTap: () => mostrarProximamente(context),
                 ),
               ),
               const SizedBox(width: 12),
@@ -66,7 +66,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   icono: Icons.qr_code_scanner,
                   titulo: 'Escanear',
                   subtitulo: 'Código de barras',
-                  onTap: () {},
+                  onTap: () => mostrarProximamente(context),
                 ),
               ),
             ],
@@ -76,7 +76,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
           TituloSeccion(
             titulo: 'MISIONES CERCA DE TI',
             accion: 'Ver todas',
-            onAccion: () {},
+            onAccion: () => mostrarProximamente(context),
           ),
           for (final m in _misiones) ...[
             MisionCard(
@@ -86,7 +86,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
               recompensa: m.pts,
               completados: m.hechos,
               total: m.total,
-              onTap: () {},
+              onTap: () => mostrarProximamente(context),
             ),
             const SizedBox(height: 12),
           ],
@@ -95,7 +95,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
           TituloSeccion(
             titulo: 'MIS ÚLTIMOS REPORTES',
             accion: 'Historial',
-            onAccion: () {},
+            onAccion: () => mostrarProximamente(context),
             padding: const EdgeInsets.only(top: 14, bottom: 8),
           ),
           GrupoMenu(
@@ -107,7 +107,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   precio: r.precio,
                   fecha: r.fecha,
                   estado: r.estado,
-                  onTap: () {},
+                  onTap: () => mostrarProximamente(context),
                 ),
             ],
           ),

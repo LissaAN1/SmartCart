@@ -65,17 +65,17 @@ class _ClientePerfilScreenState extends State<ClientePerfilScreen> {
                   icono: Icons.history,
                   titulo: 'Historial de compras',
                   subtitulo: 'Ver transacciones pasadas',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.chat_bubble_outline,
                   titulo: 'Reportar una queja',
                   subtitulo: 'Soporte técnico e incidencias',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.credit_card,
                   titulo: 'Métodos de pago',
                   subtitulo: 'Visa **** 4242',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
             ],
           ),
 
@@ -88,16 +88,16 @@ class _ClientePerfilScreenState extends State<ClientePerfilScreen> {
                   icono: Icons.notifications_none,
                   titulo: 'Notificaciones',
                   subtitulo: 'Alertas y promociones',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.settings_outlined,
                   titulo: 'Ajustes de cuenta',
                   subtitulo: 'Privacidad y seguridad',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.help_outline,
                   titulo: 'Ayuda y Soporte',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                 icono: Icons.logout,
                 titulo: 'Cerrar sesión',

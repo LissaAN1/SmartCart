@@ -1,4 +1,3 @@
-// lib/src/features/repartidor/ui/screens/repartidor_perfil_screen.dart
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/repartidor_widgets.dart';
@@ -77,12 +76,12 @@ class RepartidorPerfilScreen extends StatelessWidget {
             icono: Icons.description_outlined,
             estilo: EstiloTitulo.grande,
             accion: 'ACTUALIZAR',
-            onAccion: () {},
+            onAccion: () => mostrarProximamente(context),
           ),
           GrupoMenu(
             items: [
               for (final d in _documentos)
-                DocumentoItem(nombre: d.$1, estado: d.$2, onTap: () {}),
+                DocumentoItem(nombre: d.$1, estado: d.$2, onTap: () => mostrarProximamente(context)),
             ],
           ),
 
@@ -92,7 +91,7 @@ class RepartidorPerfilScreen extends StatelessWidget {
             icono: Icons.history,
             estilo: EstiloTitulo.grande,
             accion: 'VER TODO',
-            onAccion: () {},
+            onAccion: () => mostrarProximamente(context),
           ),
           GrupoMenu(
             items: [
@@ -102,7 +101,7 @@ class RepartidorPerfilScreen extends StatelessWidget {
                   destino: e.destino,
                   fecha: e.fecha,
                   valor: e.valor,
-                  onTap: () {},
+                  onTap: () => mostrarProximamente(context),
                 ),
             ],
           ),
@@ -115,16 +114,16 @@ class RepartidorPerfilScreen extends StatelessWidget {
                   icono: Icons.two_wheeler,
                   titulo: 'Mi vehículo',
                   subtitulo: 'Moto • ABC-12D',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.account_balance_outlined,
                   titulo: 'Cuenta para pagos',
                   subtitulo: 'Retirar saldo disponible',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.help_outline,
                   titulo: 'Ayuda y Soporte',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
             ],
           ),
           const SizedBox(height: 24),

@@ -30,8 +30,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _terminar() {
-    // Con pushReplacement el botón "atrás" no regresa a la bienvenida.
-    Navigator.pushReplacementNamed(context, AppRoutes.profileSelection);
+    // Con pushNamed la selección de perfil queda encima de esta pantalla y su
+    // flecha "atrás" vuelve a la segunda bienvenida.
+    Navigator.pushNamed(context, AppRoutes.profileSelection);
   }
 
   @override
@@ -48,7 +49,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
           onPageChanged: (i) => setState(() => _pagina = i),
           children: [
             PantallaBienvenida(onContinuar: () => _irA(1)),
-            PantallaComparacion(onSiguiente: _terminar),
+            PantallaComparacion(
+              onSiguiente: _terminar,
+              onAtras: () => _irA(0),
+            ),
           ],
         ),
       ),

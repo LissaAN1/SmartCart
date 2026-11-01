@@ -1,6 +1,4 @@
 import 'package:smartcart/core/domain/user_role.dart';
-import 'package:smartcart/features/auth/data/repository/auth_repository_impl.dart';
-import 'package:smartcart/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
@@ -17,9 +15,11 @@ class SignUpUseCase {
   final AuthRepository _auth;
   final ProfileRepository _profiles;
 
-  SignUpUseCase({AuthRepository? auth, ProfileRepository? profiles})
-      : _auth = auth ?? AuthRepositoryImpl(),
-        _profiles = profiles ?? ProfileRepositoryImpl();
+  SignUpUseCase({
+    required AuthRepository auth,
+    required ProfileRepository profiles,
+  })  : _auth = auth,
+        _profiles = profiles;
 
   Future<Profile> call({
     required String fullName,

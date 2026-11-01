@@ -5,7 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Único archivo que habla con Supabase Auth.
 class SupabaseAuthDataSource {
-  final SupabaseClient _client = Supabase.instance.client;
+  final SupabaseClient _client;
+
+  SupabaseAuthDataSource({required SupabaseClient client}) : _client = client;
 
   Future<AppUser> signUp({
     required String email,

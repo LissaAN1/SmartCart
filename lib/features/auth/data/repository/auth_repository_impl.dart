@@ -4,7 +4,10 @@ import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
 
 /// Cumple AuthRepository delegando en el data source de Supabase.
 class AuthRepositoryImpl implements AuthRepository {
-  final SupabaseAuthDataSource _dataSource = SupabaseAuthDataSource();
+  final SupabaseAuthDataSource _dataSource;
+
+  AuthRepositoryImpl({required SupabaseAuthDataSource dataSource})
+      : _dataSource = dataSource;
 
   @override
   Future<AppUser> signUp({required String email, required String password}) {

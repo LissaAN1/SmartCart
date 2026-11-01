@@ -4,7 +4,10 @@ import 'package:smartcart/features/auth/domain/repository/profile_repository.dar
 
 /// Cumple ProfileRepository delegando en el data source de Supabase.
 class ProfileRepositoryImpl implements ProfileRepository {
-  final SupabaseProfileDataSource _dataSource = SupabaseProfileDataSource();
+  final SupabaseProfileDataSource _dataSource;
+
+  ProfileRepositoryImpl({required SupabaseProfileDataSource dataSource})
+      : _dataSource = dataSource;
 
   @override
   Future<void> createProfile(Profile profile) {

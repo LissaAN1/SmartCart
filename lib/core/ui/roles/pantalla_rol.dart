@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'tema_rol.dart';
 import 'widgets/avatar_perfil.dart';
+import 'widgets/botones.dart';
 
 class PantallaRol extends StatelessWidget {
   final TemaRol tema;
@@ -187,10 +188,7 @@ class BarraTituloRol extends StatelessWidget implements PreferredSizeWidget {
       toolbarHeight: 60,
       automaticallyImplyLeading: false,
       leading: mostrarAtras
-          ? IconButton(
-              icon: Icon(Icons.arrow_back_ios_new, size: 20, color: t.texto),
-              onPressed: onAtras ?? () => Navigator.maybePop(context),
-            )
+          ? BotonAtras(onTap: onAtras)
           : null,
       title: Text(titulo,
           style: TextStyle(

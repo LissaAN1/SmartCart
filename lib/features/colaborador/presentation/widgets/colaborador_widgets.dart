@@ -57,13 +57,17 @@ class TarjetaPuntos extends StatelessWidget {
             children: [
               const Icon(Icons.stars_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 6),
-              Text('MIS SMARTPOINTS',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 12,
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w600)),
-              const Spacer(),
+              Expanded(
+                child: Text('MIS SMARTPOINTS',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

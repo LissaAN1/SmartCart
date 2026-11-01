@@ -67,17 +67,17 @@ class AdminPerfilScreen extends StatelessWidget {
                   icono: Icons.people_outline,
                   titulo: 'Gestionar cadenas registradas',
                   subtitulo: 'Ver y administrar cadenas',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.extension_outlined,
                   titulo: 'Integraciones',
                   subtitulo: 'Configurar servicios de terceros',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.settings_outlined,
                   titulo: 'Ajustes',
                   subtitulo: 'Preferencias generales del sistema',
-                  onTap: () {}),
+                  onTap: () => mostrarProximamente(context)),
             ],
           ),
 

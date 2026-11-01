@@ -56,18 +56,34 @@ class OrdenComercioCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(codigo,
-                  style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: t.texto)),
+              Flexible(
+                child: Text(codigo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: t.texto)),
+              ),
               const SizedBox(width: 10),
               estado.etiqueta,
-              const Spacer(),
-              Icon(Icons.schedule, size: 15, color: t.textoGris),
-              const SizedBox(width: 4),
-              Text(hace, style: TextStyle(fontSize: 13, color: t.textoGris)),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(Icons.schedule, size: 15, color: t.textoGris),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(hace,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              TextStyle(fontSize: 13, color: t.textoGris)),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),

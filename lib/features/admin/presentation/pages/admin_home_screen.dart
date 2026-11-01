@@ -93,7 +93,7 @@ class AdminHomeScreen extends StatelessWidget {
                   EstadoServicio.degradado,
                   icono: Icons.notifications_none),
             ],
-            onVerHistorial: () {},
+            onVerHistorial: () => mostrarProximamente(context),
           ),
 
           // ══ ACCESOS RÁPIDOS ══
@@ -106,28 +106,28 @@ class AdminHomeScreen extends StatelessWidget {
             titulo: 'Aprobaciones',
             subtitulo: 'Comercios y repartidores pendientes',
             contador: 12,
-            onTap: () {},
+            onTap: () => mostrarProximamente(context),
           ),
           const SizedBox(height: 12),
           AccesoRapidoCard(
             icono: Icons.shield_outlined,
             titulo: 'Moderación',
             subtitulo: 'Revisión de productos reportados',
-            onTap: () {},
+            onTap: () => mostrarProximamente(context),
           ),
           const SizedBox(height: 12),
           AccesoRapidoCard(
             icono: Icons.error_outline,
             titulo: 'Quejas',
             subtitulo: 'Gestión de reclamos activos',
-            onTap: () {},
+            onTap: () => mostrarProximamente(context),
           ),
           const SizedBox(height: 12),
           AccesoRapidoCard(
             icono: Icons.card_giftcard,
             titulo: 'Incentivos',
             subtitulo: 'Configuración de puntos y niveles',
-            onTap: () {},
+            onTap: () => mostrarProximamente(context),
           ),
           const SizedBox(height: 24),
 
@@ -138,7 +138,7 @@ class AdminHomeScreen extends StatelessWidget {
             descripcion: 'Hay 12 solicitudes de aprobación de comercios que '
                 "expiran en menos de 24 horas. Prioriza la revisión de "
                 "'Mercados Express'.",
-            onTap: () {},
+            onTap: () => mostrarProximamente(context),
           ),
         ],
       ),
