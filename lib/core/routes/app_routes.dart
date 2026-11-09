@@ -8,6 +8,9 @@ abstract final class AppRoutes {
   static const register = '/register';
   static const home = '/home';
 
+  /// HU-06: guía y condiciones para activar el modo Colaborador.
+  static const colaboradorOnboarding = '/colaborador-onboarding';
+
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con
   /// cambiar esta constante por [onboarding].

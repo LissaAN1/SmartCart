@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/domain/approval_status.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/repartidor_widgets.dart';
 
@@ -6,11 +7,16 @@ class RepartidorPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
   final String nombre;
+
+  /// Estado de aprobación del registro (HU-08).
+  final ApprovalStatus estado;
+
   const RepartidorPerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
     required this.nombre,
+    required this.estado,
   });
 
   static const _documentos = [
@@ -42,7 +48,15 @@ class RepartidorPerfilScreen extends StatelessWidget {
           EncabezadoPerfil(
             nombre: nombre,
             insignia: Icons.shield_outlined,
-            etiquetas: [EtiquetaEstado.marca('Repartidor')],
+            etiquetas: [
+              EtiquetaEstado.marca('Repartidor'),
+              switch (estado) {
+                ApprovalStatus.aprobado => EtiquetaEstado.exito(estado.label),
+                ApprovalStatus.pendiente =>
+                  EtiquetaEstado.pendiente(estado.label),
+                ApprovalStatus.rechazado => EtiquetaEstado.error(estado.label),
+              },
+            ],
           ),
           const SizedBox(height: 22),
 

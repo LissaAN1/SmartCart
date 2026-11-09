@@ -1,17 +1,23 @@
 // lib/src/features/colaborador/ui/screens/colaborador_perfil_screen.dart
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
+import '../../../auth/domain/entities/collaborator_stats.dart';
 import '../widgets/colaborador_widgets.dart';
 
 class ColaboradorPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
   final String nombre;
+
+  /// Puntos, nivel y reputación de la fila `perfil_colaborador`.
+  final CollaboratorStats estadisticas;
+
   const ColaboradorPerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
     required this.nombre,
+    this.estadisticas = CollaboratorStats.initial,
   });
 
   @override
@@ -44,10 +50,12 @@ class ColaboradorPerfilScreen extends StatelessWidget {
 
           // ══ ESTADÍSTICAS ══
           TarjetaEstadisticas(
-            items: const [
-              Estadistica(Icons.receipt_long_outlined, '86', 'Reportes'),
-              Estadistica(Icons.stars_outlined, '2.450', 'Puntos'),
-              Estadistica(Icons.verified_outlined, '97%', 'Precisión'),
+            items: [
+              Estadistica(Icons.stars_outlined, '${estadisticas.points}', 'Puntos'),
+              Estadistica(
+                  Icons.military_tech_outlined, '${estadisticas.level}', 'Nivel'),
+              Estadistica(Icons.verified_outlined, estadisticas.reputationLabel,
+                  'Reputación'),
             ],
             pie: Row(
               children: [

@@ -4,6 +4,11 @@ import 'package:smartcart/core/domain/user_role.dart';
 import 'package:smartcart/core/di/injector.dart';
 import 'package:smartcart/core/routes/app_navigation.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
+import 'package:smartcart/features/auth/domain/entities/profile.dart';
+import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
+import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
+import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
+import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/home/presentation/pages/role_shell.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
 import 'package:smartcart/features/login/ui/screens/login_screen.dart';
@@ -33,8 +38,20 @@ abstract final class AppRouter {
           create: (_) => sl<RegisterBloc>(),
           child: RegisterScreen(initialRole: args is UserRole ? args : null),
         ),
-      AppRoutes.home when args is HomeArguments => BlocProvider(
-          create: (_) => sl<SessionBloc>(),
+      AppRoutes.colaboradorOnboarding => BlocProvider(
+          create: (_) => sl<ColaboradorOnboardingBloc>(),
+          child: const ColaboradorOnboardingPage(),
+        ),
+      AppRoutes.home when args is HomeArguments => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => sl<SessionBloc>()),
+            // HU-07: solo el comercio necesita saber si ya registró su
+            // establecimiento y en qué estado está.
+            if (args.role == UserRole.comercio)
+              BlocProvider(
+                create: (_) => sl<ComercioBloc>()..add(ComercioStarted()),
+              ),
+          ],
           child: RolShell(rol: args.role, profile: args.profile),
         ),
       // La selección de perfil también es el destino por defecto: una ruta
@@ -44,6 +61,11 @@ abstract final class AppRouter {
           child: const ProfileSelectionPage(),
         ),
     };
+    // El onboarding del colaborador devuelve el perfil actualizado al cerrarse
+    // (`Navigator.pop(context, profile)`), así que su ruta lleva ese tipo.
+    if (settings.name == AppRoutes.colaboradorOnboarding) {
+      return MaterialPageRoute<Profile>(builder: (_) => page, settings: settings);
+    }
     return MaterialPageRoute<void>(builder: (_) => page, settings: settings);
   }
 }

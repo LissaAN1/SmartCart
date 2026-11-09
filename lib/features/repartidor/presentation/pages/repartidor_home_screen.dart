@@ -1,12 +1,22 @@
 // lib/src/features/repartidor/ui/screens/repartidor_home_screen.dart
 // Home del REPARTIDOR ("Panel del Mensajero"). Solo UI con datos de ejemplo.
 import 'package:flutter/material.dart';
+import '../../../../core/domain/approval_status.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/repartidor_widgets.dart';
 
 class RepartidorHomeScreen extends StatefulWidget {
   final ValueChanged<int>? onTab;
-  const RepartidorHomeScreen({super.key, this.onTab});
+
+  /// HU-08: mientras no esté aprobado no puede activar su disponibilidad ni
+  /// ver pedidos; solo ve el estado de su registro.
+  final ApprovalStatus estado;
+
+  const RepartidorHomeScreen({
+    super.key,
+    this.onTab,
+    required this.estado,
+  });
 
   @override
   State<RepartidorHomeScreen> createState() => _RepartidorHomeScreenState();
@@ -22,6 +32,7 @@ class _RepartidorHomeScreenState extends State<RepartidorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.estado != ApprovalStatus.aprobado) return _buildRegistro();
     return PantallaRol(
       tema: TemaRol.repartidor,
       navItems: navRepartidor,
@@ -95,6 +106,43 @@ class _RepartidorHomeScreenState extends State<RepartidorHomeScreen> {
             titulo: 'Nueva tarifa dinámica activa (+15%)',
             descripcion: 'Válido para las próximas 2 horas',
             onTap: () => mostrarProximamente(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Bienvenida con el estado del registro (pendiente o rechazado).
+  Widget _buildRegistro() {
+    final rechazado = widget.estado == ApprovalStatus.rechazado;
+    return PantallaRol(
+      tema: TemaRol.repartidor,
+      navItems: navRepartidor,
+      tabActiva: 0,
+      onTab: widget.onTab,
+      barraSuperior: const BarraTituloRol(titulo: 'Panel del Mensajero'),
+      cuerpo: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+        children: [
+          const Text('¡Bienvenido a SmartCart!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: rechazado
+                ? EtiquetaEstado.error(widget.estado.label)
+                : EtiquetaEstado.pendiente(widget.estado.label),
+          ),
+          const SizedBox(height: 16),
+          AvisoDestacado(
+            icono: rechazado ? Icons.highlight_off : Icons.hourglass_top_rounded,
+            titulo: rechazado
+                ? 'Tu registro no fue aprobado'
+                : 'Tu registro será revisado por el administrador',
+            descripcion: rechazado
+                ? 'Contacta al equipo de SmartCart para más información.'
+                : 'Cuando te aprueben podrás activar tu disponibilidad y '
+                    'recibir solicitudes de entrega.',
           ),
         ],
       ),
