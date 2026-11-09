@@ -54,7 +54,14 @@ class _RolShellState extends State<RolShell> {
         RolTema.admin => 5,
       };
 
+  /// Pestaña "Aprobar" del administrador (HU-24).
+  static const _tabAprobarAdmin = 1;
+
   void _onTab(int i) {
+    if (_tema == RolTema.admin && i == _tabAprobarAdmin) {
+      _abrirAprobaciones();
+      return;
+    }
     final perfil = i == _tabPerfil;
     if (!perfil && i != 0) {
       ScaffoldMessenger.of(context)
@@ -75,6 +82,10 @@ class _RolShellState extends State<RolShell> {
     }
   }
 
+  /// HU-24: lista de comercios y repartidores pendientes de aprobación.
+  void _abrirAprobaciones() =>
+      Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+
   void _salir() => context.read<SessionBloc>().add(SignOutRequested());
 
   @override
@@ -84,6 +95,11 @@ class _RolShellState extends State<RolShell> {
       listener: (context, state) {
         if (state.status == SessionStatus.unauthenticated) {
           context.goInicio();
+        } else if (state.status == SessionStatus.authenticated &&
+            state.profile != null) {
+          // Perfil releído con "Actualizar estado" (por ejemplo, el
+          // administrador ya aprobó al repartidor).
+          setState(() => _profile = state.profile!);
         } else if (state.status == SessionStatus.failure) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -91,15 +107,38 @@ class _RolShellState extends State<RolShell> {
                 content: Text(state.errorMessage ?? 'No pudimos cerrar la sesión.')));
         }
       },
-      child: _tema == RolTema.comercio
-          ? ComercioGate(onCerrarSesion: _salir, child: _pantalla())
-          : _pantalla(),
+      child: switch (_tema) {
+        RolTema.comercio =>
+          ComercioGate(onCerrarSesion: _salir, child: _pantalla()),
+        // HU-08: un repartidor sin aprobar solo ve el estado de su registro;
+        // ni el Home ni el Perfil (ni la barra para llegar a ellos).
+        RolTema.repartidor when _estadoRepartidor != ApprovalStatus.aprobado =>
+          _estadoRegistroRepartidor(),
+        _ => _pantalla(),
+      },
     );
   }
 
   /// Sin dato se asume pendiente: es lo más restrictivo (HU-08).
   ApprovalStatus get _estadoRepartidor =>
       _profile.courierStatus ?? ApprovalStatus.pendiente;
+
+  Widget _estadoRegistroRepartidor() {
+    final actualizando = context.select<SessionBloc, bool>(
+      (bloc) => bloc.state.status == SessionStatus.loading,
+    );
+    return RepartidorEstadoPage(
+      estado: _estadoRepartidor,
+      nombre: _profile.fullName,
+      correo: _profile.email,
+      telefono: _profile.phone,
+      motivoRechazo: _profile.courierRejectionReason,
+      actualizando: actualizando,
+      onActualizar: () =>
+          context.read<SessionBloc>().add(ProfileRefreshRequested()),
+      onCerrarSesion: _salir,
+    );
+  }
 
   Widget _pantalla() {
     final p = _profile;
@@ -121,8 +160,8 @@ class _RolShellState extends State<RolShell> {
           onCerrarSesion: _salir,
           nombre: p.fullName,
           estadisticas: p.collaborator ?? CollaboratorStats.initial),
-      (RolTema.repartidor, false) =>
-        RepartidorHomeScreen(onTab: _onTab, estado: _estadoRepartidor),
+      // Aquí solo llega un repartidor aprobado (ver `build`).
+      (RolTema.repartidor, false) => RepartidorHomeScreen(onTab: _onTab),
       (RolTema.repartidor, true) => RepartidorPerfilScreen(
           onTab: _onTab,
           onCerrarSesion: _salir,
@@ -131,8 +170,10 @@ class _RolShellState extends State<RolShell> {
       (RolTema.comercio, false) => ComercioHomeScreen(onTab: _onTab),
       (RolTema.comercio, true) =>
         ComercioPerfilScreen(onTab: _onTab, onCerrarSesion: _salir),
-      (RolTema.admin, false) =>
-        AdminHomeScreen(onTab: _onTab, nombre: p.fullName),
+      (RolTema.admin, false) => AdminHomeScreen(
+          onTab: _onTab,
+          nombre: p.fullName,
+          onAbrirAprobaciones: _abrirAprobaciones),
       (RolTema.admin, true) => AdminPerfilScreen(
           onTab: _onTab,
           onCerrarSesion: _salir,

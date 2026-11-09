@@ -23,7 +23,7 @@ class AdminPerfilScreen extends StatelessWidget {
     final t = TemaRol.admin;
     return PantallaRol(
       tema: t,
-      navItems: navAdmin(pendientes: 12),
+      navItems: navAdmin(),
       tabActiva: 5,
       onTab: onTab,
       barraSuperior: const BarraTituloRol(titulo: 'Mi Perfil'),

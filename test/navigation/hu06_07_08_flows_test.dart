@@ -7,6 +7,7 @@ import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/auth/domain/entities/app_user.dart';
 import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
+import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -370,16 +371,121 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('su perfil muestra el estado pendiente', (tester) async {
+    testWidgets(
+        'solo ve el estado de su registro: sin barra, sin Perfil ni datos '
+        'de ejemplo', (tester) async {
       await _pumpShell(
         tester,
         role: UserRole.repartidor,
         profile: profileWith({UserRole.repartidor},
             courierStatus: ApprovalStatus.pendiente),
       );
-      await _abrirPerfil(tester);
 
       expect(find.text('Pendiente de aprobación'), findsOneWidget);
+      // Sus datos reales del registro.
+      expect(find.text('Ana María Gómez'), findsOneWidget);
+      expect(find.text('ana@correo.com'), findsOneWidget);
+      // Nada más: ni pestañas ni la información de ejemplo del perfil.
+      expect(find.text('Perfil'), findsNothing);
+      expect(find.text('Inicio'), findsNothing);
+      expect(find.text('Saldo Disponible'), findsNothing);
+      expect(find.text('Historial de Entregas'), findsNothing);
+      expect(find.text('Actualizar estado'), findsOneWidget);
+      expect(find.text('Cerrar Sesión'), findsOneWidget);
+    });
+
+    testWidgets('puede cerrar sesión desde la pantalla de revisión',
+        (tester) async {
+      final env = await _pumpShell(
+        tester,
+        role: UserRole.repartidor,
+        profile: profileWith({UserRole.repartidor},
+            courierStatus: ApprovalStatus.pendiente),
+      );
+
+      await tester.tap(find.text('Cerrar Sesión'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Salir'));
+      await tester.pumpAndSettle();
+
+      expect(env.auth.signOutCalls, 1);
+      expect(find.text('INICIO'), findsOneWidget);
+    });
+
+    testWidgets('al actualizar el estado, si ya lo aprobaron entra a su panel',
+        (tester) async {
+      final env = await _pumpShell(
+        tester,
+        role: UserRole.repartidor,
+        profile: profileWith({UserRole.repartidor},
+            courierStatus: ApprovalStatus.pendiente),
+      );
+      // Mientras tanto, el administrador lo aprobó.
+      env.profiles.stored = profileWith({UserRole.repartidor},
+          courierStatus: ApprovalStatus.aprobado);
+
+      await tester.tap(find.text('Actualizar estado'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Estás en línea'), findsOneWidget);
+      expect(find.text('Perfil'), findsOneWidget);
+    });
+
+    testWidgets('si sigue pendiente se queda en la revisión', (tester) async {
+      final env = await _pumpShell(
+        tester,
+        role: UserRole.repartidor,
+        profile: profileWith({UserRole.repartidor},
+            courierStatus: ApprovalStatus.pendiente),
+      );
+      env.profiles.stored = profileWith({UserRole.repartidor},
+          courierStatus: ApprovalStatus.pendiente);
+
+      await tester.tap(find.text('Actualizar estado'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tu registro será revisado por el administrador'),
+          findsOneWidget);
+    });
+
+    testWidgets('si no se puede actualizar avisa y no cierra la sesión',
+        (tester) async {
+      final env = await _pumpShell(
+        tester,
+        role: UserRole.repartidor,
+        profile: profileWith({UserRole.repartidor},
+            courierStatus: ApprovalStatus.pendiente),
+      );
+      env.profiles.getError = const AuthFailure('sin red');
+
+      await tester.tap(find.text('Actualizar estado'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No pudimos actualizar tu estado. Inténtalo de nuevo.'),
+          findsOneWidget);
+      expect(find.text('Tu registro será revisado por el administrador'),
+          findsOneWidget);
+      expect(env.auth.signOutCalls, 0);
+    });
+
+    testWidgets('un repartidor rechazado ve el motivo y solo puede salir',
+        (tester) async {
+      await _pumpShell(
+        tester,
+        role: UserRole.repartidor,
+        profile: profileWith(
+          {UserRole.repartidor},
+          courierStatus: ApprovalStatus.rechazado,
+          courierRejectionReason: 'La foto del documento no se ve.',
+        ),
+      );
+
+      expect(find.text('Tu registro no fue aprobado'), findsOneWidget);
+      expect(find.text('Motivo: La foto del documento no se ve.'),
+          findsOneWidget);
+      expect(find.text('Actualizar estado'), findsNothing);
+      expect(find.text('Perfil'), findsNothing);
+      expect(find.text('Cerrar Sesión'), findsOneWidget);
     });
 
     testWidgets('un repartidor aprobado ve su disponibilidad', (tester) async {

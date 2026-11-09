@@ -135,6 +135,8 @@ class SupabaseProfileDataSource {
           .from(SupabaseTables.rol)
           .select('${SupabaseColumns.rolId}, ${SupabaseColumns.rolCodigo}');
       final roles = _toRoles(assigned, catalog);
+      final courier =
+          roles.contains(UserRole.repartidor) ? await _courier(id) : null;
 
       return Profile(
         id: row[SupabaseColumns.usuarioId] as String,
@@ -145,9 +147,8 @@ class SupabaseProfileDataSource {
         collaborator: roles.contains(UserRole.colaborador)
             ? await _collaboratorStats(id)
             : null,
-        courierStatus: roles.contains(UserRole.repartidor)
-            ? await _courierStatus(id)
-            : null,
+        courierStatus: courier?.status,
+        courierRejectionReason: courier?.motivo,
       );
     } on AuthFailure {
       rethrow;
@@ -183,19 +184,28 @@ class SupabaseProfileDataSource {
   /// Estado de aprobación del repartidor. Ante la duda (sin fila, estado
   /// desconocido o error de lectura) se considera pendiente: es el estado
   /// más restrictivo y nunca habilita la disponibilidad por error.
-  Future<ApprovalStatus> _courierStatus(String id) async {
+  ///
+  /// Se piden todas las columnas (y no solo `estado`) para que la lectura no
+  /// falle si `motivo_rechazo` todavía no existe en el proyecto.
+  Future<({ApprovalStatus status, String? motivo})> _courier(String id) async {
     try {
       final row = await _client
           .from(SupabaseTables.perfilRepartidor)
-          .select(SupabaseColumns.repartidorEstado)
+          .select()
           .eq(SupabaseColumns.repartidorUsuario, id)
           .maybeSingle();
-      return ApprovalStatus.fromDbName(
+      final status = ApprovalStatus.fromDbName(
               row?[SupabaseColumns.repartidorEstado] as String?) ??
           ApprovalStatus.pendiente;
+      return (
+        status: status,
+        motivo: status == ApprovalStatus.rechazado
+            ? (row?[SupabaseColumns.repartidorMotivoRechazo] as String?)
+            : null,
+      );
     } on PostgrestException catch (e) {
       developer.log('perfil_repartidor: ${e.message}', name: 'smartcart.auth');
-      return ApprovalStatus.pendiente;
+      return (status: ApprovalStatus.pendiente, motivo: null);
     }
   }
 

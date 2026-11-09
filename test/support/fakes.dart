@@ -2,6 +2,18 @@ import 'dart:async';
 
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
+import 'package:smartcart/core/pagination/paged_result.dart';
+import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/aprobaciones/domain/entities/solicitud.dart';
+import 'package:smartcart/features/aprobaciones/domain/repository/solicitudes_repository.dart';
+import 'package:smartcart/features/aprobaciones/domain/usecases/decidir_solicitud_usecase.dart';
+import 'package:smartcart/features/aprobaciones/domain/usecases/get_solicitudes_pendientes_usecase.dart';
+import 'package:smartcart/features/aprobaciones/presentation/bloc/decision_solicitud_bloc.dart';
+import 'package:smartcart/features/notificaciones/domain/entities/notificacion.dart';
+import 'package:smartcart/features/notificaciones/domain/repository/notificacion_repository.dart';
+import 'package:smartcart/features/notificaciones/domain/usecases/get_notificaciones_no_leidas_usecase.dart';
+import 'package:smartcart/features/notificaciones/domain/usecases/marcar_notificaciones_leidas_usecase.dart';
+import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/app_user.dart';
 import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
@@ -122,6 +134,7 @@ Profile profileWith(
   Set<UserRole> roles, {
   CollaboratorStats? collaborator,
   ApprovalStatus? courierStatus,
+  String? courierRejectionReason,
 }) =>
     Profile(
       id: 'u1',
@@ -131,6 +144,7 @@ Profile profileWith(
       roles: roles,
       collaborator: collaborator,
       courierStatus: courierStatus,
+      courierRejectionReason: courierRejectionReason,
     );
 
 /// Repositorio de comercios en memoria para las pruebas.
@@ -191,11 +205,123 @@ Comercio comercioConEstado(ApprovalStatus estado, {String? motivoRechazo}) =>
       motivoRechazo: motivoRechazo,
     );
 
+/// Una decisión que recibió [FakeSolicitudesRepository.decidir].
+typedef DecisionRegistrada = ({Solicitud solicitud, bool aprobar, String? motivo});
+
+/// Solicitudes pendientes en memoria (HU-24). Decidir una la quita de la
+/// lista, como pasa en la base cuando deja de estar pendiente.
+class FakeSolicitudesRepository implements SolicitudesRepository {
+  final pendientesPorTipo = <TipoSolicitud, List<Solicitud>>{
+    TipoSolicitud.comercio: [],
+    TipoSolicitud.repartidor: [],
+  };
+  final decisiones = <DecisionRegistrada>[];
+  final pedidos = <(TipoSolicitud, PageRequest)>[];
+  Object? listError;
+  Object? decidirError;
+
+  @override
+  Future<PagedResult<Solicitud>> pendientes(
+    TipoSolicitud tipo,
+    PageRequest request,
+  ) async {
+    pedidos.add((tipo, request));
+    if (listError != null) throw listError!;
+    final todas = pendientesPorTipo[tipo]!;
+    // Igual que `range(from, to)`: el `to` es inclusivo.
+    final filas = todas.skip(request.from).take(request.pageSize + 1).toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<void> decidir(
+    Solicitud solicitud, {
+    required bool aprobar,
+    String? motivo,
+  }) async {
+    if (decidirError != null) throw decidirError!;
+    decisiones.add((solicitud: solicitud, aprobar: aprobar, motivo: motivo));
+    pendientesPorTipo[solicitud.tipo]!.removeWhere((s) => s.id == solicitud.id);
+  }
+}
+
+/// Notificaciones en memoria.
+class FakeNotificacionRepository implements NotificacionRepository {
+  final noLeidasList = <Notificacion>[];
+  final marcadas = <String>[];
+  Object? getError;
+
+  @override
+  Future<List<Notificacion>> noLeidas(String userId) async {
+    if (getError != null) throw getError!;
+    return List.of(noLeidasList);
+  }
+
+  @override
+  Future<void> marcarLeidas(List<String> ids) async {
+    marcadas.addAll(ids);
+    noLeidasList.removeWhere((n) => ids.contains(n.id));
+  }
+}
+
+/// Solicitud pendiente de un comercio.
+Solicitud solicitudComercio({String id = 'c1', String nombre = 'Minimercado La Esquina'}) =>
+    Solicitud(
+      tipo: TipoSolicitud.comercio,
+      id: id,
+      idUsuario: 'dueno-$id',
+      nombre: nombre,
+      responsable: 'Pedro Pérez',
+      correo: 'pedro@correo.com',
+      telefono: '+57 300 000 0000',
+      creadoEn: DateTime(2026, 11, 2),
+      comercio: comercioConEstado(ApprovalStatus.pendiente),
+    );
+
+/// Solicitud pendiente de un repartidor.
+Solicitud solicitudRepartidor({String id = 'r1', String nombre = 'Luis Torres'}) =>
+    Solicitud(
+      tipo: TipoSolicitud.repartidor,
+      id: id,
+      idUsuario: id,
+      nombre: nombre,
+      responsable: nombre,
+      correo: 'luis@correo.com',
+      creadoEn: DateTime(2026, 11, 3),
+    );
+
 /// Agrupa los dobles y construye los Blocs con ellos.
 class TestEnv {
   final auth = FakeAuthRepository();
   final profiles = FakeProfileRepository();
   final comercios = FakeComercioRepository();
+  final solicitudes = FakeSolicitudesRepository();
+  final notificaciones = FakeNotificacionRepository();
+
+  DecidirSolicitudUseCase get decidirSolicitud => DecidirSolicitudUseCase(
+      auth: auth, profiles: profiles, solicitudes: solicitudes);
+  GetSolicitudesPendientesUseCase get getPendientes =>
+      GetSolicitudesPendientesUseCase(solicitudes: solicitudes);
+
+  /// Deja la sesión iniciada con una cuenta que tiene los [roles].
+  void iniciarSesionCon(Set<UserRole> roles) {
+    auth.current = const AppUser(id: 'u1', email: 'ana@correo.com');
+    profiles.stored = profileWith(roles);
+  }
+
+  DecisionSolicitudBloc decisionBloc(Solicitud solicitud) =>
+      DecisionSolicitudBloc(solicitud: solicitud, decidir: decidirSolicitud);
+  PaginatedBloc<Solicitud> listaBloc(TipoSolicitud tipo, {int pageSize = 20}) =>
+      PaginatedBloc<Solicitud>(
+        fetchPage: (request) => getPendientes(tipo, request),
+        pageSize: pageSize,
+      );
+  NotificacionesBloc notificacionesBloc() => NotificacionesBloc(
+        noLeidas: GetNotificacionesNoLeidasUseCase(
+            auth: auth, notificaciones: notificaciones),
+        marcarLeidas:
+            MarcarNotificacionesLeidasUseCase(notificaciones: notificaciones),
+      );
 
   SignInUseCase get signIn => SignInUseCase(auth: auth, profiles: profiles);
   SignUpUseCase get signUp => SignUpUseCase(auth: auth, profiles: profiles);

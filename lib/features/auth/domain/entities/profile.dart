@@ -23,6 +23,9 @@ class Profile {
   /// su disponibilidad.
   final ApprovalStatus? courierStatus;
 
+  /// Motivo que escribió el administrador al rechazar al repartidor (HU-24).
+  final String? courierRejectionReason;
+
   const Profile({
     required this.id,
     required this.fullName,
@@ -31,6 +34,7 @@ class Profile {
     this.phone,
     this.collaborator,
     this.courierStatus,
+    this.courierRejectionReason,
   });
 
   bool hasRole(UserRole role) => roles.contains(role);
