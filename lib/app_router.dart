@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
 import 'package:smartcart/core/di/injector.dart';
+import 'package:smartcart/features/aprobaciones/domain/entities/solicitud.dart';
+import 'package:smartcart/features/aprobaciones/presentation/bloc/decision_solicitud_bloc.dart';
+import 'package:smartcart/features/aprobaciones/presentation/pages/admin_solicitudes_page.dart';
+import 'package:smartcart/features/aprobaciones/presentation/pages/solicitud_detalle_page.dart';
+import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
+import 'package:smartcart/features/notificaciones/presentation/widgets/aviso_notificaciones.dart';
 import 'package:smartcart/core/routes/app_navigation.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
-import 'package:smartcart/features/admin/domain/entities/solicitud_aprobacion.dart';
-import 'package:smartcart/features/admin/domain/usecases/get_solicitudes_pendientes_usecase.dart';
-import 'package:smartcart/features/admin/presentation/bloc/decision_solicitud_bloc.dart';
-import 'package:smartcart/features/admin/presentation/pages/solicitud_detalle_page.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
@@ -49,22 +52,11 @@ abstract final class AppRouter {
           create: (_) => sl<ColaboradorOnboardingBloc>(),
           child: const ColaboradorOnboardingPage(),
         ),
-      AppRoutes.solicitudDetalle when args is SolicitudAprobacion => BlocProvider(
-          create: (_) => sl<DecisionSolicitudBloc>(),
-          child: SolicitudDetallePage(solicitud: args),
-        ),
       AppRoutes.home when args is HomeArguments => MultiBlocProvider(
           providers: [
             BlocProvider(create: (_) => sl<SessionBloc>()),
             // HU-07: solo el comercio necesita saber si ya registró su
             // establecimiento y en qué estado está.
-            // HU-24: la lista paginada de solicitudes pendientes del admin.
-            if (args.role == UserRole.administrador)
-              BlocProvider(
-                create: (_) => PaginatedBloc<SolicitudAprobacion>(
-                  fetchPage: sl<GetSolicitudesPendientesUseCase>().call,
-                )..add(PaginatedStarted()),
-              ),
             // La disponibilidad del repartidor es real: arranca con lo guardado.
             if (args.role == UserRole.repartidor)
               BlocProvider(
@@ -77,8 +69,23 @@ abstract final class AppRouter {
               BlocProvider(
                 create: (_) => sl<ComercioBloc>()..add(ComercioStarted()),
               ),
+            // HU-24: al entrar se muestran las notificaciones sin leer (por
+            // ejemplo, la decisión del administrador).
+            BlocProvider(
+              create: (_) =>
+                  sl<NotificacionesBloc>()..add(NotificacionesStarted()),
+            ),
           ],
-          child: RolShell(rol: args.role, profile: args.profile),
+          child: AvisoNotificaciones(
+            child: RolShell(rol: args.role, profile: args.profile),
+          ),
+        ),
+      AppRoutes.adminSolicitudes => AdminSolicitudesPage(
+          crearLista: (tipo) => sl<PaginatedBloc<Solicitud>>(param1: tipo),
+        ),
+      AppRoutes.adminSolicitudDetalle when args is Solicitud => BlocProvider(
+          create: (_) => sl<DecisionSolicitudBloc>(param1: args),
+          child: const SolicitudDetallePage(),
         ),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.
@@ -87,15 +94,16 @@ abstract final class AppRouter {
           child: const ProfileSelectionPage(),
         ),
     };
-    // El onboarding del colaborador devuelve el perfil actualizado al cerrarse
-    // (`Navigator.pop(context, profile)`), así que su ruta lleva ese tipo.
-    if (settings.name == AppRoutes.colaboradorOnboarding) {
-      return MaterialPageRoute<Profile>(builder: (_) => page, settings: settings);
-    }
-    // El detalle de una solicitud devuelve `true` cuando se decidió.
-    if (settings.name == AppRoutes.solicitudDetalle) {
-      return MaterialPageRoute<bool>(builder: (_) => page, settings: settings);
-    }
-    return MaterialPageRoute<void>(builder: (_) => page, settings: settings);
+    // Las rutas que devuelven un resultado al cerrarse llevan su tipo; si no,
+    // `pushNamed<T>` falla al recibirlo.
+    return switch (settings.name) {
+      // El onboarding devuelve el perfil ya con el rol colaborador.
+      AppRoutes.colaboradorOnboarding =>
+        MaterialPageRoute<Profile>(builder: (_) => page, settings: settings),
+      // El detalle de una solicitud devuelve la decisión tomada.
+      AppRoutes.adminSolicitudDetalle => MaterialPageRoute<ApprovalStatus>(
+          builder: (_) => page, settings: settings),
+      _ => MaterialPageRoute<void>(builder: (_) => page, settings: settings),
+    };
   }
 }

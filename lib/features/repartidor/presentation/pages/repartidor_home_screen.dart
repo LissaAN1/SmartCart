@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/repartidor_widgets.dart';
 
+/// Solo lo ve un repartidor aprobado. Mientras no lo esté, `RolShell` le
+/// muestra `RepartidorEstadoPage` en su lugar (HU-08).
 class RepartidorHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
 

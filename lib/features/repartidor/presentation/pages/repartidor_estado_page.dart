@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
 
-/// HU-08: lo único que ve el repartidor mientras el administrador no lo
-/// apruebe. Con el registro pendiente avisa que será revisado; si fue
-/// rechazado lo dice. Desde aquí solo puede volver a consultar su estado o
-/// cerrar sesión: no hay Home, Perfil ni disponibilidad hasta que lo aprueben.
+/// HU-08 / HU-24: lo único que ve un repartidor que todavía no está aprobado.
+///
+/// Sin barra de navegación ni Perfil: el repartidor no puede operar hasta que
+/// el administrador lo apruebe. Con el registro pendiente avisa que está en
+/// revisión; si fue rechazado muestra el motivo. Solo deja volver a consultar
+/// el estado o cerrar sesión. Muestra los datos reales del registro.
 class RepartidorEstadoPage extends StatelessWidget {
   final ApprovalStatus estado;
+  final String nombre;
+  final String correo;
+  final String? telefono;
+
+  /// Motivo del rechazo que escribió el administrador.
+  final String? motivoRechazo;
+
   final bool actualizando;
   final VoidCallback? onActualizar;
   final VoidCallback? onCerrarSesion;
@@ -15,6 +24,10 @@ class RepartidorEstadoPage extends StatelessWidget {
   const RepartidorEstadoPage({
     super.key,
     required this.estado,
+    required this.nombre,
+    required this.correo,
+    this.telefono,
+    this.motivoRechazo,
     this.actualizando = false,
     this.onActualizar,
     this.onCerrarSesion,
@@ -31,9 +44,9 @@ class RepartidorEstadoPage extends StatelessWidget {
     return TemaRolScope(
       tema: t,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: t.fondo,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: t.fondo,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -63,14 +76,19 @@ class RepartidorEstadoPage extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
                 children: [
                   _buildEncabezado(t),
-                  const SizedBox(height: 28),
-                  if (!_rechazado)
+                  const SizedBox(height: 24),
+                  _buildDatos(t),
+                  const SizedBox(height: 24),
+                  if (!_rechazado) ...[
                     BotonPrimario(
                       texto: 'Actualizar estado',
                       iconoFinal: Icons.refresh,
                       cargando: actualizando,
                       onTap: onActualizar,
                     ),
+                    const SizedBox(height: 12),
+                  ],
+                  BotonCerrarSesion(onConfirmar: onCerrarSesion),
                 ],
               ),
             ),
@@ -88,12 +106,14 @@ class RepartidorEstadoPage extends StatelessWidget {
         _rechazado ? ColoresEstado.rojoSuave : ColoresEstado.ambarSuave;
     final titulo = _rechazado
         ? 'Tu registro no fue aprobado'
-        : '¡Bienvenido a SmartCart!';
+        : 'Tu registro será revisado por el administrador';
+    final motivo = motivoRechazo?.trim() ?? '';
     final mensaje = _rechazado
-        ? 'El administrador no aprobó tu registro. Contacta al equipo de '
-            'SmartCart para más información.'
-        : 'Tu registro será revisado por el administrador. Cuando te aprueben '
-            'podrás activar tu disponibilidad y recibir solicitudes de entrega.';
+        ? (motivo.isNotEmpty
+            ? 'Motivo: $motivo'
+            : 'Contacta al equipo de SmartCart para más información.')
+        : 'Cuando te aprueben podrás activar tu disponibilidad y recibir '
+            'solicitudes de entrega.';
     return Column(
       children: [
         Container(
@@ -123,6 +143,61 @@ class RepartidorEstadoPage extends StatelessWidget {
             ? EtiquetaEstado.error(estado.label)
             : EtiquetaEstado.pendiente(estado.label),
       ],
+    );
+  }
+
+  Widget _buildDatos(TemaRol t) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: t.superficie,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: t.borde),
+      ),
+      child: Column(
+        children: [
+          _Dato(Icons.person_outline, 'Nombre', nombre),
+          _Dato(Icons.mail_outline, 'Correo', correo),
+          _Dato(Icons.phone_iphone, 'Teléfono', telefono ?? 'No registrado'),
+        ],
+      ),
+    );
+  }
+}
+
+class _Dato extends StatelessWidget {
+  final IconData icono;
+  final String etiqueta;
+  final String valor;
+
+  const _Dato(this.icono, this.etiqueta, this.valor);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icono, size: 20, color: t.primario),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(etiqueta,
+                    style: TextStyle(fontSize: 12, color: t.textoGris)),
+                Text(valor,
+                    style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: t.texto)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

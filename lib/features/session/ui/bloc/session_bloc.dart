@@ -18,8 +18,33 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
         _signOut = signOut,
         super(const SessionState()) {
     on<SessionStarted>(_onStarted);
-    on<SessionRefreshed>(_onRefreshed);
+    on<ProfileRefreshRequested>(_onRefreshRequested);
     on<SignOutRequested>(_onSignOutRequested);
+  }
+
+  Future<void> _onRefreshRequested(
+    ProfileRefreshRequested event,
+    Emitter<SessionState> emit,
+  ) async {
+    if (state.status == SessionStatus.loading) return;
+    emit(state.copyWith(status: SessionStatus.loading));
+    try {
+      final profile = await _getMyProfile();
+      if (profile == null) {
+        // La sesión expiró: hay que volver a entrar.
+        emit(const SessionState(status: SessionStatus.unauthenticated));
+      } else {
+        emit(SessionState(
+          status: SessionStatus.authenticated,
+          profile: profile,
+        ));
+      }
+    } catch (_) {
+      emit(state.copyWith(
+        status: SessionStatus.failure,
+        errorMessage: 'No pudimos actualizar tu estado. Inténtalo de nuevo.',
+      ));
+    }
   }
 
   Future<void> _onStarted(
@@ -43,28 +68,6 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
       // Sin red o sin perfil no podemos confiar en la sesión guardada: la
       // pantalla sigue en la selección de perfil y la persona entra por login.
       emit(state.copyWith(status: SessionStatus.unauthenticated));
-    }
-  }
-
-  Future<void> _onRefreshed(
-    SessionRefreshed event,
-    Emitter<SessionState> emit,
-  ) async {
-    if (state.status == SessionStatus.loading) return;
-    emit(state.copyWith(status: SessionStatus.loading));
-    try {
-      final profile = await _getMyProfile();
-      if (profile == null) {
-        emit(state.copyWith(status: SessionStatus.unauthenticated));
-      } else {
-        emit(state.copyWith(
-            status: SessionStatus.authenticated, profile: profile));
-      }
-    } catch (_) {
-      emit(state.copyWith(
-        status: SessionStatus.failure,
-        errorMessage: 'No pudimos actualizar tu estado. Inténtalo de nuevo.',
-      ));
     }
   }
 

@@ -1,10 +1,18 @@
 import 'package:get_it/get_it.dart';
-import 'package:smartcart/features/admin/data/repository/aprobacion_repository_impl.dart';
-import 'package:smartcart/features/admin/data/source/supabase_aprobacion_data_source.dart';
-import 'package:smartcart/features/admin/domain/repository/aprobacion_repository.dart';
-import 'package:smartcart/features/admin/domain/usecases/decidir_solicitud_usecase.dart';
-import 'package:smartcart/features/admin/domain/usecases/get_solicitudes_pendientes_usecase.dart';
-import 'package:smartcart/features/admin/presentation/bloc/decision_solicitud_bloc.dart';
+import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/aprobaciones/data/repository/solicitudes_repository_impl.dart';
+import 'package:smartcart/features/aprobaciones/data/source/supabase_solicitudes_data_source.dart';
+import 'package:smartcart/features/aprobaciones/domain/entities/solicitud.dart';
+import 'package:smartcart/features/aprobaciones/domain/repository/solicitudes_repository.dart';
+import 'package:smartcart/features/aprobaciones/domain/usecases/decidir_solicitud_usecase.dart';
+import 'package:smartcart/features/aprobaciones/domain/usecases/get_solicitudes_pendientes_usecase.dart';
+import 'package:smartcart/features/aprobaciones/presentation/bloc/decision_solicitud_bloc.dart';
+import 'package:smartcart/features/notificaciones/data/repository/notificacion_repository_impl.dart';
+import 'package:smartcart/features/notificaciones/data/source/supabase_notificacion_data_source.dart';
+import 'package:smartcart/features/notificaciones/domain/repository/notificacion_repository.dart';
+import 'package:smartcart/features/notificaciones/domain/usecases/get_notificaciones_no_leidas_usecase.dart';
+import 'package:smartcart/features/notificaciones/domain/usecases/marcar_notificaciones_leidas_usecase.dart';
+import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import 'package:smartcart/features/auth/data/repository/auth_repository_impl.dart';
 import 'package:smartcart/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:smartcart/features/auth/data/source/supabase_auth_data_source.dart';
@@ -55,9 +63,11 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseComercioDataSource>(
     () => SupabaseComercioDataSource(client: sl()),
   );
-
-  sl.registerLazySingleton<SupabaseAprobacionDataSource>(
-    () => SupabaseAprobacionDataSource(client: sl()),
+  sl.registerLazySingleton<SupabaseSolicitudesDataSource>(
+    () => SupabaseSolicitudesDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<SupabaseNotificacionDataSource>(
+    () => SupabaseNotificacionDataSource(client: sl()),
   );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
@@ -70,9 +80,11 @@ void setupDependencies() {
   sl.registerLazySingleton<ComercioRepository>(
     () => ComercioRepositoryImpl(dataSource: sl()),
   );
-
-  sl.registerLazySingleton<AprobacionRepository>(
-    () => AprobacionRepositoryImpl(dataSource: sl()),
+  sl.registerLazySingleton<SolicitudesRepository>(
+    () => SolicitudesRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<NotificacionRepository>(
+    () => NotificacionRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -95,10 +107,17 @@ void setupDependencies() {
     () => GetMiComercioUseCase(auth: sl(), comercios: sl()),
   );
   sl.registerLazySingleton(
-    () => GetSolicitudesPendientesUseCase(repository: sl()),
+    () => GetSolicitudesPendientesUseCase(solicitudes: sl()),
   );
   sl.registerLazySingleton(
-    () => DecidirSolicitudUseCase(auth: sl(), profiles: sl(), repository: sl()),
+    () =>
+        DecidirSolicitudUseCase(auth: sl(), profiles: sl(), solicitudes: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetNotificacionesNoLeidasUseCase(auth: sl(), notificaciones: sl()),
+  );
+  sl.registerLazySingleton(
+    () => MarcarNotificacionesLeidasUseCase(notificaciones: sl()),
   );
 
   // ── Blocs: uno nuevo por pantalla (factory), porque guardan estado ──
@@ -106,6 +125,23 @@ void setupDependencies() {
   sl.registerFactory(() => RegisterBloc(signUp: sl()));
   sl.registerFactory(() => SessionBloc(getMyProfile: sl(), signOut: sl()));
   sl.registerFactory(() => ColaboradorOnboardingBloc(activar: sl()));
-  sl.registerFactory(() => DecisionSolicitudBloc(decidir: sl()));
   sl.registerFactory(() => ComercioBloc(getMine: sl(), registrar: sl()));
+  sl.registerFactory(
+    () => NotificacionesBloc(noLeidas: sl(), marcarLeidas: sl()),
+  );
+
+  // HU-24: estos Bloc necesitan un dato de la pantalla, así que se piden
+  // con `param1`: `sl<DecisionSolicitudBloc>(param1: solicitud)`.
+  sl.registerFactoryParam<DecisionSolicitudBloc, Solicitud, void>(
+    (solicitud, _) =>
+        DecisionSolicitudBloc(solicitud: solicitud, decidir: sl()),
+  );
+  sl.registerFactoryParam<PaginatedBloc<Solicitud>, TipoSolicitud, void>(
+    (tipo, _) {
+      final getPendientes = sl<GetSolicitudesPendientesUseCase>();
+      return PaginatedBloc<Solicitud>(
+        fetchPage: (request) => getPendientes(tipo, request),
+      );
+    },
+  );
 }

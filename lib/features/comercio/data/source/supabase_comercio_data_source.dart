@@ -55,30 +55,34 @@ class SupabaseComercioDataSource {
     }
   }
 
-  Comercio _toComercio(Map<String, dynamic> row) {
-    return Comercio(
-      id: row[SupabaseColumns.comercioId].toString(),
-      nombre: row[SupabaseColumns.comercioNombre] as String? ?? '',
-      telefono: row[SupabaseColumns.comercioTelefono] as String?,
-      direccion: row[SupabaseColumns.comercioDireccion] as String? ?? '',
-      ciudad: row[SupabaseColumns.comercioCiudad] as String? ?? '',
-      horaApertura: _hhmm(row[SupabaseColumns.comercioHoraApertura]),
-      horaCierre: _hhmm(row[SupabaseColumns.comercioHoraCierre]),
-      servicio: ServicioComercio.fromDbName(
-              row[SupabaseColumns.comercioServicio] as String?) ??
-          ServicioComercio.recogida,
-      // Un estado desconocido se trata como pendiente: nunca se da por
-      // aprobado un comercio por error.
-      estado: ApprovalStatus.fromDbName(
-              row[SupabaseColumns.comercioEstado] as String?) ??
-          ApprovalStatus.pendiente,
-      motivoRechazo: row[SupabaseColumns.comercioMotivoRechazo] as String?,
-    );
-  }
+  Comercio _toComercio(Map<String, dynamic> row) => comercioFromRow(row);
+}
 
-  /// Si la columna es de tipo `time` llega como "HH:mm:ss"; se muestra "HH:mm".
-  String _hhmm(dynamic value) {
-    final text = value?.toString() ?? '';
-    return text.length >= 5 ? text.substring(0, 5) : text;
-  }
+/// Convierte una fila de la tabla `comercio` en la entidad. La comparten el
+/// dueño (HU-07) y la aprobación del administrador (HU-24).
+Comercio comercioFromRow(Map<String, dynamic> row) {
+  return Comercio(
+    id: row[SupabaseColumns.comercioId].toString(),
+    nombre: row[SupabaseColumns.comercioNombre] as String? ?? '',
+    telefono: row[SupabaseColumns.comercioTelefono] as String?,
+    direccion: row[SupabaseColumns.comercioDireccion] as String? ?? '',
+    ciudad: row[SupabaseColumns.comercioCiudad] as String? ?? '',
+    horaApertura: _hhmm(row[SupabaseColumns.comercioHoraApertura]),
+    horaCierre: _hhmm(row[SupabaseColumns.comercioHoraCierre]),
+    servicio: ServicioComercio.fromDbName(
+            row[SupabaseColumns.comercioServicio] as String?) ??
+        ServicioComercio.recogida,
+    // Un estado desconocido se trata como pendiente: nunca se da por
+    // aprobado un comercio por error.
+    estado: ApprovalStatus.fromDbName(
+            row[SupabaseColumns.comercioEstado] as String?) ??
+        ApprovalStatus.pendiente,
+    motivoRechazo: row[SupabaseColumns.comercioMotivoRechazo] as String?,
+  );
+}
+
+/// Si la columna es de tipo `time` llega como "HH:mm:ss"; se muestra "HH:mm".
+String _hhmm(dynamic value) {
+  final text = value?.toString() ?? '';
+  return text.length >= 5 ? text.substring(0, 5) : text;
 }

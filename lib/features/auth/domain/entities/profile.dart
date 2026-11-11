@@ -36,6 +36,8 @@ class Profile {
 
   /// Fecha de registro de la cuenta (`usuario.fecha_registro`).
   final DateTime? memberSince;
+  /// Motivo que escribió el administrador al rechazar al repartidor (HU-24).
+  final String? courierRejectionReason;
 
   const Profile({
     required this.id,
@@ -50,6 +52,7 @@ class Profile {
     this.rating,
     this.ratingCount = 0,
     this.memberSince,
+    this.courierRejectionReason,
   });
 
   bool hasRole(UserRole role) => roles.contains(role);
