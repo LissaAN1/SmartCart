@@ -19,7 +19,7 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.login => 'LOGIN $args',
     AppRoutes.register => 'REGISTER $args',
     AppRoutes.colaboradorOnboarding => 'ONBOARDING COLABORADOR',
-    AppRoutes.solicitudDetalle => 'DETALLE SOLICITUD',
+    AppRoutes.adminSolicitudes => 'SOLICITUDES',
     AppRoutes.profileSelection => 'SELECTION',
     AppRoutes.onboarding => 'INICIO',
     _ => null,

@@ -172,6 +172,7 @@ class SupabaseProfileDataSource {
         memberSince: DateTime.tryParse(
           row[SupabaseColumns.usuarioFechaRegistro]?.toString() ?? '',
         )?.toLocal(),
+        courierRejectionReason: courier?.motivo,
       );
     } on AuthFailure {
       rethrow;
@@ -204,17 +205,20 @@ class SupabaseProfileDataSource {
     }
   }
 
-  /// Estado de aprobación y disponibilidad del repartidor. Ante la duda (sin
-  /// fila, estado desconocido o error de lectura) se considera pendiente y no
-  /// disponible: es lo más restrictivo y nunca habilita nada por error.
-  Future<({ApprovalStatus status, bool available})> _courier(String id) async {
+  /// Estado de aprobación, motivo de rechazo y disponibilidad del repartidor.
+  /// Ante la duda (sin fila, estado desconocido o error de lectura) se
+  /// considera pendiente y no disponible: es lo más restrictivo y nunca
+  /// habilita nada por error.
+  ///
+  /// Se piden todas las columnas (y no solo `estado`) para que la lectura no
+  /// falle si `motivo_rechazo` todavía no existe en el proyecto.
+  Future<({ApprovalStatus status, String? motivo, bool available})> _courier(
+    String id,
+  ) async {
     try {
       final row = await _client
           .from(SupabaseTables.perfilRepartidor)
-          .select(
-            '${SupabaseColumns.repartidorEstado}, '
-            '${SupabaseColumns.repartidorDisponible}',
-          )
+          .select()
           .eq(SupabaseColumns.repartidorUsuario, id)
           .maybeSingle();
       final status = ApprovalStatus.fromDbName(
@@ -222,11 +226,18 @@ class SupabaseProfileDataSource {
           ApprovalStatus.pendiente;
       return (
         status: status,
+        motivo: status == ApprovalStatus.rechazado
+            ? (row?[SupabaseColumns.repartidorMotivoRechazo] as String?)
+            : null,
         available: row?[SupabaseColumns.repartidorDisponible] == true,
       );
     } on PostgrestException catch (e) {
       developer.log('perfil_repartidor: ${e.message}', name: 'smartcart.auth');
-      return (status: ApprovalStatus.pendiente, available: false);
+      return (
+        status: ApprovalStatus.pendiente,
+        motivo: null,
+        available: false,
+      );
     }
   }
 

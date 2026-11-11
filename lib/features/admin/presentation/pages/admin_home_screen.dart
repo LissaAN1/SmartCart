@@ -7,7 +7,16 @@ import '../widgets/admin_widgets.dart';
 class AdminHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final String nombre;
-  const AdminHomeScreen({super.key, this.onTab, required this.nombre});
+
+  /// HU-24: abre la lista de comercios y repartidores pendientes.
+  final VoidCallback? onAbrirAprobaciones;
+
+  const AdminHomeScreen({
+    super.key,
+    this.onTab,
+    required this.nombre,
+    this.onAbrirAprobaciones,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -105,8 +114,7 @@ class AdminHomeScreen extends StatelessWidget {
             icono: Icons.check_circle_outline,
             titulo: 'Aprobaciones',
             subtitulo: 'Comercios y repartidores pendientes',
-            contador: 12,
-            onTap: () => onTab?.call(1),
+            onTap: onAbrirAprobaciones,
           ),
           const SizedBox(height: 12),
           AccesoRapidoCard(
@@ -135,10 +143,9 @@ class AdminHomeScreen extends StatelessWidget {
           AvisoDestacado(
             icono: Icons.assignment_late_outlined,
             titulo: 'Acción Requerida',
-            descripcion: 'Hay 12 solicitudes de aprobación de comercios que '
-                "expiran en menos de 24 horas. Prioriza la revisión de "
-                "'Mercados Express'.",
-            onTap: () => mostrarProximamente(context),
+            descripcion: 'Revisa las solicitudes de comercios y repartidores '
+                'pendientes: no pueden operar hasta que las apruebes.',
+            onTap: onAbrirAprobaciones,
           ),
         ],
       ),

@@ -13,8 +13,8 @@ import 'package:smartcart/features/comercio/comercio.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_state.dart';
-import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/widgets/comercio_gate.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/repartidor/repartidor.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
@@ -38,7 +38,7 @@ class RolShell extends StatefulWidget {
 }
 
 class _RolShellState extends State<RolShell> {
-  int _tab = 0;
+  bool _enPerfil = false;
   late Profile _profile = widget.profile;
 
   RolTema get _tema => PerfilVisual.de(widget.rol).tema;
@@ -57,23 +57,22 @@ class _RolShellState extends State<RolShell> {
         RolTema.admin => 5,
       };
 
-  /// Pestañas con pantalla: Home (0), Perfil y, para el administrador,
-  /// Aprobar (1, HU-24).
-  bool _tieneTab(int i) =>
-      i == 0 ||
-      i == _tabPerfil ||
-      (_tema == RolTema.admin && i == _tabAprobar);
-
-  static const _tabAprobar = 1;
+  /// Pestaña "Aprobar" del administrador (HU-24).
+  static const _tabAprobarAdmin = 1;
 
   void _onTab(int i) {
-    if (!_tieneTab(i)) {
+    if (_tema == RolTema.admin && i == _tabAprobarAdmin) {
+      _abrirAprobaciones();
+      return;
+    }
+    final perfil = i == _tabPerfil;
+    if (!perfil && i != 0) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Pantalla aún no disponible')));
       return;
     }
-    setState(() => _tab = i);
+    setState(() => _enPerfil = perfil);
   }
 
   /// HU-06: abre el onboarding y, si la persona activó el modo, se queda con
@@ -86,6 +85,10 @@ class _RolShellState extends State<RolShell> {
     }
   }
 
+  /// HU-24: lista de comercios y repartidores pendientes de aprobación.
+  void _abrirAprobaciones() =>
+      Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+
   void _salir() => context.read<SessionBloc>().add(SignOutRequested());
 
   @override
@@ -97,7 +100,8 @@ class _RolShellState extends State<RolShell> {
           context.goInicio();
         } else if (state.status == SessionStatus.authenticated &&
             state.profile != null) {
-          // Resultado de "Actualizar estado" (SessionRefreshed).
+          // Perfil releído con "Actualizar estado" (por ejemplo, el
+          // administrador ya aprobó al repartidor).
           setState(() => _profile = state.profile!);
         } else if (state.status == SessionStatus.failure) {
           ScaffoldMessenger.of(context)
@@ -106,9 +110,15 @@ class _RolShellState extends State<RolShell> {
                 content: Text(state.errorMessage ?? 'No pudimos cerrar la sesión.')));
         }
       },
-      child: _tema == RolTema.comercio
-          ? ComercioGate(onCerrarSesion: _salir, child: _pantalla())
-          : _pantalla(),
+      child: switch (_tema) {
+        RolTema.comercio =>
+          ComercioGate(onCerrarSesion: _salir, child: _pantalla()),
+        // HU-08: un repartidor sin aprobar solo ve el estado de su registro;
+        // ni el Home ni el Perfil (ni la barra para llegar a ellos).
+        RolTema.repartidor when _estadoRepartidor != ApprovalStatus.aprobado =>
+          _estadoRegistroRepartidor(),
+        _ => _pantalla(),
+      },
     );
   }
 
@@ -116,27 +126,26 @@ class _RolShellState extends State<RolShell> {
   ApprovalStatus get _estadoRepartidor =>
       _profile.courierStatus ?? ApprovalStatus.pendiente;
 
+  Widget _estadoRegistroRepartidor() {
+    final actualizando = context.select<SessionBloc, bool>(
+      (bloc) => bloc.state.status == SessionStatus.loading,
+    );
+    return RepartidorEstadoPage(
+      estado: _estadoRepartidor,
+      nombre: _profile.fullName,
+      correo: _profile.email,
+      telefono: _profile.phone,
+      motivoRechazo: _profile.courierRejectionReason,
+      actualizando: actualizando,
+      onActualizar: () =>
+          context.read<SessionBloc>().add(ProfileRefreshRequested()),
+      onCerrarSesion: _salir,
+    );
+  }
+
   Widget _pantalla() {
     final p = _profile;
-    // HU-08: hasta que el administrador lo apruebe, el repartidor solo ve la
-    // pantalla de espera (sin Home ni Perfil).
-    if (_tema == RolTema.repartidor &&
-        _estadoRepartidor != ApprovalStatus.aprobado) {
-      return BlocBuilder<SessionBloc, SessionState>(
-        buildWhen: (previous, current) => previous.status != current.status,
-        builder: (context, session) => RepartidorEstadoPage(
-          estado: _estadoRepartidor,
-          actualizando: session.status == SessionStatus.loading,
-          onActualizar: () =>
-              context.read<SessionBloc>().add(SessionRefreshed()),
-          onCerrarSesion: _salir,
-        ),
-      );
-    }
-    if (_tema == RolTema.admin && _tab == _tabAprobar) {
-      return AdminAprobacionesScreen(onTab: _onTab);
-    }
-    return switch ((_tema, _tab == _tabPerfil)) {
+    return switch ((_tema, _enPerfil)) {
       (RolTema.cliente, false) =>
         ClienteHomeScreen(onTab: _onTab, nombre: _primerNombre),
       (RolTema.cliente, true) => ClientePerfilScreen(
@@ -148,6 +157,7 @@ class _RolShellState extends State<RolShell> {
         ColaboradorHomeScreen(onTab: _onTab, nombre: _primerNombre),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
+      // Aquí solo llega un repartidor aprobado (ver `build`).
       (RolTema.repartidor, false) => _conDisponibilidad(
           (disponible, cambiar) => RepartidorHomeScreen(
               onTab: _onTab, enLinea: disponible, onCambioDisponible: cambiar)),
@@ -157,8 +167,10 @@ class _RolShellState extends State<RolShell> {
           ComercioHomeScreen(onTab: _onTab, nombreComercio: c.nombre)),
       (RolTema.comercio, true) => _conComercio((c) => ComercioPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p, comercio: c)),
-      (RolTema.admin, false) =>
-        AdminHomeScreen(onTab: _onTab, nombre: p.fullName),
+      (RolTema.admin, false) => AdminHomeScreen(
+          onTab: _onTab,
+          nombre: p.fullName,
+          onAbrirAprobaciones: _abrirAprobaciones),
       (RolTema.admin, true) => AdminPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
     };

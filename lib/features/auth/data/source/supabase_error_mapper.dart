@@ -56,6 +56,13 @@ AuthFailure mapPostgrestException(PostgrestException e) {
       return const AuthFailure('No tienes permiso para realizar esta acción.');
     case '23505':
       return const AuthFailure('Ya existe un registro con estos datos.');
+    // Los dos siguientes los lanza decidir_solicitud (HU-24).
+    case 'P0002':
+      return const AuthFailure(
+        'Esta solicitud ya fue revisada. Actualiza la lista.',
+      );
+    case '22023':
+      return const AuthFailure('Revisa los datos e inténtalo de nuevo.');
     default:
       return const AuthFailure(
         'No pudimos guardar o leer tus datos. Inténtalo de nuevo.',

@@ -11,8 +11,12 @@ abstract final class AppRoutes {
   /// HU-06: guía y condiciones para activar el modo Colaborador.
   static const colaboradorOnboarding = '/colaborador-onboarding';
 
-  /// HU-24: detalle de una solicitud (argumento: `SolicitudAprobacion`).
-  static const solicitudDetalle = '/solicitud-detalle';
+  /// HU-24: solicitudes pendientes de comercios y repartidores.
+  static const adminSolicitudes = '/admin/solicitudes';
+
+  /// HU-24: detalle de una solicitud. Recibe la `Solicitud` como argumento y
+  /// devuelve la decisión (`ApprovalStatus`) al cerrarse.
+  static const adminSolicitudDetalle = '/admin/solicitudes/detalle';
 
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con
