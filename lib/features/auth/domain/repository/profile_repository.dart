@@ -17,6 +17,10 @@ abstract class ProfileRepository {
   /// que ya tiene. Se puede repetir sin duplicar nada.
   Future<void> activateCollaboratorMode(String userId);
 
+  /// Activa o desactiva la disponibilidad del repartidor con sesión iniciada.
+  /// Solo funciona si ya fue aprobado.
+  Future<void> setCourierAvailability(bool available);
+
   /// Lee los datos y perfiles de la cuenta [id].
   Future<Profile> getProfile(String id);
 }

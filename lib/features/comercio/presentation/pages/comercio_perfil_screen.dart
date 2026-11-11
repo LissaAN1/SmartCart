@@ -1,17 +1,24 @@
-// lib/src/features/comercio/ui/screens/comercio_perfil_screen.dart
+// Perfil del COMERCIO con los datos reales de su registro (tabla `comercio`)
+// y de la cuenta del dueño. Sin tablas de ventas, reseñas ni quejas todavía,
+// no se muestran esas cifras.
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
+import '../../../auth/domain/entities/profile.dart';
+import '../../domain/entities/comercio.dart';
 import '../widgets/comercio_widgets.dart';
 
 class ComercioPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  const ComercioPerfilScreen({super.key, this.onTab, this.onCerrarSesion});
-
-  static const _quejas = [
-    (titulo: 'Error en precio de café', fecha: '12 Oct 2026', desc: 'El cliente reportó una discrepancia de precio en caja.', estado: EstadoQueja.resuelto),
-    (titulo: 'Producto no disponible', fecha: '08 Oct 2026', desc: 'Reporte de falta de stock en bananos.', estado: EstadoQueja.pendiente),
-  ];
+  final Profile profile;
+  final Comercio comercio;
+  const ComercioPerfilScreen({
+    super.key,
+    this.onTab,
+    this.onCerrarSesion,
+    required this.profile,
+    required this.comercio,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,79 +28,77 @@ class ComercioPerfilScreen extends StatelessWidget {
       navItems: navComercio,
       tabActiva: 4,
       onTab: onTab,
-      barraSuperior: BarraTituloRol(
-        titulo: 'Mi Perfil',
-        acciones: [
-          IconButton(
-            icon: Icon(Icons.notifications_none, color: t.texto),
-            onPressed: () => mostrarProximamente(context),
-          ),
-        ],
-      ),
+      barraSuperior: const BarraTituloRol(titulo: 'Mi Perfil'),
       cuerpo: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: 'Mercado Local Centro',
+            nombre: comercio.nombre,
             insignia: Icons.storefront_outlined,
-            ubicacion: 'Bogotá, D.C. - Centro Histórico',
+            ubicacion: '${comercio.ciudad} - ${comercio.direccion}',
             etiquetas: [
-              EtiquetaEstado.marca('Víveres y Abarrotes'),
-              const Calificacion(valor: 4.8, detalle: '(120+ reseñas)'),
+              EtiquetaEstado.marca(comercio.servicio.label),
+              const EtiquetaEstado.exito('Aprobado'),
             ],
           ),
           const SizedBox(height: 20),
 
-          // ══ MÉTRICAS ══
-          const Row(
-            children: [
-              Expanded(child: TarjetaMetrica(valor: '156', etiqueta: 'Ventas mes')),
-              SizedBox(width: 12),
-              Expanded(child: TarjetaMetrica(valor: '98%', etiqueta: 'Cumplimiento')),
-            ],
+          // ══ DATOS DEL ESTABLECIMIENTO ══
+          const TituloSeccion(titulo: 'MI ESTABLECIMIENTO'),
+          TarjetaSuave(
+            radio: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Column(
+              children: [
+                FilaContacto(
+                    icono: Icons.place_outlined,
+                    etiqueta: 'Dirección',
+                    valor: '${comercio.direccion}, ${comercio.ciudad}'),
+                FilaContacto(
+                    icono: Icons.schedule,
+                    etiqueta: 'Horario de atención',
+                    valor: comercio.horario),
+                FilaContacto(
+                    icono: Icons.local_shipping_outlined,
+                    etiqueta: 'Servicio',
+                    valor: comercio.servicio.label),
+              ],
+            ),
           ),
 
-          // ══ QUEJAS ══
-          TituloSeccion(
-            titulo: 'Quejas y Reclamos',
-            estilo: EstiloTitulo.grande,
-            accion: 'Ver histórico',
-            onAccion: () => mostrarProximamente(context),
-          ),
-          for (final q in _quejas) ...[
-            QuejaCard(
-              titulo: q.titulo,
-              fecha: q.fecha,
-              descripcion: q.desc,
-              estado: q.estado,
-              onTap: () => mostrarProximamente(context),
+          // ══ CONTACTO ══
+          const TituloSeccion(titulo: 'INFORMACIÓN DE CONTACTO'),
+          TarjetaSuave(
+            radio: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Column(
+              children: [
+                FilaContacto(
+                    icono: Icons.person_outline,
+                    etiqueta: 'Dueño',
+                    valor: profile.fullName),
+                FilaContacto(
+                    icono: Icons.mail_outline,
+                    etiqueta: 'Correo electrónico',
+                    valor: profile.email),
+                FilaContacto(
+                    icono: Icons.phone_iphone,
+                    etiqueta: 'Teléfono del comercio',
+                    valor:
+                        comercio.telefono ?? profile.phone ?? 'No registrado'),
+              ],
             ),
-            const SizedBox(height: 14),
-          ],
+          ),
 
           // ══ CONFIGURACIÓN ══
-          const TituloSeccion(
-            titulo: 'Configuración',
-            estilo: EstiloTitulo.grande,
-            padding: EdgeInsets.only(top: 12, bottom: 12),
-          ),
+          const TituloSeccion(titulo: 'CONFIGURACIÓN'),
           GrupoMenu(
             items: [
               ItemMenu(
                   icono: Icons.store_mall_directory_outlined,
                   titulo: 'Ajustes del Negocio',
-                  subtitulo: 'Nombre, logo, categoría y dirección',
-                  onTap: () => mostrarProximamente(context)),
-              ItemMenu(
-                  icono: Icons.schedule,
-                  titulo: 'Horarios de atención',
-                  subtitulo: 'Lun - Sáb • 7:00 a.m. - 8:00 p.m.',
-                  onTap: () => mostrarProximamente(context)),
-              ItemMenu(
-                  icono: Icons.account_balance_wallet_outlined,
-                  titulo: 'Métodos de Pago',
-                  subtitulo: 'Cuenta para recibir tus ventas',
+                  subtitulo: 'Nombre, dirección y horario',
                   onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.help_outline,

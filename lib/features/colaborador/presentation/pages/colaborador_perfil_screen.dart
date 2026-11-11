@@ -1,31 +1,33 @@
-// lib/src/features/colaborador/ui/screens/colaborador_perfil_screen.dart
+// Perfil del COLABORADOR con los datos reales de su cuenta y de
+// `perfil_colaborador`. Sin tabla de reportes ni de ganancias todavía, no se
+// muestran esas cifras.
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
+import '../../../../core/utils/format_helpers.dart';
 import '../../../auth/domain/entities/collaborator_stats.dart';
+import '../../../auth/domain/entities/profile.dart';
 import '../widgets/colaborador_widgets.dart';
 
 class ColaboradorPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  final String nombre;
-
-  /// Puntos, nivel y reputación de la fila `perfil_colaborador`.
-  final CollaboratorStats estadisticas;
+  final Profile profile;
 
   const ColaboradorPerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
-    required this.nombre,
-    this.estadisticas = CollaboratorStats.initial,
+    required this.profile,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.colaborador;
+    final stats = profile.collaborator ?? CollaboratorStats.initial;
+    final desde = profile.memberSince;
     return PantallaRol(
       tema: t,
-      navItems: navColaborador(misionesNuevas: 3),
+      navItems: navColaborador(),
       tabActiva: 3,
       onTab: onTab,
       // El perfil es una pestaña del shell, no una ruta apilada: "atrás"
@@ -40,10 +42,12 @@ class ColaboradorPerfilScreen extends StatelessWidget {
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: nombre,
+            nombre: profile.fullName,
+            correo: profile.email,
             insignia: Icons.verified_outlined,
             etiquetas: [
               EtiquetaEstado.marca('Colaborador'),
+              if (desde != null) EtiquetaEstado.marca('Desde ${mesYAnio(desde)}'),
             ],
           ),
           const SizedBox(height: 22),
@@ -51,28 +55,12 @@ class ColaboradorPerfilScreen extends StatelessWidget {
           // ══ ESTADÍSTICAS ══
           TarjetaEstadisticas(
             items: [
-              Estadistica(Icons.stars_outlined, '${estadisticas.points}', 'Puntos'),
+              Estadistica(Icons.stars_outlined, '${stats.points}', 'Puntos'),
               Estadistica(
-                  Icons.military_tech_outlined, '${estadisticas.level}', 'Nivel'),
-              Estadistica(Icons.verified_outlined, estadisticas.reputationLabel,
+                  Icons.military_tech_outlined, '${stats.level}', 'Nivel'),
+              Estadistica(Icons.verified_outlined, stats.reputationLabel,
                   'Reputación'),
             ],
-            pie: Row(
-              children: [
-                Icon(Icons.account_balance_wallet_outlined,
-                    size: 20, color: t.texto),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('Ganancias disponibles',
-                      style: TextStyle(fontSize: 14, color: t.texto)),
-                ),
-                Text(r'$ 18.500',
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: t.primario)),
-              ],
-            ),
           ),
 
           // ══ ACTIVIDAD ══
@@ -85,14 +73,8 @@ class ColaboradorPerfilScreen extends StatelessWidget {
                   subtitulo: 'Ver precios y ofertas enviadas',
                   onTap: () => mostrarProximamente(context)),
               ItemMenu(
-                  icono: Icons.credit_card,
-                  titulo: 'Métodos de pago',
-                  subtitulo: 'Retirar mis ganancias',
-                  onTap: () => mostrarProximamente(context)),
-              ItemMenu(
                   icono: Icons.share_outlined,
                   titulo: 'Referir a un amigo',
-                  subtitulo: r'Gana $5.000 por invitado',
                   onTap: () => mostrarProximamente(context)),
             ],
           ),

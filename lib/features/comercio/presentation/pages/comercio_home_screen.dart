@@ -1,12 +1,21 @@
 // lib/src/features/comercio/ui/screens/comercio_home_screen.dart
-// Home del COMERCIO ("Panel del comercio"). Solo UI con datos de ejemplo.
+// Home del COMERCIO ("Panel del comercio"). El nombre del comercio es real; el
+// resto (ventas, órdenes, tip) son datos de ejemplo hasta que existan las
+// tablas correspondientes.
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/comercio_widgets.dart';
 
 class ComercioHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
-  const ComercioHomeScreen({super.key, this.onTab});
+
+  /// Nombre del establecimiento registrado (dato real).
+  final String nombreComercio;
+  const ComercioHomeScreen({
+    super.key,
+    this.onTab,
+    required this.nombreComercio,
+  });
 
   static const _ordenes = [
     (codigo: '#108-A', estado: EstadoOrdenComercio.pendiente, hace: 'Hace 5 min', cliente: 'Carlos Rodriguez', productos: 4, total: r'$ 45.200'),
@@ -29,9 +38,9 @@ class ComercioHomeScreen extends StatelessWidget {
             icon: Icon(Icons.notifications_none, color: t.texto),
             onPressed: () => mostrarProximamente(context),
           ),
-          const Padding(
-            padding: EdgeInsets.only(left: 4),
-            child: AvatarPerfil(radio: 20, nombre: 'Mercado Local'),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: AvatarPerfil(radio: 20, nombre: nombreComercio),
           ),
         ],
       ),

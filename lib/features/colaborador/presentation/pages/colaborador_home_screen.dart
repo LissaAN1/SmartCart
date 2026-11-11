@@ -25,7 +25,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return PantallaRol(
       tema: TemaRol.colaborador,
-      navItems: navColaborador(misionesNuevas: 3),
+      navItems: navColaborador(),
       tabActiva: 0,
       onTab: onTab,
       barraSuperior: EncabezadoSaludo(

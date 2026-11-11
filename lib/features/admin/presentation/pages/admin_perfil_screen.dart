@@ -1,21 +1,19 @@
 // lib/src/features/admin/ui/screens/admin_perfil_screen.dart
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
+import '../../../../core/utils/format_helpers.dart';
+import '../../../auth/domain/entities/profile.dart';
 import '../widgets/admin_widgets.dart';
 
 class AdminPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  final String nombre;
-  final String correo;
-  final String? telefono;
+  final Profile profile;
   const AdminPerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
-    required this.nombre,
-    required this.correo,
-    this.telefono,
+    required this.profile,
   });
 
   @override
@@ -23,7 +21,7 @@ class AdminPerfilScreen extends StatelessWidget {
     final t = TemaRol.admin;
     return PantallaRol(
       tema: t,
-      navItems: navAdmin(pendientes: 12),
+      navItems: navAdmin(),
       tabActiva: 5,
       onTab: onTab,
       barraSuperior: const BarraTituloRol(titulo: 'Mi Perfil'),
@@ -32,32 +30,15 @@ class AdminPerfilScreen extends StatelessWidget {
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: nombre,
+            nombre: profile.fullName,
             insignia: Icons.admin_panel_settings_outlined,
-            etiquetas: [EtiquetaEstado.marca('Administrador')],
+            etiquetas: [
+              EtiquetaEstado.marca('Administrador'),
+              if (profile.memberSince != null)
+                EtiquetaEstado.marca('Desde ${mesYAnio(profile.memberSince!)}'),
+            ],
           ),
           const SizedBox(height: 22),
-
-          // ══ ACTIVIDAD SEMANAL ══
-          TarjetaSuave(
-            radio: 24,
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Actividad semanal',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: t.texto)),
-                Text('Solicitudes gestionadas por día',
-                    style: TextStyle(fontSize: 13, color: t.textoGris)),
-                const SizedBox(height: 18),
-                const GraficoBarrasSemana(
-                    valores: [42, 57, 34, 71, 49, 27, 14]),
-              ],
-            ),
-          ),
 
           // ══ GESTIÓN ══
           const TituloSeccion(titulo: 'GESTIÓN DE PLATAFORMA'),
@@ -91,11 +72,11 @@ class AdminPerfilScreen extends StatelessWidget {
                 FilaContacto(
                     icono: Icons.mail_outline,
                     etiqueta: 'Correo electrónico',
-                    valor: correo),
+                    valor: profile.email),
                 FilaContacto(
                     icono: Icons.phone_iphone,
                     etiqueta: 'Teléfono de contacto',
-                    valor: telefono ?? 'No registrado'),
+                    valor: profile.phone ?? 'No registrado'),
               ],
             ),
           ),

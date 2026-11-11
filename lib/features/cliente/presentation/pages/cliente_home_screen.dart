@@ -36,7 +36,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
   Widget build(BuildContext context) {
     return PantallaRol(
       tema: TemaRol.cliente,
-      navItems: navCliente(itemsCarrito: 3),
+      navItems: navCliente(),
       tabActiva: 0,
       onTab: widget.onTab,
       barraSuperior: EncabezadoSaludo(

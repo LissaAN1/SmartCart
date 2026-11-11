@@ -1,19 +1,16 @@
 // lib/src/features/cliente/ui/screens/cliente_perfil_screen.dart
 import 'package:flutter/material.dart';
+import '../../../../core/domain/user_role.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
+import '../../../../core/utils/format_helpers.dart';
 import '../../../auth/domain/entities/collaborator_stats.dart';
+import '../../../auth/domain/entities/profile.dart';
 import '../widgets/cliente_widgets.dart';
 
 class ClientePerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  final String nombre;
-  final String correo;
-
-  /// HU-06: si la cuenta ya activó el modo Colaborador se muestran sus
-  /// puntos, nivel y reputación y desaparece la opción de activarlo.
-  final bool esColaborador;
-  final CollaboratorStats estadisticasColaborador;
+  final Profile profile;
 
   /// Abre el onboarding del colaborador (opción "Activar modo Colaborador").
   final VoidCallback? onActivarColaborador;
@@ -22,18 +19,22 @@ class ClientePerfilScreen extends StatelessWidget {
     super.key,
     this.onTab,
     this.onCerrarSesion,
-    required this.nombre,
-    required this.correo,
-    this.esColaborador = false,
-    this.estadisticasColaborador = CollaboratorStats.initial,
+    required this.profile,
     this.onActivarColaborador,
   });
 
   @override
   Widget build(BuildContext context) {
+    // HU-06: si la cuenta ya activó el modo Colaborador se muestran sus
+    // puntos, nivel y reputación y desaparece la opción de activarlo.
+    final esColaborador = profile.hasRole(UserRole.colaborador);
+    final estadisticasColaborador =
+        profile.collaborator ?? CollaboratorStats.initial;
+    final rating = profile.rating;
+    final desde = profile.memberSince;
     return PantallaRol(
       tema: TemaRol.cliente,
-      navItems: navCliente(itemsCarrito: 3),
+      navItems: navCliente(),
       tabActiva: 3,
       onTab: onTab,
       barraSuperior: const BarraMarca(
@@ -45,10 +46,14 @@ class ClientePerfilScreen extends StatelessWidget {
         children: [
           // ══ CABECERA ══
           CabeceraPerfilCliente(
-            nombre: nombre,
-            correo: correo,
+            nombre: profile.fullName,
+            correo: profile.email,
             etiquetas: [
               EtiquetaEstado.marca('Cliente'),
+              if (rating != null)
+                Calificacion(
+                    valor: rating, detalle: '(${profile.ratingCount})'),
+              if (desde != null) EtiquetaEstado.marca('Desde ${mesYAnio(desde)}'),
             ],
           ),
           const SizedBox(height: 26),
@@ -92,11 +97,6 @@ class ClientePerfilScreen extends StatelessWidget {
                   icono: Icons.chat_bubble_outline,
                   titulo: 'Reportar una queja',
                   subtitulo: 'Soporte técnico e incidencias',
-                  onTap: () => mostrarProximamente(context)),
-              ItemMenu(
-                  icono: Icons.credit_card,
-                  titulo: 'Métodos de pago',
-                  subtitulo: 'Visa **** 4242',
                   onTap: () => mostrarProximamente(context)),
             ],
           ),

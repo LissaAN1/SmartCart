@@ -7,6 +7,14 @@ class SessionStarted extends SessionEvent {
   String toString() => 'SessionStarted()';
 }
 
+/// Volver a leer el perfil de la sesión abierta (por ejemplo, el repartidor
+/// que espera su aprobación). A diferencia de [SessionStarted], si falla no
+/// da la sesión por perdida: solo avisa.
+class SessionRefreshed extends SessionEvent {
+  @override
+  String toString() => 'SessionRefreshed()';
+}
+
 /// La persona pidió cerrar sesión.
 class SignOutRequested extends SessionEvent {
   @override

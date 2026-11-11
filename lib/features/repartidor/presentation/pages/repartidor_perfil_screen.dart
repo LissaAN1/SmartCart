@@ -1,40 +1,28 @@
 import 'package:flutter/material.dart';
-import '../../../../core/domain/approval_status.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
+import '../../../../core/utils/format_helpers.dart';
+import '../../../auth/domain/entities/profile.dart';
 import '../widgets/repartidor_widgets.dart';
 
+/// Perfil del repartidor (ya aprobado) con los datos reales de su cuenta.
+/// Lo que todavía no tiene tabla (entregas, saldo, documentos, vehículo) no
+/// se muestra con cifras inventadas.
 class RepartidorPerfilScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final VoidCallback? onCerrarSesion;
-  final String nombre;
-
-  /// Estado de aprobación del registro (HU-08).
-  final ApprovalStatus estado;
-
+  final Profile profile;
   const RepartidorPerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
-    required this.nombre,
-    required this.estado,
+    required this.profile,
   });
-
-  static const _documentos = [
-    ('Licencia de Conducir', EstadoDocumento.verificado),
-    ('Seguro Obligatorio (SOAT)', EstadoDocumento.verificado),
-    ('Documento de Identidad', EstadoDocumento.verificado),
-    ('Tarjeta de Propiedad', EstadoDocumento.enRevision),
-  ];
-
-  static const _entregas = [
-    (comercio: 'Mercado Local Centro', destino: 'Las Aguas', fecha: 'Hoy, 11:20', valor: r'$ 4.500'),
-    (comercio: 'Panadería La Estancia', destino: 'Chapinero', fecha: 'Hoy, 09:45', valor: r'$ 6.200'),
-    (comercio: 'Fruver El Campo', destino: 'Teusaquillo', fecha: 'Ayer, 18:10', valor: r'$ 5.100'),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.repartidor;
+    final rating = profile.rating;
+    final desde = profile.memberSince;
     return PantallaRol(
       tema: t,
       navItems: navRepartidor,
@@ -46,94 +34,59 @@ class RepartidorPerfilScreen extends StatelessWidget {
         children: [
           // ══ CABECERA ══
           EncabezadoPerfil(
-            nombre: nombre,
+            nombre: profile.fullName,
+            correo: profile.email,
             insignia: Icons.shield_outlined,
             etiquetas: [
               EtiquetaEstado.marca('Repartidor'),
-              switch (estado) {
-                ApprovalStatus.aprobado => EtiquetaEstado.exito(estado.label),
-                ApprovalStatus.pendiente =>
-                  EtiquetaEstado.pendiente(estado.label),
-                ApprovalStatus.rechazado => EtiquetaEstado.error(estado.label),
-              },
+              const EtiquetaEstado.exito('Aprobado'),
             ],
           ),
+          if ((profile.description ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(profile.description!.trim(),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: t.textoGris)),
+          ],
           const SizedBox(height: 22),
 
-          // ══ ESTADÍSTICAS + SALDO ══
+          // ══ ESTADÍSTICAS ══
           TarjetaEstadisticas(
-            items: const [
-              Estadistica(Icons.star_border_rounded, '4.9', 'Calificación'),
-              Estadistica(Icons.check_circle_outline, '1.240', 'Entregas'),
-              Estadistica(Icons.schedule, 'Ene 2023', 'Antigüedad'),
-            ],
-            pie: Row(
-              children: [
-                Icon(Icons.credit_card, size: 20, color: t.texto),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('Saldo Disponible',
-                      style: TextStyle(fontSize: 14, color: t.texto)),
-                ),
-                Text(r'$ 12.900',
-                    style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: t.primario)),
-              ],
-            ),
-          ),
-
-          // ══ DOCUMENTACIÓN ══
-          TituloSeccion(
-            titulo: 'Documentación',
-            icono: Icons.description_outlined,
-            estilo: EstiloTitulo.grande,
-            accion: 'ACTUALIZAR',
-            onAccion: () => mostrarProximamente(context),
-          ),
-          GrupoMenu(
             items: [
-              for (final d in _documentos)
-                DocumentoItem(nombre: d.$1, estado: d.$2, onTap: () => mostrarProximamente(context)),
-            ],
-          ),
-
-          // ══ HISTORIAL ══
-          TituloSeccion(
-            titulo: 'Historial de Entregas',
-            icono: Icons.history,
-            estilo: EstiloTitulo.grande,
-            accion: 'VER TODO',
-            onAccion: () => mostrarProximamente(context),
-          ),
-          GrupoMenu(
-            items: [
-              for (final e in _entregas)
-                EntregaItem(
-                  comercio: e.comercio,
-                  destino: e.destino,
-                  fecha: e.fecha,
-                  valor: e.valor,
-                  onTap: () => mostrarProximamente(context),
-                ),
+              Estadistica(
+                Icons.star_border_rounded,
+                rating == null ? '—' : rating.toStringAsFixed(1),
+                'Calificación',
+              ),
+              Estadistica(Icons.reviews_outlined, '${profile.ratingCount}',
+                  'Reseñas'),
+              Estadistica(Icons.schedule,
+                  desde == null ? '—' : mesYAnio(desde), 'Antigüedad'),
             ],
           ),
 
           // ══ CUENTA ══
+          const TituloSeccion(titulo: 'INFORMACIÓN DE CONTACTO'),
+          TarjetaSuave(
+            radio: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            child: Column(
+              children: [
+                FilaContacto(
+                    icono: Icons.mail_outline,
+                    etiqueta: 'Correo electrónico',
+                    valor: profile.email),
+                FilaContacto(
+                    icono: Icons.phone_iphone,
+                    etiqueta: 'Teléfono de contacto',
+                    valor: profile.phone ?? 'No registrado'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           const TituloSeccion(titulo: 'CUENTA'),
           GrupoMenu(
             items: [
-              ItemMenu(
-                  icono: Icons.two_wheeler,
-                  titulo: 'Mi vehículo',
-                  subtitulo: 'Moto • ABC-12D',
-                  onTap: () => mostrarProximamente(context)),
-              ItemMenu(
-                  icono: Icons.account_balance_outlined,
-                  titulo: 'Cuenta para pagos',
-                  subtitulo: 'Retirar saldo disponible',
-                  onTap: () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.help_outline,
                   titulo: 'Ayuda y Soporte',

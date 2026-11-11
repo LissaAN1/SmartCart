@@ -7,11 +7,13 @@ import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/auth/domain/entities/app_user.dart';
 import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
+import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/home/presentation/pages/role_shell.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 
 import '../support/fakes.dart';
@@ -38,6 +40,11 @@ Future<TestEnv> _pumpShell(
           if (role == UserRole.comercio)
             BlocProvider<ComercioBloc>(
               create: (_) => env.comercioBloc()..add(ComercioStarted()),
+            ),
+          if (role == UserRole.repartidor)
+            BlocProvider<DisponibilidadBloc>(
+              create: (_) => env.disponibilidadBloc(
+                  inicial: profile.courierAvailable),
             ),
         ],
         child: RolShell(rol: role, profile: profile),
@@ -343,56 +350,112 @@ void main() {
   });
 
   group('HU-08 · repartidor pendiente', () {
-    testWidgets('al entrar ve el mensaje de revisión y no la disponibilidad',
-        (tester) async {
-      await _pumpShell(
+    const aviso = 'Tu registro será revisado por el administrador';
+
+    Future<TestEnv> pumpRepartidor(
+      WidgetTester tester, {
+      ApprovalStatus? estado = ApprovalStatus.pendiente,
+    }) {
+      return _pumpShell(
         tester,
         role: UserRole.repartidor,
-        profile: profileWith({UserRole.repartidor},
-            courierStatus: ApprovalStatus.pendiente),
+        profile:
+            profileWith({UserRole.repartidor}, courierStatus: estado),
       );
+    }
 
-      expect(find.text('Tu registro será revisado por el administrador'),
-          findsOneWidget);
+    testWidgets('al entrar solo ve la espera de validación y cerrar sesión',
+        (tester) async {
+      await pumpRepartidor(tester);
+
+      expect(find.textContaining(aviso), findsOneWidget);
+      expect(find.text('Pendiente de aprobación'), findsOneWidget);
+      expect(find.byTooltip('Cerrar sesión'), findsOneWidget);
+      // Sin Home, sin Perfil, sin barra de navegación ni disponibilidad.
+      expect(find.text('Perfil'), findsNothing);
+      expect(find.text('Inicio'), findsNothing);
       expect(find.text('Estás en línea'), findsNothing);
       expect(find.text('Estás desconectado'), findsNothing);
     });
 
     testWidgets('sin dato de aprobación se trata como pendiente',
         (tester) async {
-      await _pumpShell(
-        tester,
-        role: UserRole.repartidor,
-        profile: profileWith({UserRole.repartidor}),
-      );
+      await pumpRepartidor(tester, estado: null);
 
-      expect(find.text('Tu registro será revisado por el administrador'),
-          findsOneWidget);
+      expect(find.textContaining(aviso), findsOneWidget);
+      expect(find.text('Perfil'), findsNothing);
     });
 
-    testWidgets('su perfil muestra el estado pendiente', (tester) async {
-      await _pumpShell(
-        tester,
-        role: UserRole.repartidor,
-        profile: profileWith({UserRole.repartidor},
-            courierStatus: ApprovalStatus.pendiente),
-      );
+    testWidgets('un repartidor rechazado tampoco accede', (tester) async {
+      await pumpRepartidor(tester, estado: ApprovalStatus.rechazado);
+
+      expect(find.text('Tu registro no fue aprobado'), findsOneWidget);
+      expect(find.text('Perfil'), findsNothing);
+      expect(find.text('Actualizar estado'), findsNothing);
+    });
+
+    testWidgets('puede cerrar sesión desde la espera', (tester) async {
+      final env = await pumpRepartidor(tester);
+
+      await tester.tap(find.byTooltip('Cerrar sesión'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Salir'));
+      await tester.pumpAndSettle();
+
+      expect(env.auth.signOutCalls, 1);
+      expect(find.text('INICIO'), findsOneWidget);
+    });
+
+    testWidgets('al ser aprobado y actualizar el estado accede a su Home y '
+        'a su perfil', (tester) async {
+      final env = await pumpRepartidor(tester);
+      env.profiles.stored = profileWith({UserRole.repartidor},
+          courierStatus: ApprovalStatus.aprobado);
+
+      await tester.tap(find.text('Actualizar estado'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Estás desconectado'), findsOneWidget);
+      expect(find.textContaining(aviso), findsNothing);
+
       await _abrirPerfil(tester);
-
-      expect(find.text('Pendiente de aprobación'), findsOneWidget);
+      expect(find.text('Aprobado'), findsOneWidget);
     });
 
-    testWidgets('un repartidor aprobado ve su disponibilidad', (tester) async {
-      await _pumpShell(
-        tester,
-        role: UserRole.repartidor,
-        profile: profileWith({UserRole.repartidor},
-            courierStatus: ApprovalStatus.aprobado),
-      );
+    testWidgets('si sigue pendiente al actualizar se queda en la espera',
+        (tester) async {
+      final env = await pumpRepartidor(tester);
+      env.profiles.stored = profileWith({UserRole.repartidor},
+          courierStatus: ApprovalStatus.pendiente);
 
-      expect(find.text('Estás en línea'), findsOneWidget);
-      expect(find.text('Tu registro será revisado por el administrador'),
-          findsNothing);
+      await tester.tap(find.text('Actualizar estado'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(aviso), findsOneWidget);
+    });
+
+    testWidgets('si falla la actualización avisa y no cierra la sesión',
+        (tester) async {
+      final env = await pumpRepartidor(tester);
+      env.profiles.getError = const AuthFailure('Sin conexión.');
+
+      await tester.tap(find.text('Actualizar estado'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('No pudimos actualizar tu estado'),
+          findsOneWidget);
+      expect(find.textContaining(aviso), findsOneWidget);
+      expect(env.auth.signOutCalls, 0);
+    });
+
+    testWidgets('un repartidor aprobado ve su Home y su perfil',
+        (tester) async {
+      await pumpRepartidor(tester, estado: ApprovalStatus.aprobado);
+
+      expect(find.text('Estás desconectado'), findsOneWidget);
+      expect(find.textContaining(aviso), findsNothing);
+      await _abrirPerfil(tester);
+      expect(find.text('Aprobado'), findsOneWidget);
     });
   });
 

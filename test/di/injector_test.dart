@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcart/core/di/injector.dart';
+import 'package:smartcart/features/admin/domain/repository/aprobacion_repository.dart';
+import 'package:smartcart/features/admin/presentation/bloc/decision_solicitud_bloc.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
@@ -19,6 +21,7 @@ void main() {
     expect(sl.isRegistered<AuthRepository>(), isTrue);
     expect(sl.isRegistered<ProfileRepository>(), isTrue);
     expect(sl.isRegistered<ComercioRepository>(), isTrue);
+    expect(sl.isRegistered<AprobacionRepository>(), isTrue);
     expect(sl.isRegistered<SignInUseCase>(), isTrue);
   });
 
@@ -30,6 +33,7 @@ void main() {
     expect(sl.isRegistered<SessionBloc>(), isTrue);
     expect(sl.isRegistered<ColaboradorOnboardingBloc>(), isTrue);
     expect(sl.isRegistered<ComercioBloc>(), isTrue);
+    expect(sl.isRegistered<DecisionSolicitudBloc>(), isTrue);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {

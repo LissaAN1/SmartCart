@@ -114,6 +114,20 @@ class SupabaseProfileDataSource {
     });
   }
 
+  Future<void> setCourierAvailability(bool available) async {
+    try {
+      // La función verifica en la base de datos que el repartidor esté
+      // aprobado (docs/sql/perfiles_reales.sql).
+      await _client.rpc('cambiar_disponibilidad', params: {
+        'p_disponible': available,
+      });
+    } on PostgrestException catch (e) {
+      throw mapPostgrestException(e);
+    } on Exception {
+      throw connectionFailure();
+    }
+  }
+
   Future<Profile> getProfile(String id) async {
     try {
       final row = await _client
@@ -135,6 +149,8 @@ class SupabaseProfileDataSource {
           .from(SupabaseTables.rol)
           .select('${SupabaseColumns.rolId}, ${SupabaseColumns.rolCodigo}');
       final roles = _toRoles(assigned, catalog);
+      final courier =
+          roles.contains(UserRole.repartidor) ? await _courier(id) : null;
 
       return Profile(
         id: row[SupabaseColumns.usuarioId] as String,
@@ -145,9 +161,17 @@ class SupabaseProfileDataSource {
         collaborator: roles.contains(UserRole.colaborador)
             ? await _collaboratorStats(id)
             : null,
-        courierStatus: roles.contains(UserRole.repartidor)
-            ? await _courierStatus(id)
-            : null,
+        courierStatus: courier?.status,
+        courierAvailable: courier?.available ?? false,
+        description: row[SupabaseColumns.usuarioDescripcion] as String?,
+        rating: (row[SupabaseColumns.usuarioCalificacion] as num?)?.toDouble(),
+        ratingCount:
+            (row[SupabaseColumns.usuarioTotalCalificaciones] as num?)
+                    ?.toInt() ??
+                0,
+        memberSince: DateTime.tryParse(
+          row[SupabaseColumns.usuarioFechaRegistro]?.toString() ?? '',
+        )?.toLocal(),
       );
     } on AuthFailure {
       rethrow;
@@ -180,22 +204,29 @@ class SupabaseProfileDataSource {
     }
   }
 
-  /// Estado de aprobación del repartidor. Ante la duda (sin fila, estado
-  /// desconocido o error de lectura) se considera pendiente: es el estado
-  /// más restrictivo y nunca habilita la disponibilidad por error.
-  Future<ApprovalStatus> _courierStatus(String id) async {
+  /// Estado de aprobación y disponibilidad del repartidor. Ante la duda (sin
+  /// fila, estado desconocido o error de lectura) se considera pendiente y no
+  /// disponible: es lo más restrictivo y nunca habilita nada por error.
+  Future<({ApprovalStatus status, bool available})> _courier(String id) async {
     try {
       final row = await _client
           .from(SupabaseTables.perfilRepartidor)
-          .select(SupabaseColumns.repartidorEstado)
+          .select(
+            '${SupabaseColumns.repartidorEstado}, '
+            '${SupabaseColumns.repartidorDisponible}',
+          )
           .eq(SupabaseColumns.repartidorUsuario, id)
           .maybeSingle();
-      return ApprovalStatus.fromDbName(
+      final status = ApprovalStatus.fromDbName(
               row?[SupabaseColumns.repartidorEstado] as String?) ??
           ApprovalStatus.pendiente;
+      return (
+        status: status,
+        available: row?[SupabaseColumns.repartidorDisponible] == true,
+      );
     } on PostgrestException catch (e) {
       developer.log('perfil_repartidor: ${e.message}', name: 'smartcart.auth');
-      return ApprovalStatus.pendiente;
+      return (status: ApprovalStatus.pendiente, available: false);
     }
   }
 

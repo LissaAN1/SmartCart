@@ -14,7 +14,7 @@ class AdminHomeScreen extends StatelessWidget {
     final t = TemaRol.admin;
     return PantallaRol(
       tema: t,
-      navItems: navAdmin(pendientes: 12),
+      navItems: navAdmin(),
       tabActiva: 0,
       onTab: onTab,
       barraSuperior: BarraMarca(
@@ -106,7 +106,7 @@ class AdminHomeScreen extends StatelessWidget {
             titulo: 'Aprobaciones',
             subtitulo: 'Comercios y repartidores pendientes',
             contador: 12,
-            onTap: () => mostrarProximamente(context),
+            onTap: () => onTab?.call(1),
           ),
           const SizedBox(height: 12),
           AccesoRapidoCard(

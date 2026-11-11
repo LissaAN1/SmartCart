@@ -20,6 +20,10 @@ class SupabaseColumns {
   static const usuarioNombre = 'nombre';
   static const usuarioCorreo = 'correo';
   static const usuarioTelefono = 'telefono';
+  static const usuarioDescripcion = 'descripcion';
+  static const usuarioCalificacion = 'calificacion_promedio';
+  static const usuarioTotalCalificaciones = 'total_calificaciones';
+  static const usuarioFechaRegistro = 'fecha_registro';
 
   // rol
   static const rolId = 'id_rol';

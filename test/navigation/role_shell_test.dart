@@ -7,6 +7,7 @@ import 'package:smartcart/features/auth/domain/entities/app_user.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/home/presentation/pages/role_shell.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 
 import '../support/fakes.dart';
@@ -27,6 +28,8 @@ Future<TestEnv> _pumpShell(WidgetTester tester, UserRole role) async {
           BlocProvider<ComercioBloc>(
             create: (_) => env.comercioBloc()..add(ComercioStarted()),
           ),
+          BlocProvider<DisponibilidadBloc>(
+              create: (_) => env.disponibilidadBloc()),
         ],
         // El repartidor aprobado ve su Home completo (HU-08).
         child: RolShell(

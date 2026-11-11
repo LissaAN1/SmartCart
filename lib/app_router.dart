@@ -4,7 +4,13 @@ import 'package:smartcart/core/domain/user_role.dart';
 import 'package:smartcart/core/di/injector.dart';
 import 'package:smartcart/core/routes/app_navigation.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
+import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/admin/domain/entities/solicitud_aprobacion.dart';
+import 'package:smartcart/features/admin/domain/usecases/get_solicitudes_pendientes_usecase.dart';
+import 'package:smartcart/features/admin/presentation/bloc/decision_solicitud_bloc.dart';
+import 'package:smartcart/features/admin/presentation/pages/solicitud_detalle_page.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
+import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -16,6 +22,7 @@ import 'package:smartcart/features/onboarding/presentation/pages/onboarding_page
 import 'package:smartcart/features/profile_selection/presentation/pages/profile_selection_page.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
 
@@ -42,11 +49,30 @@ abstract final class AppRouter {
           create: (_) => sl<ColaboradorOnboardingBloc>(),
           child: const ColaboradorOnboardingPage(),
         ),
+      AppRoutes.solicitudDetalle when args is SolicitudAprobacion => BlocProvider(
+          create: (_) => sl<DecisionSolicitudBloc>(),
+          child: SolicitudDetallePage(solicitud: args),
+        ),
       AppRoutes.home when args is HomeArguments => MultiBlocProvider(
           providers: [
             BlocProvider(create: (_) => sl<SessionBloc>()),
             // HU-07: solo el comercio necesita saber si ya registró su
             // establecimiento y en qué estado está.
+            // HU-24: la lista paginada de solicitudes pendientes del admin.
+            if (args.role == UserRole.administrador)
+              BlocProvider(
+                create: (_) => PaginatedBloc<SolicitudAprobacion>(
+                  fetchPage: sl<GetSolicitudesPendientesUseCase>().call,
+                )..add(PaginatedStarted()),
+              ),
+            // La disponibilidad del repartidor es real: arranca con lo guardado.
+            if (args.role == UserRole.repartidor)
+              BlocProvider(
+                create: (_) => DisponibilidadBloc(
+                  cambiar: sl<CambiarDisponibilidadUseCase>(),
+                  inicial: args.profile.courierAvailable,
+                ),
+              ),
             if (args.role == UserRole.comercio)
               BlocProvider(
                 create: (_) => sl<ComercioBloc>()..add(ComercioStarted()),
@@ -65,6 +91,10 @@ abstract final class AppRouter {
     // (`Navigator.pop(context, profile)`), así que su ruta lleva ese tipo.
     if (settings.name == AppRoutes.colaboradorOnboarding) {
       return MaterialPageRoute<Profile>(builder: (_) => page, settings: settings);
+    }
+    // El detalle de una solicitud devuelve `true` cuando se decidió.
+    if (settings.name == AppRoutes.solicitudDetalle) {
+      return MaterialPageRoute<bool>(builder: (_) => page, settings: settings);
     }
     return MaterialPageRoute<void>(builder: (_) => page, settings: settings);
   }

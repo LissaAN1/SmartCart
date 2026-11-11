@@ -2,6 +2,12 @@ import 'dart:async';
 
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
+import 'package:smartcart/core/pagination/paged_result.dart';
+import 'package:smartcart/features/admin/domain/entities/solicitud_aprobacion.dart';
+import 'package:smartcart/features/admin/domain/repository/aprobacion_repository.dart';
+import 'package:smartcart/features/admin/domain/usecases/decidir_solicitud_usecase.dart';
+import 'package:smartcart/features/admin/domain/usecases/get_solicitudes_pendientes_usecase.dart';
+import 'package:smartcart/features/admin/presentation/bloc/decision_solicitud_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/app_user.dart';
 import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
@@ -9,6 +15,7 @@ import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
 import 'package:smartcart/features/auth/domain/repository/profile_repository.dart';
 import 'package:smartcart/features/auth/domain/usecases/activar_modo_colaborador_usecase.dart';
+import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/get_my_profile_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
@@ -20,6 +27,7 @@ import 'package:smartcart/features/comercio/domain/usecases/get_mi_comercio_usec
 import 'package:smartcart/features/comercio/domain/usecases/registrar_comercio_usecase.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 
@@ -74,6 +82,8 @@ class FakeProfileRepository implements ProfileRepository {
   final collaboratorIds = <String>[];
   final courierIds = <String>[];
   int activateCalls = 0;
+  Object? availabilityError;
+  final availabilityCalls = <bool>[];
 
   @override
   Future<void> createProfile(Profile profile) async {
@@ -109,6 +119,12 @@ class FakeProfileRepository implements ProfileRepository {
   }
 
   @override
+  Future<void> setCourierAvailability(bool available) async {
+    if (availabilityError != null) throw availabilityError!;
+    availabilityCalls.add(available);
+  }
+
+  @override
   Future<Profile> getProfile(String id) async {
     if (getError != null) throw getError!;
     return stored ??
@@ -122,6 +138,10 @@ Profile profileWith(
   Set<UserRole> roles, {
   CollaboratorStats? collaborator,
   ApprovalStatus? courierStatus,
+  bool courierAvailable = false,
+  double? rating,
+  int ratingCount = 0,
+  DateTime? memberSince,
 }) =>
     Profile(
       id: 'u1',
@@ -131,6 +151,10 @@ Profile profileWith(
       roles: roles,
       collaborator: collaborator,
       courierStatus: courierStatus,
+      courierAvailable: courierAvailable,
+      rating: rating,
+      ratingCount: ratingCount,
+      memberSince: memberSince,
     );
 
 /// Repositorio de comercios en memoria para las pruebas.
@@ -165,6 +189,50 @@ class FakeComercioRepository implements ComercioRepository {
   }
 }
 
+/// Repositorio de aprobaciones en memoria para las pruebas (HU-24).
+class FakeAprobacionRepository implements AprobacionRepository {
+  List<SolicitudAprobacion> pendientes = [];
+  Object? decideError;
+  final aprobadas = <SolicitudAprobacion>[];
+  final rechazadas = <(SolicitudAprobacion, String)>[];
+
+  @override
+  Future<PagedResult<SolicitudAprobacion>> getPendientes(
+    PageRequest request,
+  ) async {
+    // Igual que la función de Supabase: una fila de más indica otra página.
+    final rows = pendientes.skip(request.from).take(request.pageSize + 1);
+    return PagedResult.fromRows(rows.toList(), request);
+  }
+
+  @override
+  Future<void> aprobar(SolicitudAprobacion solicitud) async {
+    if (decideError != null) throw decideError!;
+    aprobadas.add(solicitud);
+    pendientes = [...pendientes]..remove(solicitud);
+  }
+
+  @override
+  Future<void> rechazar(SolicitudAprobacion solicitud, String motivo) async {
+    if (decideError != null) throw decideError!;
+    rechazadas.add((solicitud, motivo));
+    pendientes = [...pendientes]..remove(solicitud);
+  }
+}
+
+SolicitudAprobacion solicitudDe(
+  int n, {
+  TipoSolicitud tipo = TipoSolicitud.comercio,
+}) =>
+    SolicitudAprobacion(
+      tipo: tipo,
+      id: 's$n',
+      userId: 'u$n',
+      nombre: 'Solicitante $n',
+      detalle: 'Detalle $n',
+      contacto: '300000$n',
+    );
+
 /// Datos válidos del formulario de registro del comercio.
 const comercioDatosValidos = ComercioDatos(
   nombre: 'Minimercado La Esquina',
@@ -196,6 +264,7 @@ class TestEnv {
   final auth = FakeAuthRepository();
   final profiles = FakeProfileRepository();
   final comercios = FakeComercioRepository();
+  final aprobaciones = FakeAprobacionRepository();
 
   SignInUseCase get signIn => SignInUseCase(auth: auth, profiles: profiles);
   SignUpUseCase get signUp => SignUpUseCase(auth: auth, profiles: profiles);
@@ -206,12 +275,24 @@ class TestEnv {
   GetMiComercioUseCase get getMiComercio =>
       GetMiComercioUseCase(auth: auth, comercios: comercios);
 
+  DecidirSolicitudUseCase get decidirSolicitud => DecidirSolicitudUseCase(
+      auth: auth, profiles: profiles, repository: aprobaciones);
+  GetSolicitudesPendientesUseCase get getSolicitudes =>
+      GetSolicitudesPendientesUseCase(repository: aprobaciones);
+  DecisionSolicitudBloc decisionBloc() =>
+      DecisionSolicitudBloc(decidir: decidirSolicitud);
+
   LoginBloc loginBloc() => LoginBloc(signIn: signIn);
   RegisterBloc registerBloc() => RegisterBloc(signUp: signUp);
   SessionBloc sessionBloc() => SessionBloc(
         getMyProfile: GetMyProfileUseCase(auth: auth, profiles: profiles),
         signOut: SignOutUseCase(auth: auth),
       );
+  CambiarDisponibilidadUseCase get cambiarDisponibilidad =>
+      CambiarDisponibilidadUseCase(auth: auth, profiles: profiles);
+  DisponibilidadBloc disponibilidadBloc({bool inicial = false}) =>
+      DisponibilidadBloc(cambiar: cambiarDisponibilidad, inicial: inicial);
+
   ColaboradorOnboardingBloc colaboradorBloc() =>
       ColaboradorOnboardingBloc(activar: activarColaborador);
   ComercioBloc comercioBloc() =>

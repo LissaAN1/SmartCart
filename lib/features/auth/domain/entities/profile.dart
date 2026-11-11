@@ -23,6 +23,20 @@ class Profile {
   /// su disponibilidad.
   final ApprovalStatus? courierStatus;
 
+  /// Si el repartidor tiene activada su disponibilidad (`perfil_repartidor`).
+  final bool courierAvailable;
+
+  /// Descripción que la persona escribió de sí misma (`usuario.descripcion`).
+  final String? description;
+
+  /// Calificación promedio y cuántas calificaciones la forman. Sin
+  /// calificaciones, [rating] es `null`.
+  final double? rating;
+  final int ratingCount;
+
+  /// Fecha de registro de la cuenta (`usuario.fecha_registro`).
+  final DateTime? memberSince;
+
   const Profile({
     required this.id,
     required this.fullName,
@@ -31,6 +45,11 @@ class Profile {
     this.phone,
     this.collaborator,
     this.courierStatus,
+    this.courierAvailable = false,
+    this.description,
+    this.rating,
+    this.ratingCount = 0,
+    this.memberSince,
   });
 
   bool hasRole(UserRole role) => roles.contains(role);

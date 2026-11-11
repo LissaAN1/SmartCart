@@ -30,6 +30,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<void> setCourierAvailability(bool available) {
+    return _dataSource.setCourierAvailability(available);
+  }
+
+  @override
   Future<Profile> getProfile(String id) {
     return _dataSource.getProfile(id);
   }
