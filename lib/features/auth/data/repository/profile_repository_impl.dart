@@ -20,6 +20,21 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<void> createCourierProfile(String userId) {
+    return _dataSource.createCourierProfile(userId);
+  }
+
+  @override
+  Future<void> activateCollaboratorMode(String userId) {
+    return _dataSource.activateCollaboratorMode(userId);
+  }
+
+  @override
+  Future<void> setCourierAvailability(bool available) {
+    return _dataSource.setCourierAvailability(available);
+  }
+
+  @override
   Future<Profile> getProfile(String id) {
     return _dataSource.getProfile(id);
   }

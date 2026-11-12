@@ -1,19 +1,28 @@
 // lib/src/features/repartidor/ui/screens/repartidor_home_screen.dart
-// Home del REPARTIDOR ("Panel del Mensajero"). Solo UI con datos de ejemplo.
+// Home del REPARTIDOR ("Panel del Mensajero"). La disponibilidad es real; el
+// resto (ganancias, pedidos, tips) son datos de ejemplo hasta que existan las
+// tablas correspondientes.
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/repartidor_widgets.dart';
 
-class RepartidorHomeScreen extends StatefulWidget {
+/// Solo lo ve un repartidor aprobado. Mientras no lo esté, `RolShell` le
+/// muestra `RepartidorEstadoPage` en su lugar (HU-08).
+class RepartidorHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
-  const RepartidorHomeScreen({super.key, this.onTab});
 
-  @override
-  State<RepartidorHomeScreen> createState() => _RepartidorHomeScreenState();
-}
+  /// Disponibilidad guardada del repartidor (dato real).
+  final bool enLinea;
 
-class _RepartidorHomeScreenState extends State<RepartidorHomeScreen> {
-  bool _enLinea = true;
+  /// `null` mientras se guarda el cambio (el interruptor queda inactivo).
+  final ValueChanged<bool>? onCambioDisponible;
+
+  const RepartidorHomeScreen({
+    super.key,
+    this.onTab,
+    this.enLinea = false,
+    this.onCambioDisponible,
+  });
 
   static const _pedidos = [
     (comercio: 'Mercado Local Centro', orden: '#SC-4029', tarifa: r'$ 4.500', origen: 'Carrera 7 # 12-45, Centro', destino: 'Calle 19 # 4-82, Las Aguas', km: '1.2 km', min: '12 min'),
@@ -26,16 +35,15 @@ class _RepartidorHomeScreenState extends State<RepartidorHomeScreen> {
       tema: TemaRol.repartidor,
       navItems: navRepartidor,
       tabActiva: 0,
-      onTab: widget.onTab,
+      onTab: onTab,
       barraSuperior: const BarraTituloRol(titulo: 'Panel del Mensajero'),
       cuerpo: ListView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
         children: [
           // ══ DISPONIBILIDAD ══
           TarjetaDisponibilidad(
-            enLinea: _enLinea,
-            zona: 'Chapinero',
-            onCambio: (v) => setState(() => _enLinea = v),
+            enLinea: enLinea,
+            onCambio: onCambioDisponible,
           ),
           const SizedBox(height: 14),
 
