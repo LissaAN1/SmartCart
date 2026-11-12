@@ -264,7 +264,7 @@ class CabeceraPerfilCliente extends StatelessWidget {
     final t = TemaRol.of(context);
     return Row(
       children: [
-        AvatarPerfil(radio: 50, nombre: nombre, fotoUrl: fotoUrl, enLinea: true),
+        AvatarPerfil(radio: 50, nombre: nombre, fotoUrl: fotoUrl),
         const SizedBox(width: 18),
         Expanded(
           child: Column(

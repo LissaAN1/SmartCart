@@ -12,13 +12,11 @@ const navRepartidor = [
 /// Interruptor de disponibilidad (en línea / desconectado).
 class TarjetaDisponibilidad extends StatelessWidget {
   final bool enLinea;
-  final String zona;
   final ValueChanged<bool>? onCambio;
 
   const TarjetaDisponibilidad({
     super.key,
     required this.enLinea,
-    required this.zona,
     this.onCambio,
   });
 
@@ -51,7 +49,7 @@ class TarjetaDisponibilidad extends StatelessWidget {
                         color: t.texto)),
                 Text(
                     enLinea
-                        ? 'Recibiendo pedidos en $zona'
+                        ? 'Recibiendo pedidos'
                         : 'Actívate para recibir pedidos',
                     style: TextStyle(fontSize: 13, color: t.textoGris)),
               ],

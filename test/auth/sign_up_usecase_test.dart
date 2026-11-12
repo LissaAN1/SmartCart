@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 
@@ -39,6 +40,41 @@ void main() {
   test('el colaborador también recibe su perfil_colaborador inicial', () async {
     await register(UserRole.colaborador);
     expect(env.profiles.collaboratorIds, ['u1']);
+  });
+
+  test('el colaborador sale del registro con 0 puntos, nivel 1 y reputación 0',
+      () async {
+    final profile = await env.signUp(
+      fullName: 'Ana Gómez',
+      email: 'ana@correo.com',
+      password: 'clave1234',
+      role: UserRole.colaborador,
+    );
+
+    expect(profile.collaborator?.points, 0);
+    expect(profile.collaborator?.level, 1);
+    expect(profile.collaborator?.reputation, 0);
+  });
+
+  test('HU-08: el repartidor queda pendiente de aprobación', () async {
+    final profile = await env.signUp(
+      fullName: 'Ana Gómez',
+      email: 'ana@correo.com',
+      password: 'clave1234',
+      role: UserRole.repartidor,
+    );
+
+    expect(env.profiles.courierIds, ['u1']);
+    expect(profile.courierStatus, ApprovalStatus.pendiente);
+  });
+
+  test('los demás perfiles no crean fila de repartidor ni de colaborador',
+      () async {
+    await register(UserRole.cliente);
+    await register(UserRole.comercio);
+
+    expect(env.profiles.courierIds, isEmpty);
+    expect(env.profiles.collaboratorIds, isEmpty);
   });
 
   test('el teléfono vacío se guarda como nulo', () async {

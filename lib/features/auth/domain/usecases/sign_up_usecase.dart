@@ -1,4 +1,6 @@
+import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
+import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
@@ -47,12 +49,21 @@ class SignUpUseCase {
       email: email.trim(),
       phone: (cleanPhone == null || cleanPhone.isEmpty) ? null : cleanPhone,
       roles: {role},
+      collaborator:
+          role == UserRole.colaborador ? CollaboratorStats.initial : null,
+      courierStatus:
+          role == UserRole.repartidor ? ApprovalStatus.pendiente : null,
     );
 
     try {
       await _profiles.createProfile(profile);
       if (role == UserRole.colaborador) {
         await _profiles.createCollaboratorProfile(user.id);
+      }
+      // HU-08: el repartidor queda pendiente hasta que el administrador lo
+      // apruebe (HU-24).
+      if (role == UserRole.repartidor) {
+        await _profiles.createCourierProfile(user.id);
       }
     } catch (_) {
       // La cuenta ya existe pero quedó incompleta; no hay política para
