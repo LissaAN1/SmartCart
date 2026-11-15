@@ -17,7 +17,8 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
-| HU-11, HU-12, HU-13, HU-14, HU-17 | Precios, búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
+| **HU-14** | **Reporte de precio por el colaborador** | **Implementada y probada con dobles (389 pruebas); el APK de depuración compila. El SQL ya se ejecutó en Supabase y sus 26 pruebas de políticas dan `OK` (incluido un hallazgo de seguridad heredado, ya corregido). Falta probar la app en un dispositivo Android.** Ver [docs/HU14_informe_implementacion.md](docs/HU14_informe_implementacion.md) y [docs/HU14_informe_pruebas.md](docs/HU14_informe_pruebas.md) |
+| HU-11, HU-12, HU-13, HU-17 | Precios, búsqueda, detalle del precio, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
 
@@ -97,6 +98,31 @@ Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro 
 - Las pantallas de bienvenida (la segunda), la selección de perfil, el login y el registro tienen flecha para volver a la anterior.
 - Si Supabase tiene una sesión guardada en el dispositivo, al abrir la app se recupera: con un solo perfil entramos directo a su Home y con varios entramos al que se toque si la cuenta lo tiene.
 
+### Probar el reporte de precios (HU-14)
+
+El reporte exige estar a menos de **150 m** del establecimiento, así que hay que preparar un comercio con ubicación. Se prueba en Android (teléfono o emulador); el escáner no funciona en Windows.
+
+1. **Dejar lista la base.** Ejecutar `docs/sql/sprint2_hu14.sql` (ver el orden en [Configuración de Supabase](#configuración-de-supabase)).
+2. **Ubicar el comercio.** Entrar con una cuenta de **Comercio aprobada** estando en el lugar donde se va a probar. En el Home aparece el aviso "Falta la ubicación de tu comercio"; tocar **Guardar ubicación** y aceptar el permiso. Un comercio nuevo también puede tomarla en el formulario de registro. Sin coordenadas el comercio no sale como lugar de reporte.
+3. **Tener productos.** El comercio necesita productos en su catálogo (HU-10; sirven los CSV de `docs/ejemplos/`).
+4. **Entrar como colaborador.** Con una cuenta que tenga el modo **Colaborador** activo, tocar **Reportar precio**, **Escanear** o la pestaña **Reportar Precio**.
+5. **Recorrer el flujo:** elegir el establecimiento (aparece con su distancia) → elegir el producto (por nombre o marca, o con el ícono del escáner) → precio, promoción opcional, agotado y **foto de la etiqueta** → **Enviar reporte**. Resultado esperado: "Reporte enviado", queda **pendiente**.
+
+Para ver los **tres escenarios del backlog**:
+
+| Escenario | Cómo provocarlo | Resultado esperado |
+|---|---|---|
+| 1. Reporte exitoso | Los pasos de arriba, en el lugar donde se guardó la ubicación | "Reporte enviado" |
+| 2. Fuera del establecimiento | Mover la ubicación del comercio con la consulta de abajo (o cambiar la ubicación del emulador en *Extended controls → Location*) y enviar | "Debes estar en el establecimiento para reportar el precio. Estás a N m." |
+| 3. Sin foto | Llenar el precio y enviar sin tomar la foto | "La foto de la etiqueta es obligatoria." |
+
+```sql
+-- Mueve el comercio a otro lugar (para provocar el escenario 2). Cambiar el nombre.
+update public.comercio set latitud = latitud + 0.01 where nombre = 'La Paila';
+```
+
+Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio order by creado_en desc;` (estado `pendiente`) y, en **Storage → reportes**, la foto en la carpeta del colaborador.
+
 ### Probar el catálogo del comercio (HU-10)
 
 1. Entramos con una cuenta de **Comercio aprobada** (por ejemplo la de la tabla de cuentas de prueba). Un comercio pendiente solo ve la pantalla de estado y no puede abrir el catálogo.
@@ -120,6 +146,9 @@ Para repetir la prueba desde cero hay que eliminar antes los productos cargados:
 | flutter_bloc | Gestión de estado con BLoC |
 | get_it | Localizador de servicios (Service Locator) para la inyección de dependencias |
 | file_picker | Selector de archivos del sistema para la carga del catálogo por CSV (HU-10) |
+| geolocator | Ubicación (GPS) para verificar que el colaborador está en el establecimiento y para guardar la ubicación del comercio (HU-14) |
+| image_picker, permission_handler | Foto de la etiqueta con la cámara y su permiso (HU-14) |
+| mobile_scanner | Escáner de códigos de barras con la cámara; solo Android, iOS y web (HU-14) |
 | flutter_dotenv | Variables de entorno desde `.env` |
 | Clean Architecture por feature | Organización del código (presentación, dominio y datos) |
 
@@ -218,8 +247,10 @@ order by u.correo;
 | 2 | `sprint2_hu24.sql` | `es_administrador()`, `notificacion` y `decidir_solicitud()` |
 | 3 | `sprint2_hu10.sql` | `categoria` (con seis categorías), `producto`, `es_comercio_aprobado_propio()` y las políticas de producto |
 | 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
+| 5 | `sprint2_hu14.sql` | Coordenadas en `comercio`, `comercios_cercanos()`, `reporte_precio` con `enviar_reporte_precio()`, `establecimiento_sugerido` y el bucket de Storage `reportes` |
+| 6 | `pruebas_hu14_politicas.sql` | 26 pruebas de las políticas y funciones del reporte (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
-Sin el paso 3 la app no encuentra las tablas del catálogo. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
+Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5, las del reporte de precios. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
 ## Instalación de dependencias
 
@@ -258,9 +289,9 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **278 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **389 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
-Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`) ni el selector de archivos del sistema (eso lo probamos a mano).
+Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`), el selector de archivos del sistema (eso lo probamos a mano) ni el GPS, la cámara y el escáner reales de la HU-14 (las pruebas usan dobles; hay que probarlos en un dispositivo).
 
 | Carpeta | Qué comprueba |
 |---|---|
@@ -272,6 +303,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/di/` | Que el localizador de servicios registre y entregue cada dependencia |
 | `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista, errores y mensajes propios de error |
 | `test/aprobaciones/`, `test/notificaciones/`, `test/comercio/`, `test/colaborador/` | HU-06, HU-07, HU-08 y HU-24 (registro, estado y aprobación) |
+| `test/reportes/` | HU-14: distancia y reglas, validadores, casos de uso (los tres escenarios del backlog), Blocs, el flujo completo en pantalla, la ubicación del comercio (HU-07) y los accesos del colaborador |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 
 ## Estructura
@@ -302,6 +334,8 @@ lib/
     ├── profile_selection/         pantalla "Selecciona tu perfil"
     ├── home/                      RolShell: Home y Perfil del perfil activo
     ├── catalog/                   HU-10: catálogo del comercio (domain, data, presentation)
+    ├── reportes/                  HU-14: reporte de precio del colaborador (domain, data, presentation)
+    ├── ubicacion/                 HU-14: ubicación (GPS) y distancia; la usan el comercio y los reportes
     ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
     ├── notificaciones/            HU-24: aviso al solicitante
     └── admin | cliente | colaborador | comercio | repartidor
@@ -330,7 +364,7 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Criterio | Qué hicimos | Dónde está |
 |---|---|---|
 | Clean Architecture | Separamos cada feature en presentación, dominio y datos. Los casos de uso reciben el repositorio abstracto por constructor y los repositorios reciben su data source por constructor. Ninguna clase del dominio importa la capa de datos. Los data sources reciben el `SupabaseClient` por constructor en vez de leer `Supabase.instance` por dentro. | `lib/features/auth/`, `lib/core/di/` |
-| Inyección de dependencias con GetIt (patrón Service Locator) | Agregamos `get_it` y un único archivo, `injector.dart`, donde se registran el cliente de Supabase, los data sources, los repositorios, los casos de uso y los Blocs. `main.dart` lo llama una vez al arrancar y `app_router.dart` pide cada Bloc con `sl<...>()`. Con esto se acabó el armado manual de dependencias dentro del router. En el Sprint 2 las historias nuevas (HU-07, HU-24 y HU-10) se registran en el mismo archivo. Ver la [auditoría del Service Locator](#auditoría-del-service-locator-getit). | `lib/core/di/injector.dart`, `lib/main.dart`, `lib/app_router.dart`, `test/di/` |
+| Inyección de dependencias con GetIt (patrón Service Locator) | Agregamos `get_it` y un único archivo, `injector.dart`, donde se registran el cliente de Supabase, los data sources, los repositorios, los casos de uso y los Blocs. `main.dart` lo llama una vez al arrancar y `app_router.dart` pide cada Bloc con `sl<...>()`. Con esto se acabó el armado manual de dependencias dentro del router. En el Sprint 2 las historias nuevas (HU-07, HU-24, HU-10 y HU-14) se registran en el mismo archivo. Ver la [auditoría del Service Locator](#auditoría-del-service-locator-getit). | `lib/core/di/injector.dart`, `lib/main.dart`, `lib/app_router.dart`, `test/di/` |
 | BLoC | Login, registro y sesión tienen su Bloc con eventos y estados. Las pantallas solo envían eventos y se redibujan según el estado; no tienen lógica de negocio. | `lib/features/login/ui/bloc/`, `register/ui/bloc/`, `session/ui/bloc/` |
 | Reutilización de componentes | Sacamos a widgets compartidos lo que se repetía: `BotonAtras` (flecha de regreso), `mostrarProximamente` (aviso para botones sin función), campos y secciones de login y registro, y el kit visual por perfil (`TemaRol`, botones, tarjetas, menús). | `lib/core/ui/roles/widgets/`, `lib/components/` |
 | Carpetas y convenciones | Organizamos por feature y por capa, con nombres en minúscula y guion bajo (`snake_case`) y clases en `PascalCase`. Los archivos compartidos viven en `core/`. Las constantes de tablas, columnas, rutas e imágenes están en `core/constants/` y `core/routes/`, sin textos sueltos en las pantallas. | `lib/core/`, `lib/features/` |
@@ -338,7 +372,7 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Navegación | Agregamos la flecha de regreso en la segunda pantalla de bienvenida y en la selección de perfil. Arreglamos que la app abría la selección de perfil como si fuera la primera pantalla; ahora arranca en la bienvenida. Al cerrar sesión volvemos a la primera pantalla y borramos el historial, así que no se puede regresar al Home con el botón atrás. | `lib/app.dart`, `lib/core/routes/`, `lib/features/home/` |
 | Manejo de errores y experiencia de usuario | Los errores de Supabase se traducen a mensajes en español y se muestran al usuario. Los formularios validan antes de enviar, muestran carga y no dejan enviar dos veces. Los botones que todavía no tienen función muestran "Esta función estará disponible próximamente." en vez de quedar sin respuesta. | `lib/features/auth/domain/failures/`, `lib/core/ui/roles/widgets/varios.dart` |
 | Calidad y pruebas | Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las 278 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
-| Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a dos listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24) y el catálogo del comercio (HU-10). `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
+| Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a cuatro listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24), el catálogo del comercio (HU-10) y, en la HU-14, los establecimientos cercanos y la búsqueda de productos del reporte. `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
 
 ## Auditoría del Service Locator (GetIt)
 
@@ -363,7 +397,7 @@ Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySi
 | `sl<` o `GetIt` fuera del inyector | Solo `app_router.dart` |
 | Data sources o repositorios construidos fuera del inyector | Ninguno |
 | Imports de `flutter`, `supabase_flutter`, `get_it` o `file_picker` en las carpetas `domain/` | Ninguno |
-| Registros en `injector.dart` | 45 |
+| Registros en `injector.dart` | 62 |
 | `test/di/injector_test.dart` | Comprueba los registros (repositorios con el tipo del contrato, Bloc de fábrica, casos de uso únicos), que `setupDependencies` no duplica, y que la cadena completa del catálogo se arma con un cliente de Supabase sin conexión |
 
 Para repetir las comprobaciones:
@@ -380,6 +414,8 @@ flutter test test/di
 - `app_router.dart` arma `DisponibilidadBloc` a mano con `sl<CambiarDisponibilidadUseCase>()` y el valor inicial del perfil, en vez de registrarlo con `registerFactoryParam`. Usa el localizador, pero es la única excepción al patrón. No la cambiamos porque está fuera de la HU-10.
 - En las pruebas armamos los Blocs a mano con repositorios falsos (`TestEnv`) y no con `sl`: es a propósito, para no depender de Supabase.
 - `lib/core/pagination/paginated_bloc.dart` importa `flutter_bloc` porque es un Bloc, no una clase de dominio.
+- **Registro con nombre.** `PaginatedBloc<Producto>` existe dos veces: sin nombre (catálogo, HU-10) y con `InstanciasSl.busquedaProductos` (búsqueda del reporte, HU-14, con `param1` y `param2`). GetIt no admite el mismo tipo dos veces sin nombre. Una prueba de `test/di/` comprueba que conviven.
+- Los plugins de la HU-14 (`geolocator`, `image_picker`, `permission_handler`) quedan detrás de los contratos `ServicioUbicacion` y `SelectorFoto`; `mobile_scanner` solo aparece en `EscanerCodigoPage` (presentación).
 
 ## Decisiones de diseño
 
@@ -400,7 +436,15 @@ flutter test test/di
   - Eliminar un producto es definitivo.
   - El CSV lleva `nombre` y `categoria` (obligatorias) y `marca` y `codigo_barras` (opcionales), con un máximo de 500 filas. El selector de archivos lo probamos a mano con los CSV de `docs/ejemplos/`.
   - Los clientes todavía no pueden ver los productos: la lectura y la búsqueda llegan con la HU-12.
-- `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it` y, en la HU-10, `file_picker`).
+- **HU-14 (reporte de precio):**
+  - Necesita `docs/sql/sprint2_hu14.sql` en Supabase (en nuestro proyecto ya se ejecutó y `pruebas_hu14_politicas.sql` dio las 26 líneas en `OK`). La primera ejecución de la prueba reveló una política antigua, `comercio_update_own`, que dejaba al dueño cambiar su propio estado de aprobación; el script la elimina (sección 8) y quien use otra base debe ejecutarlo también.
+  - El GPS, la cámara, el permiso y el escáner reales **no se han probado en un dispositivo**: las pruebas usan dobles. Se prueba en Android.
+  - Un comercio solo aparece como lugar de reporte si guardó su ubicación (registro o aviso del Home). Los comercios anteriores a esta historia no la tienen.
+  - La distancia máxima es de 150 m (constante `ReporteReglas.radioMaximoM` y en la función SQL).
+  - El escáner de códigos no funciona en Windows; ahí queda la búsqueda por nombre.
+  - Solo guarda el reporte como pendiente. Validarlo y dar puntos son las HU-15 y HU-16 (Sprint 3).
+- La app declara el permiso `INTERNET` en el manifiesto de Android: sin él, una versión *release* no se conecta a Supabase.
+- `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it`, `file_picker` en la HU-10 y `geolocator`, `image_picker`, `mobile_scanner` y `permission_handler` en la HU-14).
 
 ## Equipo
 

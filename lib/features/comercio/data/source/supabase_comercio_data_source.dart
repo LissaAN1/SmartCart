@@ -2,6 +2,7 @@ import 'package:smartcart/core/constants/supabase_tables.dart';
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/features/auth/data/source/supabase_error_mapper.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Único archivo que lee y escribe la tabla `comercio`. Solo el dueño ve y
@@ -31,6 +32,7 @@ class SupabaseComercioDataSource {
 
   Future<Comercio> register(String userId, ComercioDatos datos) async {
     try {
+      final ubicacion = datos.ubicacion;
       final row = await _client
           .from(SupabaseTables.comercio)
           .insert({
@@ -42,12 +44,31 @@ class SupabaseComercioDataSource {
             SupabaseColumns.comercioHoraApertura: datos.horaApertura,
             SupabaseColumns.comercioHoraCierre: datos.horaCierre,
             SupabaseColumns.comercioServicio: datos.servicio.dbName,
+            if (ubicacion != null) ...{
+              SupabaseColumns.comercioLatitud: ubicacion.latitud,
+              SupabaseColumns.comercioLongitud: ubicacion.longitud,
+            },
             // La política de insert exige que nazca pendiente.
             SupabaseColumns.comercioEstado: ApprovalStatus.pendiente.dbName,
           })
           .select()
           .single();
       return _toComercio(row);
+    } on PostgrestException catch (e) {
+      throw mapPostgrestException(e);
+    } on Exception {
+      throw connectionFailure();
+    }
+  }
+
+  /// HU-14: la función solo toca las columnas de ubicación, así el dueño no
+  /// puede cambiar su estado de aprobación por este camino.
+  Future<void> fijarUbicacion(Ubicacion ubicacion) async {
+    try {
+      await _client.rpc(SupabaseFunctions.fijarUbicacionComercio, params: {
+        'p_latitud': ubicacion.latitud,
+        'p_longitud': ubicacion.longitud,
+      });
     } on PostgrestException catch (e) {
       throw mapPostgrestException(e);
     } on Exception {
@@ -78,6 +99,8 @@ Comercio comercioFromRow(Map<String, dynamic> row) {
             row[SupabaseColumns.comercioEstado] as String?) ??
         ApprovalStatus.pendiente,
     motivoRechazo: row[SupabaseColumns.comercioMotivoRechazo] as String?,
+    latitud: (row[SupabaseColumns.comercioLatitud] as num?)?.toDouble(),
+    longitud: (row[SupabaseColumns.comercioLongitud] as num?)?.toDouble(),
   );
 }
 

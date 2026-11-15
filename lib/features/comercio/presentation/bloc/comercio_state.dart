@@ -1,4 +1,5 @@
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 
 enum ComercioStatus {
   initial,
@@ -9,6 +10,10 @@ enum ComercioStatus {
   saving,
   loadFailed,
   saveFailed,
+
+  /// HU-14: se está leyendo el GPS y guardando la ubicación del comercio.
+  locating,
+  locationFailed,
 }
 
 /// Estado único del comercio del dueño: `comercio == null` con `ready`
@@ -18,10 +23,15 @@ class ComercioState {
   final Comercio? comercio;
   final String? errorMessage;
 
+  /// HU-14: ubicación que el dueño tomó en el formulario de registro, antes
+  /// de que exista el comercio. Se envía junto con los demás datos.
+  final Ubicacion? ubicacion;
+
   const ComercioState({
     this.status = ComercioStatus.initial,
     this.comercio,
     this.errorMessage,
+    this.ubicacion,
   });
 
   /// El comercio se conserva entre estados (para no perderlo si falla una
@@ -30,11 +40,13 @@ class ComercioState {
     ComercioStatus? status,
     Comercio? comercio,
     String? errorMessage,
+    Ubicacion? ubicacion,
   }) {
     return ComercioState(
       status: status ?? this.status,
       comercio: comercio ?? this.comercio,
       errorMessage: errorMessage,
+      ubicacion: ubicacion ?? this.ubicacion,
     );
   }
 

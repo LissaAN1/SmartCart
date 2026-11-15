@@ -49,6 +49,26 @@ import 'package:smartcart/features/comercio/domain/repository/comercio_repositor
 import 'package:smartcart/features/comercio/domain/usecases/get_mi_comercio_usecase.dart';
 import 'package:smartcart/features/comercio/domain/usecases/registrar_comercio_usecase.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
+import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
+import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
+import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
+import 'package:smartcart/features/reportes/data/source/supabase_reportes_data_source.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
+import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
+import 'package:smartcart/features/reportes/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_activo_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_establecimientos_cercanos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimiento_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/ubicacion/data/source/geolocator_servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/obtener_ubicacion_usecase.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
@@ -63,6 +83,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Las pantallas y el `AppRouter` piden lo que necesitan con `sl<LoginBloc>()`
 /// y nunca construyen las dependencias a mano.
 final GetIt sl = GetIt.instance;
+
+/// Nombres de los registros que comparten tipo con otro (ver
+/// `PaginatedBloc<Producto>`).
+abstract final class InstanciasSl {
+  /// HU-14: lista de productos de un establecimiento filtrada por consulta.
+  static const busquedaProductos = 'busqueda-productos-reporte';
+}
 
 /// Registra todas las dependencias. Se llama una sola vez en `main`, después
 /// de `Supabase.initialize`. Llamarla de nuevo no duplica los registros.
@@ -92,6 +119,13 @@ void setupDependencies() {
   // HU-10: se registra con el tipo del contrato; solo esta línea conoce
   // `file_picker`.
   sl.registerLazySingleton<SelectorArchivoCsv>(() => FilePickerSelectorCsv());
+  sl.registerLazySingleton<SupabaseReportesDataSource>(
+    () => SupabaseReportesDataSource(client: sl()),
+  );
+  // HU-14: el GPS y la cámara se registran con el tipo del contrato; solo
+  // estas líneas conocen `geolocator`, `image_picker` y `permission_handler`.
+  sl.registerLazySingleton<ServicioUbicacion>(() => GeolocatorServicioUbicacion());
+  sl.registerLazySingleton<SelectorFoto>(() => ImagePickerSelectorFoto());
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -111,6 +145,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<CatalogoRepository>(
     () => CatalogoRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<ReportesRepository>(
+    () => ReportesRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -168,12 +205,53 @@ void setupDependencies() {
     () => CargarProductosCsvUseCase(comercioAprobado: sl(), catalogo: sl()),
   );
 
+  // HU-14: ubicación del comercio y reporte de precios del colaborador.
+  sl.registerLazySingleton(() => ObtenerUbicacionUseCase(servicio: sl()));
+  sl.registerLazySingleton(
+    () => FijarUbicacionComercioUseCase(
+      auth: sl(),
+      comercios: sl(),
+      ubicacion: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => GetColaboradorActivoUseCase(auth: sl(), profiles: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetEstablecimientosCercanosUseCase(colaborador: sl(), reportes: sl()),
+  );
+  sl.registerLazySingleton(
+    () => BuscarProductosUseCase(colaborador: sl(), reportes: sl()),
+  );
+  sl.registerLazySingleton(() => TomarFotoUseCase(selector: sl()));
+  sl.registerLazySingleton(
+    () => EnviarReportePrecioUseCase(
+      colaborador: sl(),
+      reportes: sl(),
+      ubicacion: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => SugerirEstablecimientoUseCase(
+      colaborador: sl(),
+      reportes: sl(),
+      ubicacion: sl(),
+    ),
+  );
+
   // ── Blocs: uno nuevo por pantalla (factory), porque guardan estado ──
   sl.registerFactory(() => LoginBloc(signIn: sl()));
   sl.registerFactory(() => RegisterBloc(signUp: sl()));
   sl.registerFactory(() => SessionBloc(getMyProfile: sl(), signOut: sl()));
   sl.registerFactory(() => ColaboradorOnboardingBloc(activar: sl()));
-  sl.registerFactory(() => ComercioBloc(getMine: sl(), registrar: sl()));
+  sl.registerFactory(
+    () => ComercioBloc(
+      getMine: sl(),
+      registrar: sl(),
+      fijarUbicacion: sl(),
+      obtenerUbicacion: sl(),
+    ),
+  );
   sl.registerFactory(
     () => NotificacionesBloc(noLeidas: sl(), marcarLeidas: sl()),
   );
@@ -189,6 +267,35 @@ void setupDependencies() {
       errorMessageFor: mensajeDeFallo,
     );
   });
+
+  // HU-14: el reporte de precio y la ubicación no necesitan datos.
+  sl.registerFactory(() => UbicacionBloc(obtener: sl()));
+  sl.registerFactory(() => ReporteFormBloc(tomarFoto: sl(), enviar: sl()));
+  sl.registerFactory(() => SugerenciaBloc(sugerir: sl()));
+
+  // HU-14: las listas reciben el dato de la pantalla (la ubicación, o el
+  // establecimiento y la consulta). `PaginatedBloc<Producto>` ya está
+  // registrado sin parámetros por el catálogo (HU-10), así que esta versión
+  // lleva nombre: `sl<PaginatedBloc<Producto>>(instanceName: ..., param1: ...)`.
+  sl.registerFactoryParam<PaginatedBloc<EstablecimientoCercano>, Ubicacion, void>(
+    (ubicacion, _) {
+      final cercanos = sl<GetEstablecimientosCercanosUseCase>();
+      return PaginatedBloc<EstablecimientoCercano>(
+        fetchPage: (request) => cercanos(ubicacion, request),
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+  );
+  sl.registerFactoryParam<PaginatedBloc<Producto>, String, ConsultaProducto>(
+    (idComercio, consulta) {
+      final buscar = sl<BuscarProductosUseCase>();
+      return PaginatedBloc<Producto>(
+        fetchPage: (request) => buscar(idComercio, consulta, request),
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+    instanceName: InstanciasSl.busquedaProductos,
+  );
 
   // HU-10: el formulario recibe el producto que se edita (`null` al crear):
   // `sl<ProductoFormBloc>(param1: producto)`.
