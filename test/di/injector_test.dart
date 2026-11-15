@@ -24,6 +24,7 @@ import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.
 import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
 import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
 import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
 import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
@@ -31,6 +32,7 @@ import 'package:smartcart/features/reportes/domain/usecases/buscar_productos_use
 import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_activo_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/get_establecimientos_cercanos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_mis_reportes_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimiento_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
@@ -152,6 +154,8 @@ void main() {
     expect(sl.isRegistered<GetColaboradorActivoUseCase>(), isTrue);
     expect(sl.isRegistered<GetEstablecimientosCercanosUseCase>(), isTrue);
     expect(sl.isRegistered<BuscarProductosUseCase>(), isTrue);
+    expect(sl.isRegistered<GetMisReportesUseCase>(), isTrue);
+    expect(sl.isRegistered<PaginatedBloc<MiReporte>>(), isTrue);
     expect(sl.isRegistered<TomarFotoUseCase>(), isTrue);
     expect(sl.isRegistered<EnviarReportePrecioUseCase>(), isTrue);
     expect(sl.isRegistered<SugerirEstablecimientoUseCase>(), isTrue);
@@ -201,6 +205,15 @@ void main() {
         ),
         isA<PaginatedBloc<Producto>>(),
       );
+    });
+
+    test('el historial de reportes recibe el tamaño de página (param1)', () {
+      final home = sl<PaginatedBloc<MiReporte>>(param1: 3);
+      final pantalla = sl<PaginatedBloc<MiReporte>>(param1: 20);
+
+      expect(home.pageSize, 3);
+      expect(pantalla.pageSize, 20);
+      expect(identical(home, pantalla), isFalse);
     });
 
     test('el catálogo sigue pudiendo pedir su lista sin parámetros', () {

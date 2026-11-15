@@ -22,14 +22,23 @@ typedef CrearListaProductos = PaginatedBloc<Producto> Function(
 /// HU-14, paso 2: el colaborador identifica el producto, escaneando su código
 /// de barras o buscándolo por nombre o marca. Sin texto lista todos los
 /// productos del establecimiento.
+///
+/// Donde hay cámara (Android, iOS y web) abre el escáner apenas se entra, que
+/// es lo más rápido para quien está frente al estante. Si el producto del
+/// código existe, pasa directo al formulario; si cancela el escáner o el
+/// código no está, se queda aquí para buscar por nombre.
 class ReporteProductoPage extends StatefulWidget {
   final EstablecimientoCercano establecimiento;
   final CrearListaProductos crearLista;
+
+  /// Abrir el escáner al entrar. Es `true` salvo que no haya cámara.
+  final bool escanearAlEntrar;
 
   const ReporteProductoPage({
     super.key,
     required this.establecimiento,
     required this.crearLista,
+    this.escanearAlEntrar = true,
   });
 
   @override
@@ -45,12 +54,29 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
   Timer? _temporizador;
   ConsultaProducto _consulta = const ConsultaProducto();
 
+  /// Se activa al leer un código: si la búsqueda trae exactamente un producto,
+  /// se abre su formulario sin que la persona tenga que tocarlo. Se apaga al
+  /// abrirlo, para que volver atrás no lo abra otra vez.
+  bool _abrirAlEncontrar = false;
+
   /// El escáner usa la cámara con `mobile_scanner`, que solo existe en
   /// Android, iOS y web. En escritorio queda la búsqueda por nombre.
   bool get _puedeEscanear =>
       kIsWeb ||
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.escanearAlEntrar && _puedeEscanear) {
+      // Esperamos al primer cuadro: abrir una ruta durante `initState` no es
+      // posible.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _escanear();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -68,18 +94,32 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
   }
 
   Future<void> _escanear() async {
-    final codigo = await Navigator.of(context)
-        .pushNamed<String>(AppRoutes.reporteEscaner);
+    final codigo =
+        await Navigator.of(context).pushNamed<String>(AppRoutes.reporteEscaner);
     if (codigo == null || !mounted) return;
     _temporizador?.cancel();
     _texto.text = codigo;
-    setState(() => _consulta = ConsultaProducto.codigo(codigo));
+    setState(() {
+      _abrirAlEncontrar = true;
+      _consulta = ConsultaProducto.codigo(codigo);
+    });
   }
 
   void _limpiar() {
     _temporizador?.cancel();
     _texto.clear();
-    setState(() => _consulta = const ConsultaProducto());
+    setState(() {
+      _abrirAlEncontrar = false;
+      _consulta = const ConsultaProducto();
+    });
+  }
+
+  /// Con un código escaneado y un único producto, abre su formulario.
+  void _alCargarLista(PaginatedState<Producto> estado) {
+    if (!_abrirAlEncontrar || !_consulta.esCodigo) return;
+    if (estado.status != PaginatedStatus.success) return;
+    _abrirAlEncontrar = false;
+    if (estado.items.length == 1) _elegir(estado.items.first);
   }
 
   Future<void> _elegir(Producto producto) async {
@@ -172,17 +212,21 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
                 widget.establecimiento.id,
                 consulta,
               )..add(PaginatedStarted()),
-              child: PaginatedListView<Producto>(
-                emptyMessage: consulta.esCodigo
-                    ? 'No encontramos un producto con ese código en este '
-                        'establecimiento.'
-                    : consulta.texto.isEmpty
-                        ? 'Este establecimiento todavía no tiene productos.'
-                        : 'No encontramos productos con "${consulta.texto}".',
-                itemBuilder: (context, producto) => ProductoCard(
-                  producto: producto,
-                  icono: Icons.chevron_right,
-                  onTap: () => _elegir(producto),
+              child: BlocListener<PaginatedBloc<Producto>,
+                  PaginatedState<Producto>>(
+                listener: (context, estado) => _alCargarLista(estado),
+                child: PaginatedListView<Producto>(
+                  emptyMessage: consulta.esCodigo
+                      ? 'No encontramos un producto con ese código en este '
+                          'establecimiento.'
+                      : consulta.texto.isEmpty
+                          ? 'Este establecimiento todavía no tiene productos.'
+                          : 'No encontramos productos con "${consulta.texto}".',
+                  itemBuilder: (context, producto) => ProductoCard(
+                    producto: producto,
+                    icono: Icons.chevron_right,
+                    onTap: () => _elegir(producto),
+                  ),
                 ),
               ),
             ),

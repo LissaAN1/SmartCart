@@ -14,6 +14,8 @@
 --      solo si el colaborador está a menos de 150 m del establecimiento.
 --   6. establecimiento_sugerido: para sugerir un lugar que aún no está.
 --   7. El bucket de Storage "reportes" con las fotos de las etiquetas.
+--   8. Cierra una política heredada de comercio que dejaba al dueño aprobarse.
+--   9. mis_reportes(): el historial de reportes del colaborador.
 -- Las pruebas de las políticas están en pruebas_hu14_politicas.sql.
 --
 -- Los mensajes de las funciones salen en español y la app los muestra tal
@@ -421,3 +423,47 @@ create policy reportes_delete_own on storage.objects
 -- pendiente sin poder cambiar el estado, y el administrador decide.
 -- ---------------------------------------------------------------------
 drop policy if exists comercio_update_own on public.comercio;
+
+
+-- ---------------------------------------------------------------------
+-- 9. Historial de reportes del colaborador
+-- El colaborador puede leer sus filas de reporte_precio, pero no la tabla
+-- comercio (solo el dueño y el administrador), así que el nombre del
+-- establecimiento sale de esta función. Devuelve SOLO los reportes de quien
+-- llama, del más reciente al más antiguo, sin importar su estado: los
+-- pendientes también aparecen. Pagina como el resto (limite = tamaño de
+-- página + 1).
+-- ---------------------------------------------------------------------
+create or replace function public.mis_reportes(
+  p_limite         integer default 21,
+  p_desplazamiento integer default 0
+)
+returns table (
+  id_reporte         uuid,
+  producto           text,
+  comercio           text,
+  precio             bigint,
+  precio_promocional bigint,
+  agotado            boolean,
+  estado             text,
+  creado_en          timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select r.id_reporte,
+         coalesce(p.nombre, 'Producto eliminado'),
+         coalesce(c.nombre, 'Establecimiento'),
+         r.precio, r.precio_promocional, r.agotado, r.estado, r.creado_en
+    from public.reporte_precio r
+    left join public.producto p on p.id_producto = r.id_producto
+    left join public.comercio c on c.id_comercio = r.id_comercio
+   where r.id_colaborador = auth.uid()
+   order by r.creado_en desc, r.id_reporte
+   limit p_limite offset p_desplazamiento;
+$$;
+
+revoke all on function public.mis_reportes(integer, integer) from public;
+grant execute on function public.mis_reportes(integer, integer) to authenticated;

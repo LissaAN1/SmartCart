@@ -36,6 +36,10 @@ class SupabaseFunctions {
   /// el establecimiento.
   static const enviarReportePrecio = 'enviar_reporte_precio';
 
+  /// HU-14: los reportes del colaborador con sesión iniciada, del más
+  /// reciente al más antiguo y de cualquier estado.
+  static const misReportes = 'mis_reportes';
+
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
   static const decidirSolicitud = 'decidir_solicitud';
@@ -118,6 +122,16 @@ class SupabaseColumns {
 
   // Columnas que devuelve comercios_cercanos (HU-14)
   static const cercanoDistancia = 'distancia_m';
+
+  // Columnas que devuelve mis_reportes (HU-14)
+  static const misReporteId = 'id_reporte';
+  static const misReporteProducto = 'producto';
+  static const misReporteComercio = 'comercio';
+  static const misReportePrecio = 'precio';
+  static const misReportePromocion = 'precio_promocional';
+  static const misReporteAgotado = 'agotado';
+  static const misReporteEstado = 'estado';
+  static const misReporteCreadoEn = 'creado_en';
 
   // establecimiento_sugerido (HU-14)
   static const sugeridoColaborador = 'id_colaborador';

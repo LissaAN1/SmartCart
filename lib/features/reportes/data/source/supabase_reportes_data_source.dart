@@ -4,6 +4,7 @@ import 'package:smartcart/features/auth/data/source/supabase_error_mapper.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/data/source/supabase_catalogo_data_source.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -117,6 +118,26 @@ class SupabaseReportesDataSource {
     });
   }
 
+  /// La función `mis_reportes` devuelve solo los reportes de quien llama y
+  /// trae el nombre del establecimiento, que el colaborador no puede leer de
+  /// la tabla `comercio`.
+  Future<PagedResult<MiReporte>> misReportes(PageRequest request) {
+    return _proteger(() async {
+      final rows = await _client.rpc(
+        SupabaseFunctions.misReportes,
+        params: {
+          // Una fila de más: indica si hay otra página (ver PageRequest).
+          'p_limite': request.pageSize + 1,
+          'p_desplazamiento': request.from,
+        },
+      ) as List<dynamic>;
+      return PagedResult.fromRows(
+        [for (final row in rows) _toMiReporte(row as Map<String, dynamic>)],
+        request,
+      );
+    });
+  }
+
   Future<void> sugerirEstablecimiento(
     String userId,
     SugerenciaDatos datos,
@@ -156,6 +177,25 @@ class SupabaseReportesDataSource {
   /// (comas, paréntesis) o lo convertiría en otro patrón (% y *).
   String _limpiarPatron(String texto) =>
       texto.replaceAll(RegExp(r'[,()%*\\]'), ' ').trim();
+
+  MiReporte _toMiReporte(Map<String, dynamic> row) {
+    final promocion = row[SupabaseColumns.misReportePromocion] as num?;
+    return MiReporte(
+      id: row[SupabaseColumns.misReporteId].toString(),
+      producto: row[SupabaseColumns.misReporteProducto] as String? ?? '',
+      establecimiento: row[SupabaseColumns.misReporteComercio] as String? ?? '',
+      precio: (row[SupabaseColumns.misReportePrecio] as num).toInt(),
+      precioPromocional: promocion?.toInt(),
+      agotado: row[SupabaseColumns.misReporteAgotado] as bool? ?? false,
+      estado: EstadoReporte.fromDbName(
+        row[SupabaseColumns.misReporteEstado] as String?,
+      ),
+      // La base guarda la hora en UTC; se muestra en la del dispositivo.
+      creadoEn: DateTime.parse(
+        row[SupabaseColumns.misReporteCreadoEn].toString(),
+      ).toLocal(),
+    );
+  }
 
   EstablecimientoCercano _toEstablecimiento(Map<String, dynamic> row) {
     return EstablecimientoCercano(
