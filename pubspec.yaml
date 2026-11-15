@@ -13,6 +13,7 @@ dependencies:
   flutter_bloc: ^9.1.1
   flutter_dotenv: ^5.2.1
   get_it: ^8.0.3
+  file_picker: ^13.3.3
 
 dev_dependencies:
   flutter_test:

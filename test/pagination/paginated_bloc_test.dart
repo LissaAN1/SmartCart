@@ -14,6 +14,35 @@ Future<PaginatedState<int>> _esperarExito(PaginatedBloc<int> bloc) =>
     bloc.stream.firstWhere((s) => s.status == PaginatedStatus.success);
 
 void main() {
+  test('muestra el mensaje propio del error cuando se da errorMessageFor',
+      () async {
+    final bloc = PaginatedBloc<int>(
+      fetchPage: (_) async => throw StateError('comercio pendiente'),
+      errorMessageFor: (e) => e is StateError ? 'Mensaje propio' : null,
+    );
+
+    bloc.add(PaginatedStarted());
+    final state = await bloc.stream
+        .firstWhere((s) => s.status == PaginatedStatus.failure);
+
+    expect(state.errorMessage, 'Mensaje propio');
+    await bloc.close();
+  });
+
+  test('sin mensaje propio usa el mensaje genérico', () async {
+    final bloc = PaginatedBloc<int>(
+      fetchPage: (_) async => throw StateError('boom'),
+      errorMessageFor: (_) => null,
+    );
+
+    bloc.add(PaginatedStarted());
+    final state = await bloc.stream
+        .firstWhere((s) => s.status == PaginatedStatus.failure);
+
+    expect(state.errorMessage, contains('No pudimos cargar la información'));
+    await bloc.close();
+  });
+
   test('PageRequest calcula el rango de cada página', () {
     const request = PageRequest(page: 2, pageSize: 10);
     expect(request.from, 20);

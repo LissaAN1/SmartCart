@@ -14,6 +14,12 @@ import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/pages/catalogo_csv_page.dart';
+import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
+import 'package:smartcart/features/catalog/presentation/pages/producto_form_page.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -87,6 +93,23 @@ abstract final class AppRouter {
           create: (_) => sl<DecisionSolicitudBloc>(param1: args),
           child: const SolicitudDetallePage(),
         ),
+      AppRoutes.catalogo => BlocProvider(
+          create: (_) =>
+              sl<PaginatedBloc<Producto>>()..add(PaginatedStarted()),
+          child: const CatalogoPage(),
+        ),
+      AppRoutes.catalogoProducto => () {
+          final producto = args is Producto ? args : null;
+          return BlocProvider(
+            create: (_) => sl<ProductoFormBloc>(param1: producto)
+              ..add(ProductoFormStarted()),
+            child: ProductoFormPage(producto: producto),
+          );
+        }(),
+      AppRoutes.catalogoCsv => BlocProvider(
+          create: (_) => sl<CargaCsvBloc>(),
+          child: const CatalogoCsvPage(),
+        ),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.
       _ => BlocProvider(
@@ -100,6 +123,10 @@ abstract final class AppRouter {
       // El onboarding devuelve el perfil ya con el rol colaborador.
       AppRoutes.colaboradorOnboarding =>
         MaterialPageRoute<Profile>(builder: (_) => page, settings: settings),
+      // El formulario del producto devuelve si hubo cambios (guardar o
+      // eliminar) para que el catálogo recargue su lista.
+      AppRoutes.catalogoProducto =>
+        MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
       // El detalle de una solicitud devuelve la decisión tomada.
       AppRoutes.adminSolicitudDetalle => MaterialPageRoute<ApprovalStatus>(
           builder: (_) => page, settings: settings),

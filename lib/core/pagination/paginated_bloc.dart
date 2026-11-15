@@ -72,9 +72,15 @@ class PaginatedBloc<T> extends Bloc<PaginatedEvent, PaginatedState<T>> {
   final PageFetcher<T> _fetchPage;
   final int pageSize;
 
+  /// Mensaje propio para un error esperado (por ejemplo, "tu comercio está
+  /// pendiente de aprobación"). Si devuelve `null` se usa el mensaje genérico.
+  /// Así el Bloc no depende de las clases de error de ninguna funcionalidad.
+  final String? Function(Object error)? errorMessageFor;
+
   PaginatedBloc({
     required PageFetcher<T> fetchPage,
     this.pageSize = PageRequest.defaultPageSize,
+    this.errorMessageFor,
   })  : _fetchPage = fetchPage,
         super(PaginatedState<T>()) {
     on<PaginatedStarted>(_onStarted);
@@ -96,11 +102,12 @@ class PaginatedBloc<T> extends Bloc<PaginatedEvent, PaginatedState<T>> {
           hasMore: result.hasMore,
         ),
       );
-    } catch (_) {
+    } catch (e) {
       emit(
         PaginatedState<T>(
           status: PaginatedStatus.failure,
-          errorMessage: 'No pudimos cargar la información. Inténtalo de nuevo.',
+          errorMessage: errorMessageFor?.call(e) ??
+              'No pudimos cargar la información. Inténtalo de nuevo.',
         ),
       );
     }

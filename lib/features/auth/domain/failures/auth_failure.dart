@@ -9,3 +9,9 @@ class AuthFailure implements Exception {
   @override
   String toString() => message;
 }
+
+/// El mensaje de [error] si es un [AuthFailure] (ya viene listo para mostrar)
+/// y `null` en cualquier otro caso. Sirve de `errorMessageFor` de las listas
+/// paginadas.
+String? mensajeDeFallo(Object error) =>
+    error is AuthFailure ? error.message : null;

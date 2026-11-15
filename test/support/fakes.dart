@@ -26,6 +26,21 @@ import 'package:smartcart/features/auth/domain/usecases/get_my_profile_usecase.d
 import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
+import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/entities/resultado_carga_csv.dart';
+import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_archivo_csv.dart';
+import 'package:smartcart/features/catalog/domain/usecases/cargar_productos_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/crear_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/editar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/elegir_archivo_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/eliminar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_categorias_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
@@ -308,6 +323,158 @@ Solicitud solicitudRepartidor({String id = 'r1', String nombre = 'Luis Torres'})
       creadoEn: DateTime(2026, 11, 3),
     );
 
+/// Las categorías que trae la base (docs/sql/sprint2_hu10.sql).
+const categoriasDePrueba = [
+  Categoria(id: 'cat-super', nombre: 'Super'),
+  Categoria(id: 'cat-frutas', nombre: 'Frutas'),
+  Categoria(id: 'cat-lacteos', nombre: 'Lácteos'),
+];
+
+/// Catálogo en memoria (HU-10): los productos se guardan por comercio, como
+/// las políticas RLS que solo dejan ver los del propio comercio.
+class FakeCatalogoRepository implements CatalogoRepository {
+  final productosPorComercio = <String, List<Producto>>{};
+  final creados = <({String idComercio, ProductoDatos datos})>[];
+  final consultasDeCodigos = <List<String>>[];
+  Object? listError;
+  Object? categoriasError;
+  Object? crearError;
+  Object? editarError;
+  Object? eliminarError;
+  Object? crearVariosError;
+  int crearVariosCalls = 0;
+  int _secuencia = 0;
+
+  List<Producto> deComercio(String idComercio) =>
+      productosPorComercio.putIfAbsent(idComercio, () => []);
+
+  Producto _armar(ProductoDatos datos, {String? id}) => Producto(
+        id: id ?? 'p${++_secuencia}',
+        nombre: datos.nombre,
+        marca: datos.marca,
+        codigoBarras: datos.codigoBarras,
+        idCategoria: datos.idCategoria,
+        categoria: categoriasDePrueba
+            .firstWhere((c) => c.id == datos.idCategoria,
+                orElse: () => const Categoria(id: '', nombre: ''))
+            .nombre,
+      );
+
+  /// Agrega productos ya guardados, sin pasar por los casos de uso.
+  void precargar(String idComercio, int cuantos) {
+    for (var i = 1; i <= cuantos; i++) {
+      deComercio(idComercio).add(_armar(ProductoDatos(
+        nombre: 'Producto $i',
+        idCategoria: 'cat-super',
+        codigoBarras: '77000000${i.toString().padLeft(4, '0')}',
+      )));
+    }
+  }
+
+  @override
+  Future<PagedResult<Producto>> productos(
+    String idComercio,
+    PageRequest request,
+  ) async {
+    if (listError != null) throw listError!;
+    final filas = deComercio(idComercio)
+        .skip(request.from)
+        .take(request.pageSize + 1)
+        .toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<List<Categoria>> categorias() async {
+    if (categoriasError != null) throw categoriasError!;
+    return categoriasDePrueba;
+  }
+
+  void _comprobarCodigoLibre(String idComercio, String? codigo) {
+    if (codigo == null) return;
+    final repetido =
+        deComercio(idComercio).any((p) => p.codigoBarras == codigo);
+    if (repetido) {
+      throw const AuthFailure('Ya tienes un producto con ese código de barras.');
+    }
+  }
+
+  @override
+  Future<Producto> crear(String idComercio, ProductoDatos datos) async {
+    if (crearError != null) throw crearError!;
+    _comprobarCodigoLibre(idComercio, datos.codigoBarras);
+    creados.add((idComercio: idComercio, datos: datos));
+    final producto = _armar(datos);
+    deComercio(idComercio).insert(0, producto);
+    return producto;
+  }
+
+  @override
+  Future<Producto> editar(String idProducto, ProductoDatos datos) async {
+    if (editarError != null) throw editarError!;
+    for (final lista in productosPorComercio.values) {
+      final i = lista.indexWhere((p) => p.id == idProducto);
+      if (i < 0) continue;
+      final actualizado = _armar(datos, id: idProducto);
+      lista[i] = actualizado;
+      return actualizado;
+    }
+    throw const AuthFailure('No encontramos ese producto.');
+  }
+
+  @override
+  Future<void> eliminar(String idProducto) async {
+    if (eliminarError != null) throw eliminarError!;
+    for (final lista in productosPorComercio.values) {
+      final antes = lista.length;
+      lista.removeWhere((p) => p.id == idProducto);
+      if (lista.length != antes) return;
+    }
+    throw const AuthFailure('No encontramos ese producto.');
+  }
+
+  @override
+  Future<Set<String>> codigosExistentes(
+    String idComercio,
+    List<String> codigos,
+  ) async {
+    consultasDeCodigos.add(codigos);
+    return {
+      for (final p in deComercio(idComercio))
+        if (p.codigoBarras != null && codigos.contains(p.codigoBarras))
+          p.codigoBarras!,
+    };
+  }
+
+  @override
+  Future<void> crearVarios(
+    String idComercio,
+    List<ProductoDatos> productos,
+  ) async {
+    crearVariosCalls++;
+    if (crearVariosError != null) throw crearVariosError!;
+    for (final datos in productos) {
+      creados.add((idComercio: idComercio, datos: datos));
+      deComercio(idComercio).insert(0, _armar(datos));
+    }
+  }
+}
+
+/// Selector de archivos que entrega el [archivo] indicado (o `null`, como si
+/// la persona cancelara).
+class FakeSelectorArchivoCsv implements SelectorArchivoCsv {
+  ArchivoCsv? archivo;
+  Object? error;
+  int llamadas = 0;
+
+  @override
+  Future<ArchivoCsv?> elegir() async {
+    llamadas++;
+    if (error != null) throw error!;
+    return archivo;
+  }
+}
+
 /// Agrupa los dobles y construye los Blocs con ellos.
 class TestEnv {
   final auth = FakeAuthRepository();
@@ -315,6 +482,8 @@ class TestEnv {
   final comercios = FakeComercioRepository();
   final solicitudes = FakeSolicitudesRepository();
   final notificaciones = FakeNotificacionRepository();
+  final catalogo = FakeCatalogoRepository();
+  final selectorCsv = FakeSelectorArchivoCsv();
 
   DecidirSolicitudUseCase get decidirSolicitud => DecidirSolicitudUseCase(
       auth: auth, profiles: profiles, solicitudes: solicitudes);
@@ -349,6 +518,47 @@ class TestEnv {
       RegistrarComercioUseCase(auth: auth, comercios: comercios);
   GetMiComercioUseCase get getMiComercio =>
       GetMiComercioUseCase(auth: auth, comercios: comercios);
+
+  // HU-10: catálogo del comercio.
+  GetComercioAprobadoUseCase get comercioAprobado =>
+      GetComercioAprobadoUseCase(auth: auth, comercios: comercios);
+  GetProductosUseCase get getProductos => GetProductosUseCase(
+      comercioAprobado: comercioAprobado, catalogo: catalogo);
+  GetCategoriasUseCase get getCategorias =>
+      GetCategoriasUseCase(catalogo: catalogo);
+  CrearProductoUseCase get crearProducto => CrearProductoUseCase(
+      comercioAprobado: comercioAprobado, catalogo: catalogo);
+  EditarProductoUseCase get editarProducto => EditarProductoUseCase(
+      comercioAprobado: comercioAprobado, catalogo: catalogo);
+  EliminarProductoUseCase get eliminarProducto => EliminarProductoUseCase(
+      comercioAprobado: comercioAprobado, catalogo: catalogo);
+  ElegirArchivoCsvUseCase get elegirArchivoCsv =>
+      ElegirArchivoCsvUseCase(selector: selectorCsv);
+  CargarProductosCsvUseCase get cargarProductosCsv => CargarProductosCsvUseCase(
+      comercioAprobado: comercioAprobado, catalogo: catalogo);
+
+  /// Deja la sesión iniciada como dueño de un comercio con el [estado] dado
+  /// (el comercio de prueba tiene el id `c1`).
+  void iniciarSesionComoComercio(ApprovalStatus estado) {
+    auth.current = const AppUser(id: 'u1', email: 'ana@correo.com');
+    comercios.stored = comercioConEstado(estado);
+  }
+
+  PaginatedBloc<Producto> productosBloc({int pageSize = 20}) =>
+      PaginatedBloc<Producto>(
+        fetchPage: getProductos.call,
+        pageSize: pageSize,
+        errorMessageFor: mensajeDeFallo,
+      );
+  ProductoFormBloc productoFormBloc({Producto? editando}) => ProductoFormBloc(
+        editando: editando,
+        categorias: getCategorias,
+        crear: crearProducto,
+        editar: editarProducto,
+        eliminar: eliminarProducto,
+      );
+  CargaCsvBloc cargaCsvBloc() =>
+      CargaCsvBloc(elegir: elegirArchivoCsv, cargar: cargarProductosCsv);
 
   LoginBloc loginBloc() => LoginBloc(signIn: signIn);
   RegisterBloc registerBloc() => RegisterBloc(signUp: signUp);

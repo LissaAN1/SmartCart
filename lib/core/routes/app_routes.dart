@@ -18,6 +18,16 @@ abstract final class AppRoutes {
   /// devuelve la decisión (`ApprovalStatus`) al cerrarse.
   static const adminSolicitudDetalle = '/admin/solicitudes/detalle';
 
+  /// HU-10: catálogo de productos del comercio (lista paginada).
+  static const catalogo = '/comercio/catalogo';
+
+  /// HU-10: formulario de un producto. Recibe el `Producto` a editar como
+  /// argumento (sin argumento crea uno nuevo) y devuelve `true` si cambió algo.
+  static const catalogoProducto = '/comercio/catalogo/producto';
+
+  /// HU-10: carga de productos desde un archivo CSV.
+  static const catalogoCsv = '/comercio/catalogo/csv';
+
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con
   /// cambiar esta constante por [onboarding].

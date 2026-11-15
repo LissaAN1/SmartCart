@@ -9,6 +9,8 @@ class SupabaseTables {
   static const comercio = 'comercio';
   static const perfilRepartidor = 'perfil_repartidor';
   static const notificacion = 'notificacion';
+  static const producto = 'producto';
+  static const categoria = 'categoria';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
@@ -77,4 +79,17 @@ class SupabaseColumns {
   static const notificacionMensaje = 'mensaje';
   static const notificacionLeida = 'leida';
   static const notificacionCreadoEn = 'creado_en';
+
+  // producto (HU-10). Ver docs/sql/sprint2_hu10.sql
+  static const productoId = 'id_producto';
+  static const productoComercio = 'id_comercio';
+  static const productoCategoria = 'id_categoria';
+  static const productoNombre = 'nombre';
+  static const productoMarca = 'marca';
+  static const productoCodigoBarras = 'codigo_barras';
+  static const productoCreadoEn = 'creado_en';
+
+  // categoria (HU-10)
+  static const categoriaId = 'id_categoria';
+  static const categoriaNombre = 'nombre';
 }
