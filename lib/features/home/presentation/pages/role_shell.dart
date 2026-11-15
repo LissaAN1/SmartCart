@@ -60,9 +60,16 @@ class _RolShellState extends State<RolShell> {
   /// Pestaña "Aprobar" del administrador (HU-24).
   static const _tabAprobarAdmin = 1;
 
+  /// Pestaña "Catálogo" del comercio (HU-10).
+  static const _tabCatalogoComercio = 2;
+
   void _onTab(int i) {
     if (_tema == RolTema.admin && i == _tabAprobarAdmin) {
       _abrirAprobaciones();
+      return;
+    }
+    if (_tema == RolTema.comercio && i == _tabCatalogoComercio) {
+      _abrirCatalogo();
       return;
     }
     final perfil = i == _tabPerfil;
@@ -88,6 +95,14 @@ class _RolShellState extends State<RolShell> {
   /// HU-24: lista de comercios y repartidores pendientes de aprobación.
   void _abrirAprobaciones() =>
       Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+
+  /// HU-10: lista de productos del comercio.
+  void _abrirCatalogo() => Navigator.of(context).pushNamed(AppRoutes.catalogo);
+
+  /// HU-10: formulario para agregar un producto nuevo. Al volver no hace
+  /// falta recargar nada aquí: el catálogo se carga al abrirse.
+  void _nuevoProducto() =>
+      Navigator.of(context).pushNamed(AppRoutes.catalogoProducto);
 
   void _salir() => context.read<SessionBloc>().add(SignOutRequested());
 
@@ -164,7 +179,12 @@ class _RolShellState extends State<RolShell> {
       (RolTema.repartidor, true) => RepartidorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
       (RolTema.comercio, false) => _conComercio((c) =>
-          ComercioHomeScreen(onTab: _onTab, nombreComercio: c.nombre)),
+          ComercioHomeScreen(
+            onTab: _onTab,
+            nombreComercio: c.nombre,
+            onAbrirCatalogo: _abrirCatalogo,
+            onNuevoProducto: _nuevoProducto,
+          )),
       (RolTema.comercio, true) => _conComercio((c) => ComercioPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p, comercio: c)),
       (RolTema.admin, false) => AdminHomeScreen(

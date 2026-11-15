@@ -20,6 +20,8 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.register => 'REGISTER $args',
     AppRoutes.colaboradorOnboarding => 'ONBOARDING COLABORADOR',
     AppRoutes.adminSolicitudes => 'SOLICITUDES',
+    AppRoutes.catalogo => 'CATALOGO',
+    AppRoutes.catalogoProducto => 'PRODUCTO NUEVO',
     AppRoutes.profileSelection => 'SELECTION',
     AppRoutes.onboarding => 'INICIO',
     _ => null,

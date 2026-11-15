@@ -8,6 +8,19 @@ import 'package:smartcart/features/aprobaciones/presentation/bloc/decision_solic
 import 'package:smartcart/features/notificaciones/domain/repository/notificacion_repository.dart';
 import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
+import 'package:smartcart/features/catalog/data/repository/catalogo_repository_impl.dart';
+import 'package:smartcart/features/catalog/data/source/file_picker_selector_csv.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_archivo_csv.dart';
+import 'package:smartcart/features/catalog/domain/usecases/cargar_productos_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/crear_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/editar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/eliminar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -16,6 +29,7 @@ import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   tearDown(() => sl.reset());
@@ -48,6 +62,63 @@ void main() {
     expect(sl.isRegistered<SolicitudesRepository>(), isTrue);
     expect(sl.isRegistered<NotificacionRepository>(), isTrue);
     expect(sl.isRegistered<DecidirSolicitudUseCase>(), isTrue);
+  });
+
+  test('HU-10: el catálogo se registra con los tipos del contrato', () {
+    setupDependencies();
+
+    expect(sl.isRegistered<CatalogoRepository>(), isTrue);
+    expect(sl.isRegistered<SelectorArchivoCsv>(), isTrue);
+    expect(sl.isRegistered<GetComercioAprobadoUseCase>(), isTrue);
+    expect(sl.isRegistered<GetProductosUseCase>(), isTrue);
+    expect(sl.isRegistered<CrearProductoUseCase>(), isTrue);
+    expect(sl.isRegistered<EditarProductoUseCase>(), isTrue);
+    expect(sl.isRegistered<EliminarProductoUseCase>(), isTrue);
+    expect(sl.isRegistered<CargarProductosCsvUseCase>(), isTrue);
+    expect(sl.isRegistered<ProductoFormBloc>(), isTrue);
+    expect(sl.isRegistered<CargaCsvBloc>(), isTrue);
+    expect(sl.isRegistered<PaginatedBloc<Producto>>(), isTrue);
+  });
+
+  group('HU-10: el localizador arma la cadena completa del catálogo', () {
+    // Un cliente de Supabase sin conexión: basta para construir las
+    // dependencias, porque ninguna llama a la red al crearse.
+    setUp(() {
+      setupDependencies();
+      sl.unregister<SupabaseClient>();
+      sl.registerLazySingleton<SupabaseClient>(
+        () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+      );
+    });
+
+    test('los Bloc son fábricas: cada pantalla recibe uno nuevo', () {
+      expect(identical(sl<CargaCsvBloc>(), sl<CargaCsvBloc>()), isFalse);
+      expect(
+        identical(sl<PaginatedBloc<Producto>>(), sl<PaginatedBloc<Producto>>()),
+        isFalse,
+      );
+    });
+
+    test('los casos de uso son únicos y comparten el repositorio', () {
+      expect(
+        identical(sl<CrearProductoUseCase>(), sl<CrearProductoUseCase>()),
+        isTrue,
+      );
+      expect(sl<CatalogoRepository>(), isA<CatalogoRepositoryImpl>());
+      expect(sl<SelectorArchivoCsv>(), isA<FilePickerSelectorCsv>());
+    });
+
+    test('el formulario acepta un producto para editar y null para crear', () {
+      const producto = Producto(
+        id: 'p1',
+        nombre: 'Arroz blanco',
+        idCategoria: 'cat-super',
+        categoria: 'Super',
+      );
+
+      expect(sl<ProductoFormBloc>(param1: producto).editando, producto);
+      expect(sl<ProductoFormBloc>(param1: null).editando, isNull);
+    });
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {

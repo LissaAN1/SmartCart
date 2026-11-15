@@ -2,9 +2,22 @@
 
 > Compara menos, decide mejor y compra de forma inteligente.
 
-Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi). Es una app móvil hecha con **Flutter** y **Supabase**. Este README documenta la entrega del **Sprint 1**: registro, inicio de sesión y pantalla de resumen del perfil para cada tipo de usuario.
+Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi). Es una app móvil hecha con **Flutter** y **Supabase**. Este README documenta el estado real del proyecto: la entrega del **Sprint 1** (registro, inicio de sesión y resumen del perfil para los cinco perfiles) y lo que llevamos del **Sprint 2** (2 al 17 de noviembre).
 
-**Objetivo del sprint.** Que una persona pueda crear su cuenta, iniciar sesión con credenciales válidas y llegar a la vista de resumen de su perfil. Lo hicimos para los cinco perfiles de la app.
+**Objetivo del Sprint 1.** Que una persona pueda crear su cuenta, iniciar sesión con credenciales válidas y llegar a la vista de resumen de su perfil. Lo hicimos para los cinco perfiles de la app.
+
+**Objetivo del Sprint 2.** Que los comercios independientes se registren, sean aprobados y publiquen su catálogo; que el cliente busque productos y vea cada precio con su fuente y su confianza; y que los colaboradores reporten precios con foto.
+
+### Estado del Sprint 2
+
+| HU | Título | Estado |
+|---|---|---|
+| HU-06 | Onboarding del colaborador | Implementada (modo Colaborador desde el perfil del cliente) |
+| HU-07 | Registro de comercio | Implementada (formulario y pantalla de estado) |
+| HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
+| HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
+| **HU-10** | **Gestión del catálogo del comercio** | **Implementada. Probada con repositorios falsos (275 pruebas) y sus políticas RLS verificadas en Supabase (10 pruebas OK). Falta probar la app corriendo contra la base.** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
+| HU-11, HU-12, HU-13, HU-14, HU-17 | Precios, búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
 
@@ -92,7 +105,8 @@ Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro 
 | Supabase (PostgreSQL + GoTrue) | Base de datos y autenticación |
 | supabase_flutter | Cliente de Supabase |
 | flutter_bloc | Gestión de estado con BLoC |
-| get_it | Localizador de servicios para la inyección de dependencias |
+| get_it | Localizador de servicios (Service Locator) para la inyección de dependencias |
+| file_picker | Selector de archivos del sistema para la carga del catálogo por CSV (HU-10) |
 | flutter_dotenv | Variables de entorno desde `.env` |
 | Clean Architecture por feature | Organización del código (presentación, dominio y datos) |
 
@@ -183,6 +197,17 @@ group by u.correo, u.nombre
 order by u.correo;
 ```
 
+**Tablas del Sprint 2.** Los scripts están en `docs/sql/` y son idempotentes. Se ejecutan en el *SQL Editor* de Supabase, en este orden:
+
+| Orden | Script | Qué crea |
+|---|---|---|
+| 1 | `sprint2_hu06_07_08.sql` | `perfil_repartidor` y `comercio` con sus políticas |
+| 2 | `sprint2_hu24.sql` | `es_administrador()`, `notificacion` y `decidir_solicitud()` |
+| 3 | `sprint2_hu10.sql` | `categoria` (con seis categorías), `producto`, `es_comercio_aprobado_propio()` y las políticas de producto |
+| 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
+
+Sin el paso 3 la app no encuentra las tablas del catálogo. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
+
 ## Instalación de dependencias
 
 ```powershell
@@ -220,7 +245,9 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión, `flutter analyze` no reporta problemas y `flutter test` pasa las 82 pruebas. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`).
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **275 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+
+Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`) ni el selector de archivos en un dispositivo.
 
 | Carpeta | Qué comprueba |
 |---|---|
@@ -230,7 +257,9 @@ Los mismos comandos sirven en Linux. Con la última versión, `flutter analyze` 
 | `test/navigation/`, `test/widget_test.dart` | Selección de perfil, navegación al login, sesión guardada, Home por perfil y cierre de sesión hacia la primera pantalla |
 | `test/onboarding/` | La app arranca en la bienvenida, flechas de regreso y la imagen de la segunda pantalla |
 | `test/di/` | Que el localizador de servicios registre y entregue cada dependencia |
-| `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista y errores |
+| `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista, errores y mensajes propios de error |
+| `test/aprobaciones/`, `test/notificaciones/`, `test/comercio/`, `test/colaborador/` | HU-06, HU-07, HU-08 y HU-24 (registro, estado y aprobación) |
+| `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 
 ## Estructura
 
@@ -259,7 +288,11 @@ lib/
     ├── onboarding/                las dos pantallas de bienvenida
     ├── profile_selection/         pantalla "Selecciona tu perfil"
     ├── home/                      RolShell: Home y Perfil del perfil activo
+    ├── catalog/                   HU-10: catálogo del comercio (domain, data, presentation)
+    ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
+    ├── notificaciones/            HU-24: aviso al solicitante
     └── admin | cliente | colaborador | comercio | repartidor
+        (cart/, prices/, orders/ y notifications/ están vacías: son de HU futuras)
 ```
 
 Reglas de capas (las mismas de los laboratorios 5 y 6, con la lección de Clean Architecture):
@@ -284,15 +317,56 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Criterio | Qué hicimos | Dónde está |
 |---|---|---|
 | Clean Architecture | Separamos cada feature en presentación, dominio y datos. Los casos de uso reciben el repositorio abstracto por constructor y los repositorios reciben su data source por constructor. Ninguna clase del dominio importa la capa de datos. Los data sources reciben el `SupabaseClient` por constructor en vez de leer `Supabase.instance` por dentro. | `lib/features/auth/`, `lib/core/di/` |
-| Inyección de dependencias con GetIt (patrón Service Locator) | Agregamos `get_it` y un único archivo, `injector.dart`, donde se registran el cliente de Supabase, los data sources, los repositorios, los casos de uso y los Blocs. `main.dart` lo llama una vez al arrancar y `app_router.dart` pide cada Bloc con `sl<...>()`. Con esto se acabó el armado manual de dependencias dentro del router. | `lib/core/di/injector.dart`, `lib/main.dart`, `lib/app_router.dart` |
+| Inyección de dependencias con GetIt (patrón Service Locator) | Agregamos `get_it` y un único archivo, `injector.dart`, donde se registran el cliente de Supabase, los data sources, los repositorios, los casos de uso y los Blocs. `main.dart` lo llama una vez al arrancar y `app_router.dart` pide cada Bloc con `sl<...>()`. Con esto se acabó el armado manual de dependencias dentro del router. En el Sprint 2 las historias nuevas (HU-07, HU-24 y HU-10) se registran en el mismo archivo. Ver la [auditoría del Service Locator](#auditoría-del-service-locator-getit). | `lib/core/di/injector.dart`, `lib/main.dart`, `lib/app_router.dart`, `test/di/` |
 | BLoC | Login, registro y sesión tienen su Bloc con eventos y estados. Las pantallas solo envían eventos y se redibujan según el estado; no tienen lógica de negocio. | `lib/features/login/ui/bloc/`, `register/ui/bloc/`, `session/ui/bloc/` |
 | Reutilización de componentes | Sacamos a widgets compartidos lo que se repetía: `BotonAtras` (flecha de regreso), `mostrarProximamente` (aviso para botones sin función), campos y secciones de login y registro, y el kit visual por perfil (`TemaRol`, botones, tarjetas, menús). | `lib/core/ui/roles/widgets/`, `lib/components/` |
 | Carpetas y convenciones | Organizamos por feature y por capa, con nombres en minúscula y guion bajo (`snake_case`) y clases en `PascalCase`. Los archivos compartidos viven en `core/`. Las constantes de tablas, columnas, rutas e imágenes están en `core/constants/` y `core/routes/`, sin textos sueltos en las pantallas. | `lib/core/`, `lib/features/` |
 | Diseño | Los colores y estilos salen de `TemaRol`, sin colores escritos a mano en las pantallas; corregimos la selección de perfil, que los tenía fijos. Arreglamos los desbordes de texto en pantallas angostas y la imagen de la segunda pantalla de bienvenida se ajusta completa (`BoxFit.contain`). | `lib/core/ui/roles/`, `lib/features/onboarding/` |
 | Navegación | Agregamos la flecha de regreso en la segunda pantalla de bienvenida y en la selección de perfil. Arreglamos que la app abría la selección de perfil como si fuera la primera pantalla; ahora arranca en la bienvenida. Al cerrar sesión volvemos a la primera pantalla y borramos el historial, así que no se puede regresar al Home con el botón atrás. | `lib/app.dart`, `lib/core/routes/`, `lib/features/home/` |
 | Manejo de errores y experiencia de usuario | Los errores de Supabase se traducen a mensajes en español y se muestran al usuario. Los formularios validan antes de enviar, muestran carga y no dejan enviar dos veces. Los botones que todavía no tienen función muestran "Esta función estará disponible próximamente." en vez de quedar sin respuesta. | `lib/features/auth/domain/failures/`, `lib/core/ui/roles/widgets/varios.dart` |
-| Calidad y pruebas | Con la última versión, `flutter analyze` no reporta problemas y `flutter test` pasa las 82 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
-| Paginado | Dejamos lista una base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Está probada, pero **todavía no la conectamos a una pantalla**: las listas de este sprint son datos de ejemplo. La conectamos cuando existan listas con datos reales de Supabase. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
+| Calidad y pruebas | Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las 275 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
+| Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a dos listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24) y el catálogo del comercio (HU-10). `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
+
+## Auditoría del Service Locator (GetIt)
+
+Revisamos que la app implemente el patrón Service Locator y dónde se aplica. **Conclusión: sí lo implementa**, con las observaciones del final. Esto es lo que comprobamos y cómo repetirlo.
+
+### Dónde se aplica
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| Contenedor | `lib/core/di/injector.dart` (`final GetIt sl`) | Es el único contenedor. No hay otro. |
+| Registro | `setupDependencies()`, llamada una vez desde `lib/main.dart` | Registra, de adentro hacia afuera: `SupabaseClient` → data sources → repositorios (con el tipo del contrato) → casos de uso → Blocs. Es idempotente: llamarla de nuevo no duplica registros. |
+| Consulta | `lib/app_router.dart` | Es el único lugar que pide dependencias con `sl<...>()`, para dárselas a cada pantalla con `BlocProvider`. Las pantallas y los Blocs no conocen el localizador. |
+| Parámetros | `registerFactoryParam` | Los Blocs que necesitan un dato de la pantalla: `DecisionSolicitudBloc` y `PaginatedBloc<Solicitud>` (HU-24) y `ProductoFormBloc` (HU-10, con `null` para crear). |
+
+Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySingleton` (sin estado); los Blocs son `registerFactory`, porque guardan estado y cada pantalla debe tener el suyo.
+
+### Evidencia (revisión del 14 de noviembre de 2026)
+
+| Comprobación | Resultado |
+|---|---|
+| `Supabase.instance` fuera del inyector | Una sola aparición: `injector.dart`. El resto recibe `SupabaseClient` por constructor |
+| `sl<` o `GetIt` fuera del inyector | Solo `app_router.dart` |
+| Data sources o repositorios construidos fuera del inyector | Ninguno |
+| Imports de `flutter`, `supabase_flutter`, `get_it` o `file_picker` en las carpetas `domain/` | Ninguno |
+| Registros en `injector.dart` | 45 |
+| `test/di/injector_test.dart` | Comprueba los registros (repositorios con el tipo del contrato, Bloc de fábrica, casos de uso únicos), que `setupDependencies` no duplica, y que la cadena completa del catálogo se arma con un cliente de Supabase sin conexión |
+
+Para repetir las comprobaciones:
+
+```bash
+grep -rn "Supabase.instance" lib
+grep -rn -E "\bsl<|GetIt\." lib | grep -v "lib/core/di/injector.dart"
+grep -rln -E "package:(flutter|supabase_flutter|get_it|flutter_bloc|file_picker)/" lib/features/*/domain
+flutter test test/di
+```
+
+### Observaciones
+
+- `app_router.dart` arma `DisponibilidadBloc` a mano con `sl<CambiarDisponibilidadUseCase>()` y el valor inicial del perfil, en vez de registrarlo con `registerFactoryParam`. Usa el localizador, pero es la única excepción al patrón. No la cambiamos porque está fuera de la HU-10.
+- En las pruebas armamos los Blocs a mano con repositorios falsos (`TestEnv`) y no con `sl`: es a propósito, para no depender de Supabase.
+- `lib/core/pagination/paginated_bloc.dart` importa `flutter_bloc` porque es un Bloc, no una clase de dominio.
 
 ## Decisiones de diseño
 
@@ -307,9 +381,14 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 ## Limitaciones conocidas y pasos pendientes
 
 - **Continuar con Google** y **¿Olvidaste tu contraseña?** están en el diseño pero no están implementados: muestran un aviso. Google requiere configurar el proveedor y los enlaces de retorno en Supabase.
-- El paginado está como base y falta conectarlo a una lista real (ver el informe de calidad).
-- Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes.
-- `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc` y `get_it`).
+- Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes. El Home del comercio todavía muestra ventas y órdenes de ejemplo; el catálogo, en cambio, es real.
+- **HU-10 (catálogo del comercio):**
+  - Necesita `docs/sql/sprint2_hu10.sql` en Supabase (en nuestro proyecto ya se ejecutó y `pruebas_hu10_politicas.sql` dio 10 pruebas OK). Todavía no corrimos la app contra esa base: el `.env` del repositorio está vacío.
+  - Las categorías son una lista fija (Super, Frutas, Lácteos, Aseo, Café, Panadería); el comercio no crea las suyas.
+  - Eliminar un producto es definitivo.
+  - El CSV lleva `nombre` y `categoria` (obligatorias) y `marca` y `codigo_barras` (opcionales), con un máximo de 500 filas. El selector de archivos real solo se verificó por compilación.
+  - Los clientes todavía no pueden ver los productos: la lectura y la búsqueda llegan con la HU-12.
+- `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it` y, en la HU-10, `file_picker`).
 
 ## Equipo
 

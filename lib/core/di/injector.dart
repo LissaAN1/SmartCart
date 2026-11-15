@@ -13,6 +13,7 @@ import 'package:smartcart/features/notificaciones/domain/repository/notificacion
 import 'package:smartcart/features/notificaciones/domain/usecases/get_notificaciones_no_leidas_usecase.dart';
 import 'package:smartcart/features/notificaciones/domain/usecases/marcar_notificaciones_leidas_usecase.dart';
 import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
+import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/data/repository/auth_repository_impl.dart';
 import 'package:smartcart/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:smartcart/features/auth/data/source/supabase_auth_data_source.dart';
@@ -25,6 +26,22 @@ import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/activar_modo_colaborador_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
+import 'package:smartcart/features/catalog/data/repository/catalogo_repository_impl.dart';
+import 'package:smartcart/features/catalog/data/source/file_picker_selector_csv.dart';
+import 'package:smartcart/features/catalog/data/source/supabase_catalogo_data_source.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_archivo_csv.dart';
+import 'package:smartcart/features/catalog/domain/usecases/cargar_productos_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/crear_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/editar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/elegir_archivo_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/eliminar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_categorias_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/data/repository/comercio_repository_impl.dart';
 import 'package:smartcart/features/comercio/data/source/supabase_comercio_data_source.dart';
@@ -69,6 +86,12 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseNotificacionDataSource>(
     () => SupabaseNotificacionDataSource(client: sl()),
   );
+  sl.registerLazySingleton<SupabaseCatalogoDataSource>(
+    () => SupabaseCatalogoDataSource(client: sl()),
+  );
+  // HU-10: se registra con el tipo del contrato; solo esta línea conoce
+  // `file_picker`.
+  sl.registerLazySingleton<SelectorArchivoCsv>(() => FilePickerSelectorCsv());
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -85,6 +108,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<NotificacionRepository>(
     () => NotificacionRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<CatalogoRepository>(
+    () => CatalogoRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -120,6 +146,28 @@ void setupDependencies() {
     () => MarcarNotificacionesLeidasUseCase(notificaciones: sl()),
   );
 
+  // HU-10: catálogo del comercio. Todos parten de GetComercioAprobadoUseCase.
+  sl.registerLazySingleton(
+    () => GetComercioAprobadoUseCase(auth: sl(), comercios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetProductosUseCase(comercioAprobado: sl(), catalogo: sl()),
+  );
+  sl.registerLazySingleton(() => GetCategoriasUseCase(catalogo: sl()));
+  sl.registerLazySingleton(
+    () => CrearProductoUseCase(comercioAprobado: sl(), catalogo: sl()),
+  );
+  sl.registerLazySingleton(
+    () => EditarProductoUseCase(comercioAprobado: sl(), catalogo: sl()),
+  );
+  sl.registerLazySingleton(
+    () => EliminarProductoUseCase(comercioAprobado: sl(), catalogo: sl()),
+  );
+  sl.registerLazySingleton(() => ElegirArchivoCsvUseCase(selector: sl()));
+  sl.registerLazySingleton(
+    () => CargarProductosCsvUseCase(comercioAprobado: sl(), catalogo: sl()),
+  );
+
   // ── Blocs: uno nuevo por pantalla (factory), porque guardan estado ──
   sl.registerFactory(() => LoginBloc(signIn: sl()));
   sl.registerFactory(() => RegisterBloc(signUp: sl()));
@@ -128,6 +176,30 @@ void setupDependencies() {
   sl.registerFactory(() => ComercioBloc(getMine: sl(), registrar: sl()));
   sl.registerFactory(
     () => NotificacionesBloc(noLeidas: sl(), marcarLeidas: sl()),
+  );
+
+  // HU-10: la lista del catálogo y la carga por archivo no necesitan datos.
+  sl.registerFactory(() => CargaCsvBloc(elegir: sl(), cargar: sl()));
+  sl.registerFactory<PaginatedBloc<Producto>>(() {
+    final getProductos = sl<GetProductosUseCase>();
+    // El aviso "tu comercio está pendiente de aprobación" debe llegar a la
+    // pantalla, no un error genérico.
+    return PaginatedBloc<Producto>(
+      fetchPage: getProductos.call,
+      errorMessageFor: mensajeDeFallo,
+    );
+  });
+
+  // HU-10: el formulario recibe el producto que se edita (`null` al crear):
+  // `sl<ProductoFormBloc>(param1: producto)`.
+  sl.registerFactoryParam<ProductoFormBloc, Producto?, void>(
+    (producto, _) => ProductoFormBloc(
+      editando: producto,
+      categorias: sl(),
+      crear: sl(),
+      editar: sl(),
+      eliminar: sl(),
+    ),
   );
 
   // HU-24: estos Bloc necesitan un dato de la pantalla, así que se piden

@@ -11,10 +11,19 @@ class ComercioHomeScreen extends StatelessWidget {
 
   /// Nombre del establecimiento registrado (dato real).
   final String nombreComercio;
+
+  /// HU-10: abre el catálogo ("Ir al Catálogo"). Sin él avisa "próximamente".
+  final VoidCallback? onAbrirCatalogo;
+
+  /// HU-10: abre el formulario de un producto nuevo (botón "+").
+  final VoidCallback? onNuevoProducto;
+
   const ComercioHomeScreen({
     super.key,
     this.onTab,
     required this.nombreComercio,
+    this.onAbrirCatalogo,
+    this.onNuevoProducto,
   });
 
   static const _ordenes = [
@@ -47,7 +56,7 @@ class ComercioHomeScreen extends StatelessWidget {
       fab: FloatingActionButton(
         backgroundColor: t.primario,
         shape: const CircleBorder(),
-        onPressed: () => mostrarProximamente(context),
+        onPressed: onNuevoProducto ?? () => mostrarProximamente(context),
         child: const Icon(Icons.add, color: Colors.white, size: 30),
       ),
       cuerpo: ListView(
@@ -105,7 +114,7 @@ class ComercioHomeScreen extends StatelessWidget {
             resaltado: '20% más',
             textoDespues: '.',
             textoBoton: 'Ir al Catálogo',
-            onBoton: () => mostrarProximamente(context),
+            onBoton: onAbrirCatalogo ?? () => mostrarProximamente(context),
           ),
         ],
       ),
