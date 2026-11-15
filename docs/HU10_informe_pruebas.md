@@ -11,7 +11,7 @@ Resultados reales de las verificaciones hechas el 14 de noviembre de 2026 sobre 
 | `flutter test` (línea base, antes de la HU-10) | **184 pruebas, todas pasan** |
 | `flutter pub add file_picker` | Correcto, agrega `file_picker ^13.3.3` |
 | `flutter analyze` (final) | **No issues found** |
-| `flutter test --concurrency=1` (final) | **275 pruebas, todas pasan** (91 nuevas) |
+| `flutter test --concurrency=1` (final) | **278 pruebas, todas pasan** (94 nuevas) |
 | `docs/sql/sprint2_hu10.sql` en el SQL Editor de nuestro proyecto de Supabase | Ejecutado por el equipo; creó las tablas (las pruebas de abajo las usan) |
 | `docs/sql/pruebas_hu10_politicas.sql` en el SQL Editor (14 de noviembre de 2026) | **10 pruebas OK, 0 saltadas, 0 fallos** (A1 a A4, B1, C1 a C3, D1 y E1) |
 
@@ -19,10 +19,11 @@ Nota: el equipo tenía menos de 1 GB de memoria libre. Con la concurrencia por d
 
 **Diferencia entre ejecutado, aprobado y pendiente**
 
-- Ejecutadas y aprobadas: las 275 pruebas de Dart/Flutter.
+- Ejecutadas y aprobadas: las 278 pruebas de Dart/Flutter.
 - Ejecutadas con fallos que se corrigieron durante el desarrollo: 9 pruebas de pantalla del catálogo fallaron en la primera corrida. Dos fallos reales del código explicaban 7 de ellas (el aviso del comercio pendiente no llegaba a la pantalla, y un `TypeError` al abrir la carga por CSV) y se corrigieron en el código. Las otras 2 eran detalles de las pruebas (texto de ejemplo del campo repetido en pantalla).
 - Ejecutadas por el equipo contra Supabase: el SQL de la HU-10 y el script de pruebas de las políticas (ver sección 2). Yo no tengo acceso a Supabase; los resultados son los que el equipo copió del SQL Editor.
-- **Pendientes, no ejecutadas:** la app corriendo contra Supabase en un dispositivo o emulador (el `.env` del repositorio está vacío en este entorno) y el selector de archivos real.
+- Verificada a mano por el equipo: la app corriendo contra la base de Supabase de nuestro proyecto funciona. Fue una prueba manual, sin script ni captura que la acompañe; yo no la ejecuté (el `.env` del repositorio está vacío en este entorno).
+- La carga por CSV con el selector de archivos real también la probó el equipo a mano, con los dos archivos de `docs/ejemplos/`, y funcionó. No quedó registrado en qué plataforma (Android, Windows o web), y no se probó en todas.
 
 ## 2. Criterios de aceptación y su verificación
 
@@ -51,6 +52,8 @@ Nota: el equipo tenía menos de 1 GB de memoria libre. Con la concurrencia por d
 
 Para B1 y A4 el script creó un comercio pendiente temporal dentro de la transacción, porque la base no tenía ninguno; el `ROLLBACK` lo eliminó. La primera ejecución dejó B1 saltada por esa razón y se corrigió el script.
 
+**Archivos de ejemplo para la prueba manual del CSV:** `docs/ejemplos/productos_validos.csv` (45 productos) y `docs/ejemplos/productos_con_errores.csv` (11 filas, con 7 errores si se carga solo y 8 si se carga después del primero). El equipo los probó en la app y funcionaron. Los resultados esperados están en el README, sección "Probar el catálogo del comercio (HU-10)".
+
 ## 3. Pruebas implementadas
 
 | Archivo | Pruebas | Qué cubre |
@@ -61,6 +64,7 @@ Para B1 y A4 el script creó un comercio pendiente temporal dentro de la transac
 | `test/catalog/catalogo_blocs_test.dart` | 18 | `ProductoFormBloc` (categorías, error y reintento, crear, doble toque, error de guardado, error inesperado, editar, eliminar), lista paginada y `CargaCsvBloc` (éxito, cancelar, formato inválido, error de lectura, comercio pendiente, doble toque) |
 | `test/catalog/catalogo_flow_test.dart` | 20 | Pantallas: lista, vacío, pendiente, error y reintento, paginado, formulario (validaciones, crear, error al guardar, categorías con reintento), editar, eliminar con confirmación, carga por CSV |
 | `test/catalog/comercio_entradas_test.dart` | 3 | Accesos desde el Home del comercio |
+| `test/catalog/csv_ejemplos_test.dart` | 3 | Los archivos de `docs/ejemplos/` producen el resultado documentado (45 cargados; 4 cargados y 7 errores; 3 cargados y 8 errores si se cargan después de los válidos) |
 | `test/di/injector_test.dart` (agregadas) | 4 | Registros del catálogo; la cadena completa se arma con el localizador; Bloc de fábrica y casos de uso únicos; el formulario acepta `null` |
 | `test/pagination/paginated_bloc_test.dart` (agregadas) | 2 | `errorMessageFor` y el mensaje genérico |
 
@@ -79,12 +83,12 @@ El criterio de calidad de referencia es la tabla "Informe de criterios de calida
 | Convenciones | Nombres en español y `snake_case` como `aprobaciones`/`comercio`; constantes de tablas y rutas en `core/`. | Revisión del código |
 | Manejo de errores | Errores de Supabase traducidos a mensajes en español (`AuthFailure`); error inesperado con mensaje genérico. | `catalogo_blocs_test`, `catalogo_flow_test` |
 | Paginado | La lista del catálogo usa la base común. | `catalogo_flow_test` (paginado) |
-| Pruebas | 91 pruebas nuevas; la suite completa pasa. | Sección 1 |
+| Pruebas | 94 pruebas nuevas; la suite completa pasa. | Sección 1 |
 | Análisis estático | `flutter analyze` sin problemas. | Sección 1 |
 
 ## 5. Pendientes y limitaciones
 
 1. ~~Ejecutar el SQL y las pruebas de las políticas~~: hecho, 10 pruebas OK (sección 2). Si cambia el SQL, hay que volver a correrlas.
-2. Probar la carga por CSV con el selector real en Android y en el escritorio de Windows (`file_picker` solo se verificó por compilación).
-3. Probar el flujo completo con una cuenta de comercio aprobada (por ejemplo `paila@gmail.com`, de las cuentas de prueba del README) cuando el `.env` tenga las credenciales.
+2. ~~Probar la carga por CSV con el selector real~~: hecho a mano por el equipo. Si se quiere dejar evidencia, anotar en qué plataforma se probó y guardar capturas.
+3. ~~Probar el flujo completo contra Supabase con una cuenta de comercio aprobada~~: hecho a mano por el equipo. Para la sustentación conviene guardar capturas del catálogo y del reporte de la carga por CSV como evidencia.
 4. Dos advertencias de `tap()` en `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes de la HU-10 y no vienen de este cambio.

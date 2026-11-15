@@ -16,7 +16,7 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-07 | Registro de comercio | Implementada (formulario y pantalla de estado) |
 | HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
-| **HU-10** | **Gestión del catálogo del comercio** | **Implementada. Probada con repositorios falsos (275 pruebas) y sus políticas RLS verificadas en Supabase (10 pruebas OK). Falta probar la app corriendo contra la base.** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
+| **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
 | HU-11, HU-12, HU-13, HU-14, HU-17 | Precios, búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
@@ -96,6 +96,19 @@ Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro 
 - En **Perfil**, el botón **Cerrar sesión** pide confirmación y nos devuelve a la primera pantalla de la app. Desde ahí podemos volver a entrar con otro perfil.
 - Las pantallas de bienvenida (la segunda), la selección de perfil, el login y el registro tienen flecha para volver a la anterior.
 - Si Supabase tiene una sesión guardada en el dispositivo, al abrir la app se recupera: con un solo perfil entramos directo a su Home y con varios entramos al que se toque si la cuenta lo tiene.
+
+### Probar el catálogo del comercio (HU-10)
+
+1. Entramos con una cuenta de **Comercio aprobada** (por ejemplo la de la tabla de cuentas de prueba). Un comercio pendiente solo ve la pantalla de estado y no puede abrir el catálogo.
+2. Abrimos el catálogo desde la pestaña **Catálogo**, el botón **+** o **Ir al Catálogo** del Home. Con **+** creamos un producto; al tocar uno de la lista lo editamos o eliminamos.
+3. Para la carga por archivo tocamos el ícono de subir archivo de la barra del catálogo y elegimos un CSV. Dejamos dos de ejemplo en `docs/ejemplos/` (se abren en Excel; usan punto y coma como separador):
+
+| Archivo | Qué contiene | Resultado esperado |
+|---|---|---|
+| `productos_validos.csv` | 45 productos de las seis categorías, sin errores. Como son más de 20 sirve para ver el paginado de la lista | "Se cargaron 45 productos." y ninguna fila fallida |
+| `productos_con_errores.csv` | 11 filas con filas válidas y con errores (nombre corto, categoría inexistente, código inválido, código repetido, sin nombre, sin categoría, marca muy larga) | Cargado solo: 4 productos y 7 filas fallidas (3, 4, 5, 6, 8, 9 y 11). Cargado después del anterior: 3 productos y 8 filas fallidas, porque la fila 2 ya existe |
+
+Para repetir la prueba desde cero hay que eliminar antes los productos cargados: un código de barras no se repite dentro del mismo comercio. El formato del CSV es `nombre;marca;codigo_barras;categoria` (`nombre` y `categoria` obligatorias; coma o punto y coma; máximo 500 filas). La prueba automática `test/catalog/csv_ejemplos_test.dart` comprueba que estos dos archivos den esos resultados.
 
 ## Tecnologías
 
@@ -245,9 +258,9 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **275 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **278 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
-Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`) ni el selector de archivos en un dispositivo.
+Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`) ni el selector de archivos del sistema (eso lo probamos a mano).
 
 | Carpeta | Qué comprueba |
 |---|---|
@@ -324,7 +337,7 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Diseño | Los colores y estilos salen de `TemaRol`, sin colores escritos a mano en las pantallas; corregimos la selección de perfil, que los tenía fijos. Arreglamos los desbordes de texto en pantallas angostas y la imagen de la segunda pantalla de bienvenida se ajusta completa (`BoxFit.contain`). | `lib/core/ui/roles/`, `lib/features/onboarding/` |
 | Navegación | Agregamos la flecha de regreso en la segunda pantalla de bienvenida y en la selección de perfil. Arreglamos que la app abría la selección de perfil como si fuera la primera pantalla; ahora arranca en la bienvenida. Al cerrar sesión volvemos a la primera pantalla y borramos el historial, así que no se puede regresar al Home con el botón atrás. | `lib/app.dart`, `lib/core/routes/`, `lib/features/home/` |
 | Manejo de errores y experiencia de usuario | Los errores de Supabase se traducen a mensajes en español y se muestran al usuario. Los formularios validan antes de enviar, muestran carga y no dejan enviar dos veces. Los botones que todavía no tienen función muestran "Esta función estará disponible próximamente." en vez de quedar sin respuesta. | `lib/features/auth/domain/failures/`, `lib/core/ui/roles/widgets/varios.dart` |
-| Calidad y pruebas | Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las 275 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
+| Calidad y pruebas | Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las 278 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
 | Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a dos listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24) y el catálogo del comercio (HU-10). `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
 
 ## Auditoría del Service Locator (GetIt)
@@ -383,10 +396,9 @@ flutter test test/di
 - **Continuar con Google** y **¿Olvidaste tu contraseña?** están en el diseño pero no están implementados: muestran un aviso. Google requiere configurar el proveedor y los enlaces de retorno en Supabase.
 - Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes. El Home del comercio todavía muestra ventas y órdenes de ejemplo; el catálogo, en cambio, es real.
 - **HU-10 (catálogo del comercio):**
-  - Necesita `docs/sql/sprint2_hu10.sql` en Supabase (en nuestro proyecto ya se ejecutó y `pruebas_hu10_politicas.sql` dio 10 pruebas OK). Todavía no corrimos la app contra esa base: el `.env` del repositorio está vacío.
   - Las categorías son una lista fija (Super, Frutas, Lácteos, Aseo, Café, Panadería); el comercio no crea las suyas.
   - Eliminar un producto es definitivo.
-  - El CSV lleva `nombre` y `categoria` (obligatorias) y `marca` y `codigo_barras` (opcionales), con un máximo de 500 filas. El selector de archivos real solo se verificó por compilación.
+  - El CSV lleva `nombre` y `categoria` (obligatorias) y `marca` y `codigo_barras` (opcionales), con un máximo de 500 filas. El selector de archivos lo probamos a mano con los CSV de `docs/ejemplos/`.
   - Los clientes todavía no pueden ver los productos: la lectura y la búsqueda llegan con la HU-12.
 - `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it` y, en la HU-10, `file_picker`).
 

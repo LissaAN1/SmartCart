@@ -384,10 +384,13 @@ class FakeCatalogoRepository implements CatalogoRepository {
     return PagedResult.fromRows(filas, request);
   }
 
+  /// Categorías que devuelve la base; por defecto las tres de prueba.
+  List<Categoria> categoriasDisponibles = categoriasDePrueba;
+
   @override
   Future<List<Categoria>> categorias() async {
     if (categoriasError != null) throw categoriasError!;
-    return categoriasDePrueba;
+    return categoriasDisponibles;
   }
 
   void _comprobarCodigoLibre(String idComercio, String? codigo) {
