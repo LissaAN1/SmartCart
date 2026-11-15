@@ -1,4 +1,5 @@
 import 'package:smartcart/core/domain/approval_status.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 
 /// Cómo entrega sus productos el comercio.
 enum ServicioComercio {
@@ -32,6 +33,10 @@ class ComercioDatos {
   final String horaCierre;
   final ServicioComercio servicio;
 
+  /// Dónde queda el establecimiento (opcional al registrarse). Sin ella, los
+  /// colaboradores no pueden reportar precios aquí (HU-14).
+  final Ubicacion? ubicacion;
+
   const ComercioDatos({
     required this.nombre,
     required this.telefono,
@@ -40,6 +45,7 @@ class ComercioDatos {
     required this.horaApertura,
     required this.horaCierre,
     required this.servicio,
+    this.ubicacion,
   });
 }
 
@@ -58,6 +64,10 @@ class Comercio {
   /// Motivo que escribió el administrador al rechazar el registro (HU-24).
   final String? motivoRechazo;
 
+  /// Coordenadas del establecimiento (HU-14); `null` si aún no las guardó.
+  final double? latitud;
+  final double? longitud;
+
   const Comercio({
     required this.id,
     required this.nombre,
@@ -69,7 +79,15 @@ class Comercio {
     required this.estado,
     this.telefono,
     this.motivoRechazo,
+    this.latitud,
+    this.longitud,
   });
+
+  bool get tieneUbicacion => latitud != null && longitud != null;
+
+  Ubicacion? get ubicacion => tieneUbicacion
+      ? Ubicacion(latitud: latitud!, longitud: longitud!)
+      : null;
 
   String get horario => '$horaApertura - $horaCierre';
 }

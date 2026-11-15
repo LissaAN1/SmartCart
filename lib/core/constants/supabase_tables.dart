@@ -11,11 +11,30 @@ class SupabaseTables {
   static const notificacion = 'notificacion';
   static const producto = 'producto';
   static const categoria = 'categoria';
+  static const establecimientoSugerido = 'establecimiento_sugerido';
+}
+
+/// Buckets de Supabase Storage. Ver docs/sql/sprint2_hu14.sql.
+class SupabaseBuckets {
+  const SupabaseBuckets._();
+
+  /// HU-14: fotos de las etiquetas de precio, en `<id_usuario>/<archivo>`.
+  static const reportes = 'reportes';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
 class SupabaseFunctions {
   const SupabaseFunctions._();
+
+  /// HU-14: guarda el comercio de la cuenta con su latitud y longitud.
+  static const fijarUbicacionComercio = 'fijar_ubicacion_comercio';
+
+  /// HU-14: comercios aprobados con ubicación, de menor a mayor distancia.
+  static const comerciosCercanos = 'comercios_cercanos';
+
+  /// HU-14: guarda un reporte de precio pendiente si el colaborador está en
+  /// el establecimiento.
+  static const enviarReportePrecio = 'enviar_reporte_precio';
 
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
@@ -92,4 +111,19 @@ class SupabaseColumns {
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
   static const categoriaNombre = 'nombre';
+
+  // comercio: ubicación (HU-14). Ver docs/sql/sprint2_hu14.sql
+  static const comercioLatitud = 'latitud';
+  static const comercioLongitud = 'longitud';
+
+  // Columnas que devuelve comercios_cercanos (HU-14)
+  static const cercanoDistancia = 'distancia_m';
+
+  // establecimiento_sugerido (HU-14)
+  static const sugeridoColaborador = 'id_colaborador';
+  static const sugeridoNombre = 'nombre';
+  static const sugeridoDireccion = 'direccion';
+  static const sugeridoCiudad = 'ciudad';
+  static const sugeridoLatitud = 'latitud';
+  static const sugeridoLongitud = 'longitud';
 }

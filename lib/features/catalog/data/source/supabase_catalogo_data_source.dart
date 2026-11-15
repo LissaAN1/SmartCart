@@ -12,7 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// filtra siempre por el id del comercio.
 class SupabaseCatalogoDataSource {
   /// Trae la categoría junto con el producto en una sola consulta.
-  static const _seleccion =
+  static const seleccion =
       '*, ${SupabaseTables.categoria}(${SupabaseColumns.categoriaId}, '
       '${SupabaseColumns.categoriaNombre})';
 
@@ -32,7 +32,7 @@ class SupabaseCatalogoDataSource {
     return _proteger(() async {
       final rows = await _client
           .from(SupabaseTables.producto)
-          .select(_seleccion)
+          .select(seleccion)
           .eq(SupabaseColumns.productoComercio, idComercio)
           .order(SupabaseColumns.productoCreadoEn, ascending: false)
           .order(SupabaseColumns.productoId, ascending: true)
@@ -65,7 +65,7 @@ class SupabaseCatalogoDataSource {
       final row = await _client
           .from(SupabaseTables.producto)
           .insert(_toRow(idComercio, datos))
-          .select(_seleccion)
+          .select(seleccion)
           .single();
       return _toProducto(row);
     });
@@ -77,7 +77,7 @@ class SupabaseCatalogoDataSource {
           .from(SupabaseTables.producto)
           .update(_toRow(null, datos))
           .eq(SupabaseColumns.productoId, idProducto)
-          .select(_seleccion)
+          .select(seleccion)
           .maybeSingle();
       // Si la política RLS no deja ver la fila (no es de este comercio),
       // el update no toca nada y no hay fila que devolver.
@@ -163,17 +163,22 @@ class SupabaseCatalogoDataSource {
         SupabaseColumns.productoCategoria: datos.idCategoria,
       };
 
-  Producto _toProducto(Map<String, dynamic> row) {
-    final categoria = row[SupabaseTables.categoria];
-    return Producto(
-      id: row[SupabaseColumns.productoId].toString(),
-      nombre: row[SupabaseColumns.productoNombre] as String? ?? '',
-      marca: row[SupabaseColumns.productoMarca] as String?,
-      codigoBarras: row[SupabaseColumns.productoCodigoBarras] as String?,
-      idCategoria: row[SupabaseColumns.productoCategoria].toString(),
-      categoria: categoria is Map
-          ? categoria[SupabaseColumns.categoriaNombre] as String? ?? ''
-          : '',
-    );
-  }
+  Producto _toProducto(Map<String, dynamic> row) => productoFromRow(row);
+}
+
+/// Convierte una fila de `producto` (con su categoría anidada) en la entidad.
+/// La comparten el catálogo del comercio (HU-10) y la búsqueda de productos
+/// de los reportes (HU-14).
+Producto productoFromRow(Map<String, dynamic> row) {
+  final categoria = row[SupabaseTables.categoria];
+  return Producto(
+    id: row[SupabaseColumns.productoId].toString(),
+    nombre: row[SupabaseColumns.productoNombre] as String? ?? '',
+    marca: row[SupabaseColumns.productoMarca] as String?,
+    codigoBarras: row[SupabaseColumns.productoCodigoBarras] as String?,
+    idCategoria: row[SupabaseColumns.productoCategoria].toString(),
+    categoria: categoria is Map
+        ? categoria[SupabaseColumns.categoriaNombre] as String? ?? ''
+        : '',
+  );
 }

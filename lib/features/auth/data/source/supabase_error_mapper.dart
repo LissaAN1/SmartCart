@@ -63,6 +63,11 @@ AuthFailure mapPostgrestException(PostgrestException e) {
       );
     case '22023':
       return const AuthFailure('Revisa los datos e inténtalo de nuevo.');
+    // Las funciones de HU-14 explican el motivo en español ("Debes estar en
+    // el establecimiento...") con un `raise exception`: el mensaje ya se
+    // puede mostrar tal cual.
+    case 'P0001':
+      return AuthFailure(e.message);
     default:
       return const AuthFailure(
         'No pudimos guardar o leer tus datos. Inténtalo de nuevo.',
