@@ -16,13 +16,15 @@ Informe de implementación. Rama: `feat/hu14-reporte-precio`, creada desde `feat
 | Se puede marcar un producto como agotado | Implementado | Interruptor "El producto está agotado". |
 | El reporte queda en estado pendiente | Implementado | `reporte_precio.estado` nace `pendiente`; solo la función SQL inserta. |
 | Se puede sugerir un establecimiento que aún no está en la plataforma | Implementado | `SugerirEstablecimientoPage` y la tabla `establecimiento_sugerido`. |
+| *(Ajuste pedido por el equipo)* Escanear directo | Implementado | Al elegir el establecimiento se abre la cámara sola; si el código es de un producto, pasa directo al formulario. |
+| *(Ajuste pedido por el equipo)* Historial de mis reportes | Implementado | El Home del colaborador y `MisReportesPage` muestran los reportes reales, incluidos los pendientes. |
 
 Escenarios 1 (reporte exitoso), 2 (fuera del establecimiento: se rechaza y se explica) y 3 (sin foto: se muestra que es obligatoria) tienen prueba automática. Ver `docs/HU14_informe_pruebas.md`.
 
 **Fuera de alcance (a propósito):**
 - Validar los reportes y actualizar el precio (HU-15, Sprint 3).
 - **Dar puntos** (HU-16): el propio backlog dice "los puntos solo se otorgan cuando el reporte es validado". La HU-14 solo guarda el reporte.
-- Lista de "mis reportes" con estado (criterio de la HU-15).
+- Validar o rechazar reportes y mostrar el motivo (HU-15). El historial ya muestra los reportes reales con su estado, pero hoy todos están pendientes.
 - Búsqueda de productos para clientes (HU-12).
 
 ## 3. Cambios a la HU-07 (registro del comercio)
@@ -54,13 +56,14 @@ La verificación por ubicación necesita saber dónde queda cada comercio, y la 
 | Archivo | Qué hace |
 |---|---|
 | `docs/sql/sprint2_hu14.sql` | `es_colaborador()`, `es_comercio_aprobado()`, coordenadas del comercio y `fijar_ubicacion_comercio()`, `distancia_metros()`, `comercios_cercanos()`, política de lectura de productos para colaboradores, `reporte_precio` con `enviar_reporte_precio()`, `establecimiento_sugerido` y el bucket `reportes` con sus políticas. Idempotente. |
-| `docs/sql/pruebas_hu14_politicas.sql` | 26 pruebas de las políticas y funciones (colaborador, no colaborador, otro colaborador, dueño, aprobación y Storage). Termina en `ROLLBACK` y devuelve una tabla con los resultados. |
+| `lib/features/reportes/.../mis_reportes_page.dart`, `reporte_historial_item.dart`, `reporte_formato.dart`, `get_mis_reportes_usecase.dart`, `mi_reporte.dart` | Historial de reportes: pantalla completa paginada, fila con estado, formato de pesos y fechas, caso de uso y entidad. |
+| `docs/sql/pruebas_hu14_politicas.sql` | 28 pruebas de las políticas y funciones (colaborador, no colaborador, otro colaborador, dueño, aprobación y Storage). Termina en `ROLLBACK` y devuelve una tabla con los resultados. |
 | `lib/features/ubicacion/` | `Ubicacion` (con la distancia haversine), contrato `ServicioUbicacion`, `ObtenerUbicacionUseCase`, `GeolocatorServicioUbicacion` y `UbicacionBloc`. La usan el registro del comercio y el reporte. |
 | `lib/features/reportes/domain/` | Entidades (`EstablecimientoCercano`, `ConsultaProducto`, `FotoReporte`, `ReporteDatos`, `SugerenciaDatos`), `ReporteReglas`, `ReporteValidators`, contratos `ReportesRepository` y `SelectorFoto`, y 6 casos de uso (`GetColaboradorActivo`, `GetEstablecimientosCercanos`, `BuscarProductos`, `TomarFoto`, `EnviarReportePrecio`, `SugerirEstablecimiento`). |
 | `lib/features/reportes/data/` | `SupabaseReportesDataSource`, `ReportesRepositoryImpl` e `ImagePickerSelectorFoto`. |
 | `lib/features/reportes/presentation/` | `ReporteFormBloc`, `SugerenciaBloc` y las pantallas `ReporteEstablecimientoPage`, `ReporteProductoPage`, `ReporteFormPage`, `SugerirEstablecimientoPage` y `EscanerCodigoPage`. |
 | `lib/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart` | Guarda la ubicación del comercio de la cuenta. |
-| `test/reportes/*` | 105 pruebas nuevas (ver el informe de pruebas). |
+| `test/reportes/*` | 143 pruebas nuevas (ver el informe de pruebas). |
 
 ### Modificados
 
@@ -70,7 +73,7 @@ La verificación por ubicación necesita saber dónde queda cada comercio, y la 
 | `ios/Runner/Info.plist` | Textos de uso de cámara, ubicación y fotos. |
 | `pubspec.yaml` / `pubspec.lock` y `windows/flutter/generated_plugin*` | Plugins `geolocator`, `image_picker`, `mobile_scanner` y `permission_handler`. Los dos archivos de `windows/` los genera Flutter al agregar plugins. |
 | `lib/core/constants/supabase_tables.dart` | Tabla, bucket, funciones y columnas nuevas. |
-| `lib/core/routes/app_routes.dart`, `lib/app_router.dart` | 5 rutas del reporte. Los pasos devuelven `true` si se envió el reporte, para cerrar todo el flujo. |
+| `lib/core/routes/app_routes.dart`, `lib/app_router.dart` | 6 rutas (el reporte y el historial). Los pasos devuelven `true` si se envió el reporte, para cerrar todo el flujo. |
 | `lib/core/di/injector.dart` | Registros nuevos (ver sección 7). |
 | `lib/features/comercio/**` | `Comercio` y `ComercioDatos` con coordenadas; el repositorio, el data source, `ComercioBloc` (evento `ComercioUbicacionSolicitada`), el formulario de registro y el Home. |
 | `lib/features/auth/data/source/supabase_error_mapper.dart` | `P0001`: el mensaje en español de las funciones SQL se muestra tal cual. |
@@ -135,6 +138,8 @@ Todo en `lib/core/di/injector.dart`, con el mecanismo y el orden existentes. No 
 - **Dos pruebas existentes tuvieron que cambiar** (y ninguna aserción):
   - `test/navigation/hu06_07_08_flows_test.dart`, "dejar campos vacíos muestra los errores y no guarda": el formulario de registro ahora es más largo y el botón "Registrar" queda fuera de lo que `ListView` construye de antemano; la prueba ahora se desplaza hasta él antes de tocarlo.
   - `test/catalog/comercio_entradas_test.dart` (de la HU-10), "Ir al Catálogo": mismo motivo, por el aviso de ubicación en el Home.
+- **Escaneo directo.** `ReporteProductoPage` abre el escáner en el primer cuadro (`escanearAlEntrar`, activo salvo que no haya cámara). Al leer un código se busca con coincidencia exacta y, si el resultado trae un único producto, abre su formulario sin que la persona lo toque (un código de barras no se repite dentro de un comercio, así que son 0 o 1). El indicador se apaga al abrirlo: volver atrás desde el formulario no lo vuelve a abrir. Si se cancela el escáner o el código no existe, la página queda lista para buscar por nombre. Esto reemplaza el comportamiento anterior, en el que había que tocar el ícono del escáner y luego el producto.
+- **Historial real.** El Home del colaborador mostraba reportes de ejemplo fijos. Ahora lee `mis_reportes()`, una función SQL (el colaborador no puede leer la tabla `comercio`, así que el nombre del establecimiento no se puede traer con un `select` normal) que devuelve solo los reportes de quien llama, del más reciente al más antiguo y de **cualquier estado**. `RolShell` crea la lista (`crearMisReportes`), la recarga al volver del flujo de reporte y la cierra al salir; el Home muestra los 3 más recientes y **Historial** abre la lista completa, paginada. Un reporte sin revisar sale como "Pendiente" (antes el texto de ejemplo decía "En revisión"). Si un producto se elimina después, sus reportes se eliminan en cascada (la tabla enlaza con `on delete cascade`).
 - **Hallazgo de seguridad en una política que ya existía (no de la HU-14).** La prueba E3 de `pruebas_hu14_politicas.sql` mostró que el dueño de un comercio aprobado podía hacer `update comercio set estado = ...`. Revisando `pg_policies` en el proyecto real apareció una política antigua, `comercio_update_own`, que los scripts del repositorio no crean: su `with check` mira la columna heredada `estado_registro` y no `estado`. Como las políticas permisivas se suman con OR, anulaba a `comercio_update_own_pendiente` (la de la HU-07) y un dueño con `estado_registro = 'pendiente'` podía aprobarse solo. La app no actualiza `comercio` directamente (solo inserta y llama a funciones), así que eliminarla no rompe nada: `sprint2_hu14.sql` ahora hace `drop policy if exists comercio_update_own` (sección 8) y se agregó la prueba E5 (un dueño pendiente no puede aprobarse). Las políticas duplicadas `comercio_admin_select` y `comercio_admin_update` repiten a las del administrador y son inofensivas; no se tocaron.
 - **`permission_handler` fijado en la versión 12.** La 13 usa `permission_handler_android` 14, que exige compilar contra Android SDK 37; el proyecto usa AGP 9.1 (máximo recomendado: SDK 36) y el equipo tiene el SDK 36, así que `flutter build apk` fallaba en `checkDebugAarMetadata`. Con la 12 (`permission_handler_android` 13, SDK 35) el APK compila. Si algún día se sube el SDK de Android a 37, se puede volver a la 13.
 - **Textos largos en botones.** Dos etiquetas se acortaron ("Guardar ubicación", "Sugerir establecimiento") porque en las pruebas, con la fuente de prueba, se desbordaban.
@@ -142,7 +147,7 @@ Todo en `lib/core/di/injector.dart`, con el mecanismo y el orden existentes. No 
 
 ## 10. Pendientes y riesgos
 
-- **SQL en Supabase: ejecutado y probado.** El equipo corrió `docs/sql/sprint2_hu14.sql` y su script de pruebas. La primera vez dio 24 líneas `OK` y 1 `ALERTA` (E3, ver la sección 9); con la corrección de `sprint2_hu14.sql` (sección 8) y la prueba nueva E5 se volvió a ejecutar y **las 26 líneas dicen `OK`** (detalle en `docs/HU14_informe_pruebas.md`). Lo que sigue sin probarse es la app corriendo en un dispositivo.
+- **SQL en Supabase: ejecutado y probado.** El equipo corrió `docs/sql/sprint2_hu14.sql` y su script de pruebas. La primera vez dio 24 líneas `OK` y 1 `ALERTA` (E3, ver la sección 9); con la corrección de `sprint2_hu14.sql` (sección 8) y la prueba nueva E5 se volvió a ejecutar y las 26 líneas dijeron `OK`; al agregar la función `mis_reportes()` (historial) y las pruebas A3b y C1b se ejecutó otra vez y **las 28 líneas dicen `OK`** (detalle en `docs/HU14_informe_pruebas.md`). Lo que sigue sin probarse es la app corriendo en un dispositivo.
 - **Quien use otra base de datos** debe ejecutar `sprint2_hu14.sql` completo: la política heredada `comercio_update_own` también puede existir allí y el script la elimina.
 - **Probar en Android** (la plataforma del equipo): ubicación, permiso de cámara, foto, escáner y envío. Solo se verificó con pruebas automáticas (con dobles) y con la compilación del APK de depuración, que sí funciona; ver el informe de pruebas. El GPS, la cámara y el escáner reales no se han probado en un dispositivo.
 - **Cómo probar el escenario 2 sin caminar:** guardar la ubicación del comercio desde el mismo teléfono y luego moverla con SQL (ver el README, sección "Probar el reporte de precios"), o cambiar la ubicación del emulador en Android Studio.

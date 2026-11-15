@@ -293,7 +293,7 @@ class ReporteItem extends StatelessWidget {
     final t = TemaRol.of(context);
     final chip = switch (estado) {
       EstadoReportePrecio.verificado => const EtiquetaEstado.exito('Verificado'),
-      EstadoReportePrecio.enRevision => const EtiquetaEstado.pendiente('En revisión'),
+      EstadoReportePrecio.enRevision => const EtiquetaEstado.pendiente('Pendiente'),
       EstadoReportePrecio.rechazado => const EtiquetaEstado.error('Rechazado'),
     };
 

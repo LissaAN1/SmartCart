@@ -40,6 +40,9 @@ abstract final class AppRoutes {
   /// HU-14: sugerir un establecimiento que no está en la plataforma.
   static const reporteSugerir = '/colaborador/reporte/sugerir';
 
+  /// HU-14: historial de reportes del colaborador (lista paginada).
+  static const misReportes = '/colaborador/reportes';
+
   /// HU-14: escáner de códigos de barras. Devuelve el código leído.
   static const reporteEscaner = '/colaborador/reporte/escaner';
 

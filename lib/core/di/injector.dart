@@ -53,6 +53,7 @@ import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_come
 import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
 import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
 import 'package:smartcart/features/reportes/data/source/supabase_reportes_data_source.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
 import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
@@ -60,6 +61,7 @@ import 'package:smartcart/features/reportes/domain/usecases/buscar_productos_use
 import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_activo_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/get_establecimientos_cercanos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_mis_reportes_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimiento_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
@@ -223,6 +225,9 @@ void setupDependencies() {
   sl.registerLazySingleton(
     () => BuscarProductosUseCase(colaborador: sl(), reportes: sl()),
   );
+  sl.registerLazySingleton(
+    () => GetMisReportesUseCase(colaborador: sl(), reportes: sl()),
+  );
   sl.registerLazySingleton(() => TomarFotoUseCase(selector: sl()));
   sl.registerLazySingleton(
     () => EnviarReportePrecioUseCase(
@@ -286,6 +291,16 @@ void setupDependencies() {
       );
     },
   );
+  // El historial de reportes: el Home pide pocos y la pantalla completa una
+  // página (`param1` es el tamaño de página).
+  sl.registerFactoryParam<PaginatedBloc<MiReporte>, int, void>((pageSize, _) {
+    final misReportes = sl<GetMisReportesUseCase>();
+    return PaginatedBloc<MiReporte>(
+      fetchPage: misReportes.call,
+      pageSize: pageSize,
+      errorMessageFor: mensajeDeFallo,
+    );
+  });
   sl.registerFactoryParam<PaginatedBloc<Producto>, String, ConsultaProducto>(
     (idComercio, consulta) {
       final buscar = sl<BuscarProductosUseCase>();

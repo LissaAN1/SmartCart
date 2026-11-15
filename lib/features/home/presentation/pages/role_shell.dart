@@ -15,6 +15,8 @@ import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_state.dart';
 import 'package:smartcart/features/comercio/presentation/widgets/comercio_gate.dart';
+import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/repartidor/repartidor.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
@@ -32,7 +34,17 @@ class RolShell extends StatefulWidget {
   final UserRole rol;
   final Profile profile;
 
-  const RolShell({super.key, required this.rol, required this.profile});
+  /// HU-14: crea la lista de los últimos reportes del colaborador para su
+  /// Home. Sin ella (por ejemplo en las pruebas de navegación) el Home
+  /// muestra el historial vacío.
+  final PaginatedBloc<MiReporte> Function()? crearMisReportes;
+
+  const RolShell({
+    super.key,
+    required this.rol,
+    required this.profile,
+    this.crearMisReportes,
+  });
 
   @override
   State<RolShell> createState() => _RolShellState();
@@ -41,6 +53,22 @@ class RolShell extends StatefulWidget {
 class _RolShellState extends State<RolShell> {
   bool _enPerfil = false;
   late Profile _profile = widget.profile;
+
+  /// HU-14: últimos reportes del colaborador. Se crea y se cierra aquí, y se
+  /// recarga al volver del flujo de reporte para que el nuevo aparezca.
+  PaginatedBloc<MiReporte>? _misReportes;
+
+  @override
+  void initState() {
+    super.initState();
+    _misReportes = widget.crearMisReportes?.call()?..add(PaginatedStarted());
+  }
+
+  @override
+  void dispose() {
+    _misReportes?.close();
+    super.dispose();
+  }
 
   RolTema get _tema => PerfilVisual.de(widget.rol).tema;
 
@@ -104,9 +132,20 @@ class _RolShellState extends State<RolShell> {
   void _abrirAprobaciones() =>
       Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
 
-  /// HU-14: primer paso del reporte de precio.
-  void _abrirReportePrecio() =>
-      Navigator.of(context).pushNamed(AppRoutes.reporteEstablecimiento);
+  /// HU-14: primer paso del reporte de precio. Al volver (con o sin reporte
+  /// enviado) se recarga el historial: es barato y evita mostrar uno viejo.
+  Future<void> _abrirReportePrecio() async {
+    await Navigator.of(context).pushNamed(AppRoutes.reporteEstablecimiento);
+    if (mounted) _recargarMisReportes();
+  }
+
+  void _recargarMisReportes() => _misReportes?.add(PaginatedStarted());
+
+  /// HU-14: historial completo de reportes del colaborador.
+  Future<void> _abrirMisReportes() async {
+    await Navigator.of(context).pushNamed(AppRoutes.misReportes);
+    if (mounted) _recargarMisReportes();
+  }
 
   /// HU-10: lista de productos del comercio.
   void _abrirCatalogo() => Navigator.of(context).pushNamed(AppRoutes.catalogo);
@@ -180,12 +219,7 @@ class _RolShellState extends State<RolShell> {
           onCerrarSesion: _salir,
           profile: p,
           onActivarColaborador: _activarColaborador),
-      (RolTema.colaborador, false) =>
-        ColaboradorHomeScreen(
-          onTab: _onTab,
-          nombre: _primerNombre,
-          onReportarPrecio: _abrirReportePrecio,
-        ),
+      (RolTema.colaborador, false) => _conMisReportes(),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
       // Aquí solo llega un repartidor aprobado (ver `build`).
@@ -228,6 +262,34 @@ class _RolShellState extends State<RolShell> {
                 .read<DisponibilidadBloc>()
                 .add(DisponibilidadCambiada(v)),
       ),
+    );
+  }
+
+  /// Home del colaborador con sus últimos reportes reales (HU-14), incluidos
+  /// los pendientes.
+  Widget _conMisReportes() {
+    Widget home(PaginatedState<MiReporte> estado) {
+      final cargando = estado.status == PaginatedStatus.initial ||
+          estado.status == PaginatedStatus.loading;
+      return ColaboradorHomeScreen(
+        onTab: _onTab,
+        nombre: _primerNombre,
+        onReportarPrecio: _abrirReportePrecio,
+        reportes: estado.items,
+        cargandoReportes: _misReportes != null && cargando,
+        errorReportes: estado.status == PaginatedStatus.failure
+            ? estado.errorMessage
+            : null,
+        onReintentarReportes: _recargarMisReportes,
+        onVerHistorial: _misReportes == null ? null : _abrirMisReportes,
+      );
+    }
+
+    final bloc = _misReportes;
+    if (bloc == null) return home(PaginatedState<MiReporte>());
+    return BlocBuilder<PaginatedBloc<MiReporte>, PaginatedState<MiReporte>>(
+      bloc: bloc,
+      builder: (context, estado) => home(estado),
     );
   }
 
