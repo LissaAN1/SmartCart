@@ -1,5 +1,6 @@
 import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 
@@ -27,6 +28,10 @@ abstract class ReportesRepository {
     FotoReporte foto,
     Ubicacion ubicacion,
   );
+
+  /// Los reportes de la cuenta con sesión iniciada, del más reciente al más
+  /// antiguo y de cualquier estado.
+  Future<PagedResult<MiReporte>> misReportes(PageRequest request);
 
   /// Guarda la sugerencia de un establecimiento nuevo, con [ubicacion] como
   /// el lugar donde estaba [userId].

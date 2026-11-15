@@ -1,6 +1,7 @@
 import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/reportes/data/source/supabase_reportes_data_source.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
@@ -35,6 +36,10 @@ class ReportesRepositoryImpl implements ReportesRepository {
     Ubicacion ubicacion,
   ) =>
       _dataSource.enviarReporte(userId, datos, foto, ubicacion);
+
+  @override
+  Future<PagedResult<MiReporte>> misReportes(PageRequest request) =>
+      _dataSource.misReportes(request);
 
   @override
   Future<void> sugerirEstablecimiento(

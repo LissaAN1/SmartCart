@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
 import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
@@ -9,6 +10,7 @@ import 'package:smartcart/features/reportes/domain/usecases/buscar_productos_use
 import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_activo_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/get_establecimientos_cercanos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_mis_reportes_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimiento_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
@@ -596,6 +598,33 @@ class FakeReportesRepository implements ReportesRepository {
   Object? listError;
   Object? enviarError;
   Object? sugerirError;
+  Object? historialError;
+
+  /// Reportes que el colaborador ya tenía antes de la prueba (por ejemplo,
+  /// uno validado y uno rechazado), del más reciente al más antiguo. Los que
+  /// se envían durante la prueba se suman por delante, como pendientes.
+  final reportesPrevios = <MiReporte>[];
+
+  @override
+  Future<PagedResult<MiReporte>> misReportes(PageRequest request) async {
+    if (historialError != null) throw historialError!;
+    final enviados = [
+      for (var i = reportes.length - 1; i >= 0; i--)
+        MiReporte(
+          id: 'r${i + 1}',
+          producto: reportes[i].datos.producto.nombre,
+          establecimiento: reportes[i].datos.establecimiento.nombre,
+          precio: reportes[i].datos.precio,
+          precioPromocional: reportes[i].datos.precioPromocional,
+          agotado: reportes[i].datos.agotado,
+          estado: EstadoReporte.pendiente,
+          creadoEn: DateTime.now(),
+        ),
+    ];
+    final todos = [...enviados, ...reportesPrevios];
+    final filas = todos.skip(request.from).take(request.pageSize + 1).toList();
+    return PagedResult.fromRows(filas, request);
+  }
 
   @override
   Future<PagedResult<EstablecimientoCercano>> establecimientosCercanos(
@@ -785,6 +814,8 @@ class TestEnv {
           colaborador: colaboradorActivo, reportes: reportes);
   BuscarProductosUseCase get buscarProductos => BuscarProductosUseCase(
       colaborador: colaboradorActivo, reportes: reportes);
+  GetMisReportesUseCase get getMisReportes => GetMisReportesUseCase(
+      colaborador: colaboradorActivo, reportes: reportes);
   TomarFotoUseCase get tomarFoto => TomarFotoUseCase(selector: selectorFoto);
   EnviarReportePrecioUseCase get enviarReporte => EnviarReportePrecioUseCase(
       colaborador: colaboradorActivo,
@@ -820,6 +851,12 @@ class TestEnv {
   ) =>
       PaginatedBloc<Producto>(
         fetchPage: (request) => buscarProductos(idComercio, consulta, request),
+        errorMessageFor: mensajeDeFallo,
+      );
+  PaginatedBloc<MiReporte> misReportesBloc({int pageSize = 20}) =>
+      PaginatedBloc<MiReporte>(
+        fetchPage: getMisReportes.call,
+        pageSize: pageSize,
         errorMessageFor: mensajeDeFallo,
       );
   ReporteFormBloc reporteFormBloc() =>

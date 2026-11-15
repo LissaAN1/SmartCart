@@ -17,7 +17,7 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
-| **HU-14** | **Reporte de precio por el colaborador** | **Implementada y probada con dobles (389 pruebas); el APK de depuración compila. El SQL ya se ejecutó en Supabase y sus 26 pruebas de políticas dan `OK` (incluido un hallazgo de seguridad heredado, ya corregido). Falta probar la app en un dispositivo Android.** Ver [docs/HU14_informe_implementacion.md](docs/HU14_informe_implementacion.md) y [docs/HU14_informe_pruebas.md](docs/HU14_informe_pruebas.md) |
+| **HU-14** | **Reporte de precio por el colaborador** | **Implementada y probada con dobles (428 pruebas); el APK de depuración compila. El SQL ya se ejecutó en Supabase y sus 28 pruebas de políticas dan `OK` (incluido un hallazgo de seguridad heredado, ya corregido). Falta probar la app en un dispositivo Android.** Ver [docs/HU14_informe_implementacion.md](docs/HU14_informe_implementacion.md) y [docs/HU14_informe_pruebas.md](docs/HU14_informe_pruebas.md) |
 | HU-11, HU-12, HU-13, HU-17 | Precios, búsqueda, detalle del precio, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
@@ -106,7 +106,8 @@ El reporte exige estar a menos de **150 m** del establecimiento, así que hay qu
 2. **Ubicar el comercio.** Entrar con una cuenta de **Comercio aprobada** estando en el lugar donde se va a probar. En el Home aparece el aviso "Falta la ubicación de tu comercio"; tocar **Guardar ubicación** y aceptar el permiso. Un comercio nuevo también puede tomarla en el formulario de registro. Sin coordenadas el comercio no sale como lugar de reporte.
 3. **Tener productos.** El comercio necesita productos en su catálogo (HU-10; sirven los CSV de `docs/ejemplos/`).
 4. **Entrar como colaborador.** Con una cuenta que tenga el modo **Colaborador** activo, tocar **Reportar precio**, **Escanear** o la pestaña **Reportar Precio**.
-5. **Recorrer el flujo:** elegir el establecimiento (aparece con su distancia) → elegir el producto (por nombre o marca, o con el ícono del escáner) → precio, promoción opcional, agotado y **foto de la etiqueta** → **Enviar reporte**. Resultado esperado: "Reporte enviado", queda **pendiente**.
+5. **Recorrer el flujo:** elegir el establecimiento (aparece con su distancia) → **la cámara del escáner se abre sola**: apuntar al código de barras del producto y, si está en el establecimiento, se pasa directo al formulario → precio, promoción opcional, agotado y **foto de la etiqueta** → **Enviar reporte**. Resultado esperado: "Reporte enviado", queda **pendiente**. Si se cancela el escáner o el código no está, se queda en la lista para buscar por nombre o marca (en Windows no hay escáner y empieza ahí).
+6. **Ver el historial.** En el Home del colaborador, "Mis últimos reportes" muestra los 3 más recientes y **Historial** abre la lista completa. Un reporte recién enviado aparece como **Pendiente** aunque nadie lo haya revisado; al validarlo (HU-15) cambiará a Verificado o Rechazado.
 
 Para ver los **tres escenarios del backlog**:
 
@@ -248,7 +249,7 @@ order by u.correo;
 | 3 | `sprint2_hu10.sql` | `categoria` (con seis categorías), `producto`, `es_comercio_aprobado_propio()` y las políticas de producto |
 | 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
 | 5 | `sprint2_hu14.sql` | Coordenadas en `comercio`, `comercios_cercanos()`, `reporte_precio` con `enviar_reporte_precio()`, `establecimiento_sugerido` y el bucket de Storage `reportes` |
-| 6 | `pruebas_hu14_politicas.sql` | 26 pruebas de las políticas y funciones del reporte (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 6 | `pruebas_hu14_politicas.sql` | 28 pruebas de las políticas y funciones del reporte, incluido el historial (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5, las del reporte de precios. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -289,7 +290,7 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **389 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **428 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
 Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`), el selector de archivos del sistema (eso lo probamos a mano) ni el GPS, la cámara y el escáner reales de la HU-14 (las pruebas usan dobles; hay que probarlos en un dispositivo).
 
@@ -437,7 +438,7 @@ flutter test test/di
   - El CSV lleva `nombre` y `categoria` (obligatorias) y `marca` y `codigo_barras` (opcionales), con un máximo de 500 filas. El selector de archivos lo probamos a mano con los CSV de `docs/ejemplos/`.
   - Los clientes todavía no pueden ver los productos: la lectura y la búsqueda llegan con la HU-12.
 - **HU-14 (reporte de precio):**
-  - Necesita `docs/sql/sprint2_hu14.sql` en Supabase (en nuestro proyecto ya se ejecutó y `pruebas_hu14_politicas.sql` dio las 26 líneas en `OK`). La primera ejecución de la prueba reveló una política antigua, `comercio_update_own`, que dejaba al dueño cambiar su propio estado de aprobación; el script la elimina (sección 8) y quien use otra base debe ejecutarlo también.
+  - Necesita `docs/sql/sprint2_hu14.sql` en Supabase (en nuestro proyecto ya se ejecutó y `pruebas_hu14_politicas.sql` dio las 28 líneas en `OK`, incluidas las del historial `mis_reportes()`). La primera ejecución de la prueba reveló una política antigua, `comercio_update_own`, que dejaba al dueño cambiar su propio estado de aprobación; el script la elimina (sección 8) y quien use otra base debe ejecutarlo también.
   - El GPS, la cámara, el permiso y el escáner reales **no se han probado en un dispositivo**: las pruebas usan dobles. Se prueba en Android.
   - Un comercio solo aparece como lugar de reporte si guardó su ubicación (registro o aviso del Home). Los comercios anteriores a esta historia no la tienen.
   - La distancia máxima es de 150 m (constante `ReporteReglas.radioMaximoM` y en la función SQL).

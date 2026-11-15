@@ -11,6 +11,7 @@ import 'package:smartcart/features/notificaciones/presentation/bloc/notificacion
 import 'package:smartcart/features/notificaciones/presentation/widgets/aviso_notificaciones.dart';
 import 'package:smartcart/core/routes/app_navigation.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
+import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
@@ -21,6 +22,7 @@ import 'package:smartcart/features/catalog/presentation/pages/catalogo_csv_page.
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/producto_form_page.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
+import 'package:smartcart/features/colaborador/presentation/pages/colaborador_home_screen.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
@@ -32,10 +34,12 @@ import 'package:smartcart/features/profile_selection/presentation/pages/profile_
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
 import 'package:smartcart/features/reportes/presentation/pages/escaner_codigo_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/mis_reportes_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_args.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_establecimiento_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_form_page.dart';
@@ -93,7 +97,17 @@ abstract final class AppRouter {
             ),
           ],
           child: AvisoNotificaciones(
-            child: RolShell(rol: args.role, profile: args.profile),
+            child: RolShell(
+              rol: args.role,
+              profile: args.profile,
+              // HU-14: el Home del colaborador muestra sus últimos reportes
+              // reales (los más recientes).
+              crearMisReportes: args.role == UserRole.colaborador
+                  ? () => sl<PaginatedBloc<MiReporte>>(
+                        param1: ColaboradorHomeScreen.reportesEnHome,
+                      )
+                  : null,
+            ),
           ),
         ),
       AppRoutes.adminSolicitudes => AdminSolicitudesPage(
@@ -142,6 +156,12 @@ abstract final class AppRouter {
           child: const SugerirEstablecimientoPage(),
         ),
       AppRoutes.reporteEscaner => const EscanerCodigoPage(),
+      AppRoutes.misReportes => BlocProvider(
+          create: (_) => sl<PaginatedBloc<MiReporte>>(
+            param1: PageRequest.defaultPageSize,
+          )..add(PaginatedStarted()),
+          child: const MisReportesPage(),
+        ),
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),

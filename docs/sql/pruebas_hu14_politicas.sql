@@ -156,6 +156,17 @@ begin
   perform set_config('pruebas.reporte', v_id::text, true);
   perform public.pruebas_log('OK A3: reporte desde el establecimiento guardado como pendiente');
 
+  -- A3b: el historial (mis_reportes) muestra el reporte pendiente, con los
+  -- nombres del producto y del establecimiento.
+  select count(*) into v_n
+    from public.mis_reportes()
+   where id_reporte = v_id and estado = 'pendiente'
+     and producto = 'Producto de prueba HU-14' and comercio is not null;
+  if v_n <> 1 then
+    raise exception 'FALLO A3b: el reporte pendiente no aparece en mis_reportes()';
+  end if;
+  perform public.pruebas_log('OK A3b: el reporte pendiente aparece en el historial del colaborador');
+
   -- A4: sugerir un establecimiento nuevo.
   insert into public.establecimiento_sugerido
     (id_colaborador, nombre, direccion, ciudad, latitud, longitud)
@@ -266,6 +277,12 @@ begin
     raise exception 'FALLO C1: otro colaborador ve un reporte ajeno';
   end if;
   perform public.pruebas_log('OK C1: otro colaborador no ve reportes ajenos');
+
+  select count(*) into v_n from public.mis_reportes() where id_reporte = v_reporte;
+  if v_n <> 0 then
+    raise exception 'FALLO C1b: el historial de otro colaborador muestra un reporte ajeno';
+  end if;
+  perform public.pruebas_log('OK C1b: el historial de otro colaborador no muestra reportes ajenos');
 
   select count(*) into v_n from public.establecimiento_sugerido;
   if v_n <> 0 then

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,14 +21,21 @@ import '../support/pump_helpers.dart';
 /// Lo que devuelve el escáner de mentira: la cámara no existe en las pruebas.
 String _codigoEscaneado = '7701234567890';
 
+/// Si la página de productos abre el escáner al entrar. La mayoría de las
+/// pruebas lo apagan para empezar por la lista; el grupo "escaneo directo" lo
+/// enciende.
+bool _escanearAlEntrar = false;
+
 /// Monta el flujo del reporte con las mismas rutas que arma `AppRouter` y abre
 /// el primer paso desde una pantalla de inicio.
 Future<TestEnv> _pump(
   WidgetTester tester, {
   void Function(TestEnv env)? prepare,
+  bool escanearAlEntrar = false,
 }) async {
   setScreenSize(tester, 420, 900);
   _codigoEscaneado = '7701234567890';
+  _escanearAlEntrar = escanearAlEntrar;
   final env = TestEnv()..iniciarSesionComoColaborador();
   prepare?.call(env);
 
@@ -48,6 +56,7 @@ Future<TestEnv> _pump(
             page = ReporteProductoPage(
               establecimiento: args,
               crearLista: env.busquedaProductosBloc,
+              escanearAlEntrar: _escanearAlEntrar,
             );
           case AppRoutes.reporteFormulario when args is ReporteFormArgs:
             page = BlocProvider(
@@ -113,6 +122,12 @@ Future<void> _tocar(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+/// Cierra el escáner de mentira sin leer nada, como quien lo cancela.
+Future<void> _cancelarEscaner(WidgetTester tester) async {
+  Navigator.of(tester.element(find.text('Código leído'))).pop();
   await tester.pumpAndSettle();
 }
 
@@ -238,7 +253,7 @@ void main() {
       expect(find.text('No encontramos productos con "zzz".'), findsOneWidget);
     });
 
-    testWidgets('escanear un código muestra el producto que lo tiene',
+    testWidgets('escanear un código busca ese producto y abre su formulario',
         (tester) async {
       await pumpConDosProductos(tester);
       _codigoEscaneado = '7709990001112';
@@ -248,10 +263,12 @@ void main() {
       await tester.tap(find.text('Código leído'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Código escaneado: 7709990001112'), findsOneWidget);
+      // Con un único producto, pasa directo al formulario del reporte.
+      expect(find.text('Precio (COP)'), findsOneWidget);
       expect(find.text('Leche entera 1 L'), findsOneWidget);
       expect(find.text('Arroz blanco 500 g'), findsNothing);
       expect(envActual!.reportes.consultas.last.esCodigo, isTrue);
+      expect(envActual!.reportes.consultas.last.texto, '7709990001112');
     });
 
     testWidgets('un código que no está en el establecimiento se avisa',
@@ -279,6 +296,122 @@ void main() {
 
       expect(find.text('Arroz blanco 500 g'), findsOneWidget);
       expect(find.text('Leche entera 1 L'), findsOneWidget);
+    });
+  });
+
+  group('Paso 2 · escaneo directo al elegir el establecimiento', () {
+    /// Elige el establecimiento: con el escáner activo, la cámara se abre sola.
+    Future<TestEnv> entrar(
+      WidgetTester tester, {
+      void Function(TestEnv env)? prepare,
+    }) async {
+      final env = await _pump(tester, prepare: prepare, escanearAlEntrar: true);
+      await tester.tap(find.text('Minimercado La Esquina'));
+      await tester.pumpAndSettle();
+      return env;
+    }
+
+    testWidgets('la cámara se abre sola, sin tocar el ícono del escáner',
+        (tester) async {
+      await entrar(tester);
+
+      // Es la pantalla del escáner (de mentira), no la lista de productos.
+      expect(find.text('Código leído'), findsOneWidget);
+      expect(find.text('Elige el producto'), findsNothing);
+    });
+
+    testWidgets('si el código es de un producto, pasa directo al formulario',
+        (tester) async {
+      await entrar(tester);
+
+      await tester.tap(find.text('Código leído'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Precio (COP)'), findsOneWidget);
+      expect(find.text('Arroz blanco 500 g'), findsOneWidget);
+      expect(find.text('Elige el producto'), findsNothing);
+    });
+
+    testWidgets('el reporte completo se hace sin tocar la lista de productos',
+        (tester) async {
+      final env = await entrar(tester);
+      await tester.tap(find.text('Código leído'));
+      await tester.pumpAndSettle();
+
+      await _escribir(tester, 'Precio (COP)', '4900');
+      await _tocarFoto(tester);
+      await _tocarEnviar(tester);
+
+      expect(find.text('Reporte enviado'), findsOneWidget);
+      expect(env.reportes.reportes.single.datos.producto.id, 'p1');
+    });
+
+    testWidgets('si el código no está en el establecimiento, avisa y deja buscar',
+        (tester) async {
+      await entrar(tester);
+      _codigoEscaneado = '1234567890123';
+
+      await tester.tap(find.text('Código leído'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('No encontramos un producto con ese código'),
+          findsOneWidget);
+      expect(find.text('Precio (COP)'), findsNothing);
+      // Sigue pudiendo buscar por nombre.
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('si cancela el escáner se queda en la lista para buscar por nombre',
+        (tester) async {
+      await entrar(tester);
+
+      await _cancelarEscaner(tester);
+
+      expect(find.text('Elige el producto'), findsOneWidget);
+      expect(find.text('Arroz blanco 500 g'), findsOneWidget);
+      expect(find.text('Precio (COP)'), findsNothing);
+    });
+
+    testWidgets('volver atrás desde el formulario no lo abre otra vez',
+        (tester) async {
+      await entrar(tester);
+      await tester.tap(find.text('Código leído'));
+      await tester.pumpAndSettle();
+      expect(find.text('Precio (COP)'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Elige el producto'), findsOneWidget);
+      expect(find.text('Precio (COP)'), findsNothing);
+      expect(find.text('Código escaneado: 7701234567890'), findsOneWidget);
+    });
+
+    testWidgets('sin cámara (escritorio) no abre el escáner solo', (tester) async {
+      // Flutter exige restablecer la variable antes de que termine la prueba.
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      try {
+        await entrar(tester);
+
+        expect(find.text('Código leído'), findsNothing);
+        expect(find.text('Elige el producto'), findsOneWidget);
+        expect(find.byTooltip('Escanear código de barras'), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('el ícono sigue sirviendo para escanear otro producto',
+        (tester) async {
+      await entrar(tester);
+      await _cancelarEscaner(tester);
+
+      await tester.tap(find.byTooltip('Escanear código de barras'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Código leído'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Precio (COP)'), findsOneWidget);
     });
   });
 
