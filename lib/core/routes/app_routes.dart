@@ -28,6 +28,21 @@ abstract final class AppRoutes {
   /// HU-10: carga de productos desde un archivo CSV.
   static const catalogoCsv = '/comercio/catalogo/csv';
 
+  /// HU-14: primer paso del reporte de precio: elegir el establecimiento.
+  static const reporteEstablecimiento = '/colaborador/reporte';
+
+  /// HU-14: elegir el producto. Recibe el `EstablecimientoCercano`.
+  static const reporteProducto = '/colaborador/reporte/producto';
+
+  /// HU-14: precio, foto y envío. Recibe un `ReporteFormArgs`.
+  static const reporteFormulario = '/colaborador/reporte/formulario';
+
+  /// HU-14: sugerir un establecimiento que no está en la plataforma.
+  static const reporteSugerir = '/colaborador/reporte/sugerir';
+
+  /// HU-14: escáner de códigos de barras. Devuelve el código leído.
+  static const reporteEscaner = '/colaborador/reporte/escaner';
+
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con
   /// cambiar esta constante por [onboarding].

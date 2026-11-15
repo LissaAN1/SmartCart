@@ -18,3 +18,9 @@ class ComercioSubmitted extends ComercioEvent {
   @override
   String toString() => 'ComercioSubmitted(${datos.nombre})';
 }
+
+/// El dueño pidió guardar su ubicación actual como la de su comercio (HU-14).
+class ComercioUbicacionSolicitada extends ComercioEvent {
+  @override
+  String toString() => 'ComercioUbicacionSolicitada()';
+}

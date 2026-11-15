@@ -233,7 +233,13 @@ void main() {
         profile: profileWith({UserRole.comercio}),
       );
 
-      await tester.ensureVisible(find.text('Registrar'));
+      // El formulario es más largo desde HU-14 (bloque de ubicación): hay que
+      // desplazarse hasta el botón antes de tocarlo.
+      await tester.dragUntilVisible(
+        find.text('Registrar'),
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
       await tester.tap(find.text('Registrar'));
       await tester.pumpAndSettle();
 

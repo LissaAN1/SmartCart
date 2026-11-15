@@ -18,12 +18,23 @@ class ComercioHomeScreen extends StatelessWidget {
   /// HU-10: abre el formulario de un producto nuevo (botón "+").
   final VoidCallback? onNuevoProducto;
 
+  /// HU-14: el comercio aún no guardó su ubicación; se avisa y se ofrece
+  /// guardarla con [onFijarUbicacion].
+  final bool sinUbicacion;
+  final bool ubicando;
+  final String? errorUbicacion;
+  final VoidCallback? onFijarUbicacion;
+
   const ComercioHomeScreen({
     super.key,
     this.onTab,
     required this.nombreComercio,
     this.onAbrirCatalogo,
     this.onNuevoProducto,
+    this.sinUbicacion = false,
+    this.ubicando = false,
+    this.errorUbicacion,
+    this.onFijarUbicacion,
   });
 
   static const _ordenes = [
@@ -62,6 +73,16 @@ class ComercioHomeScreen extends StatelessWidget {
       cuerpo: ListView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
         children: [
+          // ══ UBICACIÓN (HU-14) ══
+          if (sinUbicacion) ...[
+            _AvisoUbicacion(
+              ubicando: ubicando,
+              error: errorUbicacion,
+              onTap: onFijarUbicacion,
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // ══ MÉTRICAS ══
           const Row(
             children: [
@@ -115,6 +136,68 @@ class ComercioHomeScreen extends StatelessWidget {
             textoDespues: '.',
             textoBoton: 'Ir al Catálogo',
             onBoton: onAbrirCatalogo ?? () => mostrarProximamente(context),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// HU-14: sin la ubicación del comercio, los colaboradores no pueden
+/// reportar precios en él (la app comprueba que estén en el lugar).
+class _AvisoUbicacion extends StatelessWidget {
+  final bool ubicando;
+  final String? error;
+  final VoidCallback? onTap;
+
+  const _AvisoUbicacion({
+    required this.ubicando,
+    required this.error,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    return TarjetaSuave(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.location_off_outlined, color: t.primarioOscuro),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Falta la ubicación de tu comercio',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: t.texto,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Estando en tu local, guárdala para que los colaboradores puedan '
+            'reportar los precios de tus productos.',
+            style: TextStyle(fontSize: 13, height: 1.3, color: t.textoGris),
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              error!,
+              style: const TextStyle(fontSize: 12.5, color: ColoresEstado.rojo),
+            ),
+          ],
+          const SizedBox(height: 12),
+          BotonPrimario(
+            texto: 'Guardar ubicación',
+            cargando: ubicando,
+            onTap: onTap,
           ),
         ],
       ),

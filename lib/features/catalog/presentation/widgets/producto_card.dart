@@ -7,7 +7,16 @@ class ProductoCard extends StatelessWidget {
   final Producto producto;
   final VoidCallback? onTap;
 
-  const ProductoCard({super.key, required this.producto, this.onTap});
+  /// Ícono del extremo derecho: lápiz al editar (HU-10) o flecha al elegir
+  /// el producto de un reporte (HU-14).
+  final IconData icono;
+
+  const ProductoCard({
+    super.key,
+    required this.producto,
+    this.onTap,
+    this.icono = Icons.edit_outlined,
+  });
 
   String get _detalle {
     final marca = producto.marca;
@@ -66,7 +75,7 @@ class ProductoCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.edit_outlined, size: 20, color: t.textoGris),
+            Icon(icono, size: 20, color: t.textoGris),
           ],
         ),
       ),

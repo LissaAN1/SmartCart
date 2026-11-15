@@ -7,7 +7,16 @@ import '../widgets/colaborador_widgets.dart';
 class ColaboradorHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final String nombre;
-  const ColaboradorHomeScreen({super.key, this.onTab, required this.nombre});
+
+  /// HU-14: abre el flujo de reporte de precio. Sin él avisa "próximamente".
+  final VoidCallback? onReportarPrecio;
+
+  const ColaboradorHomeScreen({
+    super.key,
+    this.onTab,
+    required this.nombre,
+    this.onReportarPrecio,
+  });
 
   static const _misiones = [
     (titulo: 'Verifica precios de lácteos', tienda: 'Éxito Calle 80', km: '1.2 km', pts: 150, hechos: 2, total: 5),
@@ -57,7 +66,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   icono: Icons.photo_camera_outlined,
                   titulo: 'Reportar precio',
                   subtitulo: 'Foto + precio',
-                  onTap: () => mostrarProximamente(context),
+                  onTap: onReportarPrecio ?? () => mostrarProximamente(context),
                 ),
               ),
               const SizedBox(width: 12),
@@ -66,7 +75,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   icono: Icons.qr_code_scanner,
                   titulo: 'Escanear',
                   subtitulo: 'Código de barras',
-                  onTap: () => mostrarProximamente(context),
+                  onTap: onReportarPrecio ?? () => mostrarProximamente(context),
                 ),
               ),
             ],

@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Supabase: sin INTERNET la app no abre en modo release. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- HU-14: verificar que el colaborador está en el establecimiento. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- HU-14: foto de la etiqueta y escáner de códigos de barras. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="smartcart"
         android:name="${applicationName}"

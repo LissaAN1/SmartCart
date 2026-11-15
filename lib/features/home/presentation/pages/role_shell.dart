@@ -12,6 +12,7 @@ import 'package:smartcart/features/colaborador/colaborador.dart';
 import 'package:smartcart/features/comercio/comercio.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
+import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_state.dart';
 import 'package:smartcart/features/comercio/presentation/widgets/comercio_gate.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
@@ -63,6 +64,9 @@ class _RolShellState extends State<RolShell> {
   /// Pestaña "Catálogo" del comercio (HU-10).
   static const _tabCatalogoComercio = 2;
 
+  /// Pestaña "Reportar Precio" del colaborador (HU-14).
+  static const _tabReportarColaborador = 2;
+
   void _onTab(int i) {
     if (_tema == RolTema.admin && i == _tabAprobarAdmin) {
       _abrirAprobaciones();
@@ -70,6 +74,10 @@ class _RolShellState extends State<RolShell> {
     }
     if (_tema == RolTema.comercio && i == _tabCatalogoComercio) {
       _abrirCatalogo();
+      return;
+    }
+    if (_tema == RolTema.colaborador && i == _tabReportarColaborador) {
+      _abrirReportePrecio();
       return;
     }
     final perfil = i == _tabPerfil;
@@ -95,6 +103,10 @@ class _RolShellState extends State<RolShell> {
   /// HU-24: lista de comercios y repartidores pendientes de aprobación.
   void _abrirAprobaciones() =>
       Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+
+  /// HU-14: primer paso del reporte de precio.
+  void _abrirReportePrecio() =>
+      Navigator.of(context).pushNamed(AppRoutes.reporteEstablecimiento);
 
   /// HU-10: lista de productos del comercio.
   void _abrirCatalogo() => Navigator.of(context).pushNamed(AppRoutes.catalogo);
@@ -169,7 +181,11 @@ class _RolShellState extends State<RolShell> {
           profile: p,
           onActivarColaborador: _activarColaborador),
       (RolTema.colaborador, false) =>
-        ColaboradorHomeScreen(onTab: _onTab, nombre: _primerNombre),
+        ColaboradorHomeScreen(
+          onTab: _onTab,
+          nombre: _primerNombre,
+          onReportarPrecio: _abrirReportePrecio,
+        ),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
       // Aquí solo llega un repartidor aprobado (ver `build`).
@@ -178,13 +194,7 @@ class _RolShellState extends State<RolShell> {
               onTab: _onTab, enLinea: disponible, onCambioDisponible: cambiar)),
       (RolTema.repartidor, true) => RepartidorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
-      (RolTema.comercio, false) => _conComercio((c) =>
-          ComercioHomeScreen(
-            onTab: _onTab,
-            nombreComercio: c.nombre,
-            onAbrirCatalogo: _abrirCatalogo,
-            onNuevoProducto: _nuevoProducto,
-          )),
+      (RolTema.comercio, false) => _conComercioHome(),
       (RolTema.comercio, true) => _conComercio((c) => ComercioPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p, comercio: c)),
       (RolTema.admin, false) => AdminHomeScreen(
@@ -218,6 +228,30 @@ class _RolShellState extends State<RolShell> {
                 .read<DisponibilidadBloc>()
                 .add(DisponibilidadCambiada(v)),
       ),
+    );
+  }
+
+  /// Home del comercio aprobado. Además de los accesos, avisa si falta la
+  /// ubicación del comercio y deja guardarla (HU-14).
+  Widget _conComercioHome() {
+    return BlocBuilder<ComercioBloc, ComercioState>(
+      builder: (context, state) {
+        final comercio = state.comercio;
+        if (comercio == null) return const SizedBox.shrink();
+        return ComercioHomeScreen(
+          onTab: _onTab,
+          nombreComercio: comercio.nombre,
+          onAbrirCatalogo: _abrirCatalogo,
+          onNuevoProducto: _nuevoProducto,
+          sinUbicacion: !comercio.tieneUbicacion,
+          ubicando: state.status == ComercioStatus.locating,
+          errorUbicacion: state.status == ComercioStatus.locationFailed
+              ? state.errorMessage
+              : null,
+          onFijarUbicacion: () =>
+              context.read<ComercioBloc>().add(ComercioUbicacionSolicitada()),
+        );
+      },
     );
   }
 

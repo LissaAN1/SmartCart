@@ -32,6 +32,16 @@ import 'package:smartcart/features/profile_selection/presentation/pages/profile_
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/pages/escaner_codigo_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_args.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_establecimiento_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_form_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_producto_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/sugerir_establecimiento_page.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
 
@@ -106,6 +116,32 @@ abstract final class AppRouter {
             child: ProductoFormPage(producto: producto),
           );
         }(),
+      // HU-14: flujo del reporte de precio del colaborador.
+      AppRoutes.reporteEstablecimiento => BlocProvider(
+          create: (_) => sl<UbicacionBloc>()..add(UbicacionSolicitada()),
+          child: ReporteEstablecimientoPage(
+            crearLista: (ubicacion) =>
+                sl<PaginatedBloc<EstablecimientoCercano>>(param1: ubicacion),
+          ),
+        ),
+      AppRoutes.reporteProducto when args is EstablecimientoCercano =>
+        ReporteProductoPage(
+          establecimiento: args,
+          crearLista: (idComercio, consulta) => sl<PaginatedBloc<Producto>>(
+            instanceName: InstanciasSl.busquedaProductos,
+            param1: idComercio,
+            param2: consulta,
+          ),
+        ),
+      AppRoutes.reporteFormulario when args is ReporteFormArgs => BlocProvider(
+          create: (_) => sl<ReporteFormBloc>(),
+          child: ReporteFormPage(args: args),
+        ),
+      AppRoutes.reporteSugerir => BlocProvider(
+          create: (_) => sl<SugerenciaBloc>(),
+          child: const SugerirEstablecimientoPage(),
+        ),
+      AppRoutes.reporteEscaner => const EscanerCodigoPage(),
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),
@@ -127,6 +163,15 @@ abstract final class AppRouter {
       // eliminar) para que el catálogo recargue su lista.
       AppRoutes.catalogoProducto =>
         MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
+      // Los pasos del reporte devuelven `true` si el reporte se envió, para
+      // que los pasos anteriores se cierren; el escáner devuelve el código.
+      AppRoutes.reporteEstablecimiento ||
+      AppRoutes.reporteProducto ||
+      AppRoutes.reporteFormulario ||
+      AppRoutes.reporteSugerir =>
+        MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
+      AppRoutes.reporteEscaner =>
+        MaterialPageRoute<String>(builder: (_) => page, settings: settings),
       // El detalle de una solicitud devuelve la decisión tomada.
       AppRoutes.adminSolicitudDetalle => MaterialPageRoute<ApprovalStatus>(
           builder: (_) => page, settings: settings),

@@ -21,6 +21,7 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.colaboradorOnboarding => 'ONBOARDING COLABORADOR',
     AppRoutes.adminSolicitudes => 'SOLICITUDES',
     AppRoutes.catalogo => 'CATALOGO',
+    AppRoutes.reporteEstablecimiento => 'REPORTE',
     AppRoutes.catalogoProducto => 'PRODUCTO NUEVO',
     AppRoutes.profileSelection => 'SELECTION',
     AppRoutes.onboarding => 'INICIO',
