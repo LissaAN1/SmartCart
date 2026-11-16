@@ -8,6 +8,7 @@ import 'package:smartcart/features/comercio/domain/validators/comercio_validator
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_state.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 
 /// HU-07: formulario de registro del comercio (datos, ubicación, horario y
 /// tipo de servicio). Se muestra en lugar del Home mientras la cuenta de
@@ -78,6 +79,8 @@ class _ComercioRegistroPageState extends State<ComercioRegistroPage> {
               horaApertura: _aperturaController.text.trim(),
               horaCierre: _cierreController.text.trim(),
               servicio: _servicio!,
+              // HU-14: la ubicación es opcional; si la tomó, viaja con el resto.
+              ubicacion: context.read<ComercioBloc>().state.ubicacion,
             ),
           ),
         );
@@ -124,7 +127,7 @@ class _ComercioRegistroPageState extends State<ComercioRegistroPage> {
                   final error = state.status == ComercioStatus.saveFailed
                       ? state.errorMessage
                       : null;
-                  return _buildForm(t, guardando, error);
+                  return _buildForm(t, guardando, error, state);
                 },
               ),
             ),
@@ -134,7 +137,12 @@ class _ComercioRegistroPageState extends State<ComercioRegistroPage> {
     );
   }
 
-  Widget _buildForm(TemaRol t, bool guardando, String? error) {
+  Widget _buildForm(
+    TemaRol t,
+    bool guardando,
+    String? error,
+    ComercioState state,
+  ) {
     return Form(
       key: _formKey,
       child: ListView(
@@ -239,6 +247,18 @@ class _ComercioRegistroPageState extends State<ComercioRegistroPage> {
             seleccionado: _servicio,
             enabled: !guardando,
             onChanged: (value) => setState(() => _servicio = value),
+          ),
+          const SizedBox(height: 16),
+          _BloqueUbicacion(
+            ubicacion: state.ubicacion,
+            buscando: state.status == ComercioStatus.locating,
+            error: state.status == ComercioStatus.locationFailed
+                ? state.errorMessage
+                : null,
+            enabled: !guardando,
+            onTap: () => context
+                .read<ComercioBloc>()
+                .add(ComercioUbicacionSolicitada()),
           ),
           const SizedBox(height: 20),
           if (error != null) ...[
@@ -349,4 +369,70 @@ class _SelectorServicio extends FormField<ServicioComercio> {
             );
           },
         );
+}
+
+/// HU-14: toma la ubicación del establecimiento. Es opcional al registrarse,
+/// pero sin ella los colaboradores no pueden reportar precios en el comercio.
+class _BloqueUbicacion extends StatelessWidget {
+  final Ubicacion? ubicacion;
+  final bool buscando;
+  final String? error;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _BloqueUbicacion({
+    required this.ubicacion,
+    required this.buscando,
+    required this.error,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    final lista = ubicacion != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ubicación del establecimiento (opcional)',
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+            color: t.texto,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Toca el botón estando en tu local. Los colaboradores la usan para '
+          'reportar precios aquí; también la puedes guardar después desde el '
+          'inicio.',
+          style: TextStyle(fontSize: 12.5, height: 1.3, color: t.textoGris),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: enabled && !buscando ? onTap : null,
+          icon: buscando
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(lista ? Icons.check_circle : Icons.my_location),
+          label: Text(
+            lista ? 'Ubicación guardada · actualizar' : 'Usar mi ubicación actual',
+          ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              error!,
+              style: const TextStyle(fontSize: 12, color: ColoresEstado.rojo),
+            ),
+          ),
+      ],
+    );
+  }
 }

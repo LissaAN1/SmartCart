@@ -1,4 +1,24 @@
 import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
+import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
+import 'package:smartcart/features/reportes/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_activo_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_establecimientos_cercanos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_mis_reportes_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimiento_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/obtener_ubicacion_usecase.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
@@ -210,7 +230,9 @@ class FakeComercioRepository implements ComercioRepository {
   Comercio? stored;
   Object? getError;
   Object? registerError;
+  Object? ubicacionError;
   int registerCalls = 0;
+  final ubicacionesFijadas = <Ubicacion>[];
 
   @override
   Future<Comercio?> getMine(String userId) async {
@@ -232,8 +254,31 @@ class FakeComercioRepository implements ComercioRepository {
       horaCierre: datos.horaCierre,
       servicio: datos.servicio,
       estado: ApprovalStatus.pendiente,
+      latitud: datos.ubicacion?.latitud,
+      longitud: datos.ubicacion?.longitud,
     );
     return stored!;
+  }
+
+  @override
+  Future<void> fijarUbicacion(Ubicacion ubicacion) async {
+    if (ubicacionError != null) throw ubicacionError!;
+    ubicacionesFijadas.add(ubicacion);
+    final c = stored!;
+    stored = Comercio(
+      id: c.id,
+      nombre: c.nombre,
+      telefono: c.telefono,
+      direccion: c.direccion,
+      ciudad: c.ciudad,
+      horaApertura: c.horaApertura,
+      horaCierre: c.horaCierre,
+      servicio: c.servicio,
+      estado: c.estado,
+      motivoRechazo: c.motivoRechazo,
+      latitud: ubicacion.latitud,
+      longitud: ubicacion.longitud,
+    );
   }
 }
 
@@ -552,6 +597,176 @@ class FakeSelectorArchivoCsv implements SelectorArchivoCsv {
   }
 }
 
+/// Donde está el colaborador en las pruebas: el establecimiento de prueba
+/// queda a unos 33 m de aquí (dentro del radio de 150 m).
+const ubicacionColaborador = Ubicacion(latitud: 3.4516, longitud: -76.5320);
+
+/// Ubicación del establecimiento de prueba, a unos 33 m del colaborador.
+const ubicacionEstablecimiento = Ubicacion(latitud: 3.4519, longitud: -76.5320);
+
+/// Un lugar a más de un kilómetro del colaborador.
+const ubicacionLejana = Ubicacion(latitud: 3.4616, longitud: -76.5320);
+
+/// Establecimiento cercano de prueba; [ubicacion] decide a qué distancia
+/// real queda del colaborador.
+EstablecimientoCercano establecimientoDePrueba({
+  String id = 'c1',
+  String nombre = 'Minimercado La Esquina',
+  Ubicacion ubicacion = ubicacionEstablecimiento,
+  double? distanciaM,
+}) =>
+    EstablecimientoCercano(
+      id: id,
+      nombre: nombre,
+      direccion: 'Calle 10 # 5-20',
+      ciudad: 'Cali',
+      ubicacion: ubicacion,
+      distanciaM: distanciaM ?? ubicacionColaborador.distanciaA(ubicacion),
+    );
+
+/// GPS de mentira: entrega [ubicacion] o lanza [error].
+class FakeServicioUbicacion implements ServicioUbicacion {
+  Ubicacion ubicacion = ubicacionColaborador;
+  Object? error;
+  int llamadas = 0;
+
+  /// Si se asigna, `actual` espera a que se complete (simula la espera del GPS).
+  Completer<void>? gate;
+
+  @override
+  Future<Ubicacion> actual() async {
+    llamadas++;
+    await gate?.future;
+    if (error != null) throw error!;
+    return ubicacion;
+  }
+}
+
+/// Cámara de mentira: entrega [foto] (o `null`, como si se cancelara).
+class FakeSelectorFoto implements SelectorFoto {
+  FotoReporte? foto = FotoReporte(bytes: Uint8List.fromList([1, 2, 3, 4]));
+  Object? error;
+  int llamadas = 0;
+
+  @override
+  Future<FotoReporte?> tomar() async {
+    llamadas++;
+    if (error != null) throw error!;
+    return foto;
+  }
+}
+
+/// Reportes en memoria (HU-14): guarda lo que se envía para comprobarlo.
+class FakeReportesRepository implements ReportesRepository {
+  final establecimientos = <EstablecimientoCercano>[];
+  final productosPorComercio = <String, List<Producto>>{};
+  final consultas = <ConsultaProductoReporte>[];
+  final reportes = <({
+    String userId,
+    ReporteDatos datos,
+    FotoReporte foto,
+    Ubicacion ubicacion,
+  })>[];
+  final sugerencias =
+      <({String userId, SugerenciaDatos datos, Ubicacion ubicacion})>[];
+  Object? listError;
+  Object? enviarError;
+  Object? sugerirError;
+  Object? historialError;
+
+  /// Reportes que el colaborador ya tenía antes de la prueba (por ejemplo,
+  /// uno validado y uno rechazado), del más reciente al más antiguo. Los que
+  /// se envían durante la prueba se suman por delante, como pendientes.
+  final reportesPrevios = <MiReporte>[];
+
+  @override
+  Future<PagedResult<MiReporte>> misReportes(PageRequest request) async {
+    if (historialError != null) throw historialError!;
+    final enviados = [
+      for (var i = reportes.length - 1; i >= 0; i--)
+        MiReporte(
+          id: 'r${i + 1}',
+          producto: reportes[i].datos.producto.nombre,
+          establecimiento: reportes[i].datos.establecimiento.nombre,
+          precio: reportes[i].datos.precio,
+          precioPromocional: reportes[i].datos.precioPromocional,
+          agotado: reportes[i].datos.agotado,
+          estado: EstadoReporte.pendiente,
+          creadoEn: DateTime.now(),
+        ),
+    ];
+    final todos = [...enviados, ...reportesPrevios];
+    final filas = todos.skip(request.from).take(request.pageSize + 1).toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<PagedResult<EstablecimientoCercano>> establecimientosCercanos(
+    Ubicacion ubicacion,
+    PageRequest request,
+  ) async {
+    if (listError != null) throw listError!;
+    final filas = establecimientos
+        .skip(request.from)
+        .take(request.pageSize + 1)
+        .toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<PagedResult<Producto>> buscarProductos(
+    String idComercio,
+    ConsultaProductoReporte consulta,
+    PageRequest request,
+  ) async {
+    if (listError != null) throw listError!;
+    consultas.add(consulta);
+    final texto = consulta.texto.toLowerCase();
+    final coinciden = (productosPorComercio[idComercio] ?? []).where((p) {
+      if (texto.isEmpty) return true;
+      if (consulta.esCodigo) return p.codigoBarras == consulta.texto;
+      return p.nombre.toLowerCase().contains(texto) ||
+          (p.marca ?? '').toLowerCase().contains(texto);
+    });
+    final filas =
+        coinciden.skip(request.from).take(request.pageSize + 1).toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<String> enviarReporte(
+    String userId,
+    ReporteDatos datos,
+    FotoReporte foto,
+    Ubicacion ubicacion,
+  ) async {
+    if (enviarError != null) throw enviarError!;
+    reportes
+        .add((userId: userId, datos: datos, foto: foto, ubicacion: ubicacion));
+    return 'r${reportes.length}';
+  }
+
+  @override
+  Future<void> sugerirEstablecimiento(
+    String userId,
+    SugerenciaDatos datos,
+    Ubicacion ubicacion,
+  ) async {
+    if (sugerirError != null) throw sugerirError!;
+    sugerencias.add((userId: userId, datos: datos, ubicacion: ubicacion));
+  }
+}
+
+/// Un producto del establecimiento `c1` para los reportes.
+const productoDePrueba = Producto(
+  id: 'p1',
+  nombre: 'Arroz blanco 500 g',
+  marca: 'Diana',
+  codigoBarras: '7701234567890',
+  idCategoria: 'cat-super',
+  categoria: 'Super',
+);
+
 /// Selector de fotos en memoria (HU-11): devuelve [foto] o lanza [error].
 class FakeSelectorImagen implements SelectorImagen {
   ImagenProducto? foto;
@@ -721,6 +936,9 @@ class TestEnv {
   final notificaciones = FakeNotificacionRepository();
   final catalogo = FakeCatalogoRepository();
   final selectorCsv = FakeSelectorArchivoCsv();
+  final servicioUbicacion = FakeServicioUbicacion();
+  final selectorFoto = FakeSelectorFoto();
+  final reportes = FakeReportesRepository();
   final precios = FakePreciosRepository();
   final selectorImagen = FakeSelectorImagen();
   final busqueda = FakeBusquedaRepository();
@@ -863,6 +1081,75 @@ class TestEnv {
 
   ColaboradorOnboardingBloc colaboradorBloc() =>
       ColaboradorOnboardingBloc(activar: activarColaborador);
-  ComercioBloc comercioBloc() =>
-      ComercioBloc(getMine: getMiComercio, registrar: registrarComercio);
+  ComercioBloc comercioBloc() => ComercioBloc(
+        getMine: getMiComercio,
+        registrar: registrarComercio,
+        fijarUbicacion: fijarUbicacionComercio,
+        obtenerUbicacion: obtenerUbicacion,
+      );
+
+  // HU-14: ubicación y reporte de precio del colaborador.
+  ObtenerUbicacionUseCase get obtenerUbicacion =>
+      ObtenerUbicacionUseCase(servicio: servicioUbicacion);
+  FijarUbicacionComercioUseCase get fijarUbicacionComercio =>
+      FijarUbicacionComercioUseCase(
+          auth: auth, comercios: comercios, ubicacion: obtenerUbicacion);
+  GetColaboradorActivoUseCase get colaboradorActivo =>
+      GetColaboradorActivoUseCase(auth: auth, profiles: profiles);
+  GetEstablecimientosCercanosUseCase get getEstablecimientos =>
+      GetEstablecimientosCercanosUseCase(
+          colaborador: colaboradorActivo, reportes: reportes);
+  BuscarProductosReporteUseCase get buscarProductosReporte =>
+      BuscarProductosReporteUseCase(
+          colaborador: colaboradorActivo, reportes: reportes);
+  GetMisReportesUseCase get getMisReportes => GetMisReportesUseCase(
+      colaborador: colaboradorActivo, reportes: reportes);
+  TomarFotoUseCase get tomarFoto => TomarFotoUseCase(selector: selectorFoto);
+  EnviarReportePrecioUseCase get enviarReporte => EnviarReportePrecioUseCase(
+      colaborador: colaboradorActivo,
+      reportes: reportes,
+      ubicacion: obtenerUbicacion);
+  SugerirEstablecimientoUseCase get sugerirEstablecimiento =>
+      SugerirEstablecimientoUseCase(
+          colaborador: colaboradorActivo,
+          reportes: reportes,
+          ubicacion: obtenerUbicacion);
+
+  /// Deja la sesión iniciada con una cuenta cliente que activó el modo
+  /// Colaborador, y un establecimiento con un producto para reportar.
+  void iniciarSesionComoColaborador() {
+    iniciarSesionCon({UserRole.cliente, UserRole.colaborador});
+    reportes.establecimientos.add(establecimientoDePrueba());
+    reportes.productosPorComercio['c1'] = [productoDePrueba];
+  }
+
+  UbicacionBloc ubicacionBloc() => UbicacionBloc(obtener: obtenerUbicacion);
+  PaginatedBloc<EstablecimientoCercano> establecimientosBloc(
+    Ubicacion ubicacion, {
+    int pageSize = 20,
+  }) =>
+      PaginatedBloc<EstablecimientoCercano>(
+        fetchPage: (request) => getEstablecimientos(ubicacion, request),
+        pageSize: pageSize,
+        errorMessageFor: mensajeDeFallo,
+      );
+  PaginatedBloc<Producto> busquedaProductosBloc(
+    String idComercio,
+    ConsultaProductoReporte consulta,
+  ) =>
+      PaginatedBloc<Producto>(
+        fetchPage: (request) =>
+            buscarProductosReporte(idComercio, consulta, request),
+        errorMessageFor: mensajeDeFallo,
+      );
+  PaginatedBloc<MiReporte> misReportesBloc({int pageSize = 20}) =>
+      PaginatedBloc<MiReporte>(
+        fetchPage: getMisReportes.call,
+        pageSize: pageSize,
+        errorMessageFor: mensajeDeFallo,
+      );
+  ReporteFormBloc reporteFormBloc() =>
+      ReporteFormBloc(tomarFoto: tomarFoto, enviar: enviarReporte);
+  SugerenciaBloc sugerenciaBloc() =>
+      SugerenciaBloc(sugerir: sugerirEstablecimiento);
 }

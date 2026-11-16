@@ -11,14 +11,51 @@ class SupabaseTables {
   static const notificacion = 'notificacion';
   static const producto = 'producto';
   static const categoria = 'categoria';
+  static const establecimientoSugerido = 'establecimiento_sugerido';
+
+  // HU-11. Ver docs/sql/sprint2_hu11.sql
   static const precioProducto = 'precio_producto';
   static const historialPrecio = 'historial_precio';
   static const promocion = 'promocion';
+
+  // HU-17. Ver docs/sql/sprint2_hu17.sql
+  static const carritoItem = 'carrito_item';
+  static const favoritoProducto = 'favorito_producto';
+  static const favoritoComercio = 'favorito_comercio';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
 class SupabaseFunctions {
   const SupabaseFunctions._();
+
+  /// HU-14: guarda el comercio de la cuenta con su latitud y longitud.
+  static const fijarUbicacionComercio = 'fijar_ubicacion_comercio';
+
+  /// HU-14: comercios aprobados con ubicación, de menor a mayor distancia.
+  static const comerciosCercanos = 'comercios_cercanos';
+
+  /// HU-14: guarda un reporte de precio pendiente si el colaborador está en
+  /// el establecimiento.
+  static const enviarReportePrecio = 'enviar_reporte_precio';
+
+  /// HU-17: suma un producto al carrito (o su cantidad, si ya está) y
+  /// devuelve la cantidad que queda.
+  static const agregarAlCarrito = 'agregar_al_carrito';
+
+  /// HU-17: el carrito del cliente, con los datos del producto y del comercio.
+  static const miCarrito = 'mi_carrito';
+
+  /// HU-17: favoritos del cliente, del más reciente al más antiguo.
+  static const misFavoritosProductos = 'mis_favoritos_productos';
+  static const misFavoritosComercios = 'mis_favoritos_comercios';
+
+  /// HU-17: productos y comercios aprobados para que el cliente los explore.
+  static const explorarProductos = 'explorar_productos';
+  static const explorarComercios = 'explorar_comercios';
+
+  /// HU-14: los reportes del colaborador con sesión iniciada, del más
+  /// reciente al más antiguo y de cualquier estado.
+  static const misReportes = 'mis_reportes';
 
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
@@ -36,12 +73,16 @@ class SupabaseFunctions {
   static const preciosDeProducto = 'precios_de_producto';
 }
 
-/// Buckets de Supabase Storage.
+/// Buckets de Supabase Storage. Ver docs/sql/sprint2_hu11.sql y
+/// docs/sql/sprint2_hu14.sql.
 class SupabaseBuckets {
   const SupabaseBuckets._();
 
   /// HU-11: fotos de productos, en la carpeta `<id_comercio>/`.
   static const productos = 'productos';
+
+  /// HU-14: fotos de las etiquetas de precio, en `<id_usuario>/<archivo>`.
+  static const reportes = 'reportes';
 }
 
 /// Columnas que usa la autenticación. Las confirmamos contra
@@ -142,6 +183,44 @@ class SupabaseColumns {
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
   static const categoriaNombre = 'nombre';
+
+  // comercio: ubicación (HU-14). Ver docs/sql/sprint2_hu14.sql
+  static const comercioLatitud = 'latitud';
+  static const comercioLongitud = 'longitud';
+
+  // Columnas que devuelve comercios_cercanos (HU-14)
+  static const cercanoDistancia = 'distancia_m';
+
+  // Columnas que devuelve mis_reportes (HU-14)
+  static const misReporteId = 'id_reporte';
+  static const misReporteProducto = 'producto';
+  static const misReporteComercio = 'comercio';
+  static const misReportePrecio = 'precio';
+  static const misReportePromocion = 'precio_promocional';
+  static const misReporteAgotado = 'agotado';
+  static const misReporteEstado = 'estado';
+  static const misReporteCreadoEn = 'creado_en';
+
+  // carrito_item y favoritos (HU-17)
+  static const carritoUsuario = 'id_usuario';
+  static const carritoProducto = 'id_producto';
+  static const carritoCantidad = 'cantidad';
+  static const favoritoUsuario = 'id_usuario';
+  static const favoritoProductoId = 'id_producto';
+  static const favoritoComercioId = 'id_comercio';
+
+  // Columnas que devuelven las funciones de HU-17 (producto con comercio)
+  static const filaCategoria = 'categoria';
+  static const filaComercio = 'comercio';
+  static const filaCantidad = 'cantidad';
+
+  // establecimiento_sugerido (HU-14)
+  static const sugeridoColaborador = 'id_colaborador';
+  static const sugeridoNombre = 'nombre';
+  static const sugeridoDireccion = 'direccion';
+  static const sugeridoCiudad = 'ciudad';
+  static const sugeridoLatitud = 'latitud';
+  static const sugeridoLongitud = 'longitud';
 
   // precio_producto (HU-11). Ver docs/sql/sprint2_hu11.sql
   static const precioProducto = 'id_producto';

@@ -21,6 +21,44 @@ import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado
 import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
+import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
+import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
+import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/domain/repository/reportes_repository.dart';
+import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
+import 'package:smartcart/features/reportes/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_activo_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_establecimientos_cercanos_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/get_mis_reportes_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimiento_usecase.dart';
+import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/ubicacion/data/source/geolocator_servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/obtener_ubicacion_usecase.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
+import 'package:smartcart/features/cart/data/repository/carrito_repository_impl.dart';
+import 'package:smartcart/features/cart/domain/repository/carrito_repository.dart';
+import 'package:smartcart/features/cart/domain/usecases/agregar_al_carrito_usecase.dart';
+import 'package:smartcart/features/cart/domain/usecases/cambiar_cantidad_carrito_usecase.dart';
+import 'package:smartcart/features/cart/domain/usecases/get_carrito_usecase.dart';
+import 'package:smartcart/features/cart/domain/usecases/quitar_del_carrito_usecase.dart';
+import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto_con_comercio.dart';
+import 'package:smartcart/features/cliente/domain/usecases/get_cliente_activo_usecase.dart';
+import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dart';
+import 'package:smartcart/features/explorar/data/repository/explorar_repository_impl.dart';
+import 'package:smartcart/features/explorar/domain/repository/explorar_repository.dart';
+import 'package:smartcart/features/explorar/domain/usecases/explorar_usecases.dart';
+import 'package:smartcart/features/favoritos/data/repository/favoritos_repository_impl.dart';
+import 'package:smartcart/features/favoritos/domain/repository/favoritos_repository.dart';
+import 'package:smartcart/features/favoritos/domain/usecases/favoritos_usecases.dart';
+import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.dart';
 import 'package:smartcart/features/prices/data/repository/precios_repository_impl.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
 import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
@@ -137,6 +175,204 @@ void main() {
 
       expect(sl<ProductoFormBloc>(param1: producto).editando, producto);
       expect(sl<ProductoFormBloc>(param1: null).editando, isNull);
+    });
+  });
+
+  test('HU-14: la ubicación y los reportes se registran con el tipo del contrato',
+      () {
+    setupDependencies();
+
+    expect(sl.isRegistered<ServicioUbicacion>(), isTrue);
+    expect(sl.isRegistered<SelectorFoto>(), isTrue);
+    expect(sl.isRegistered<ReportesRepository>(), isTrue);
+    expect(sl.isRegistered<ObtenerUbicacionUseCase>(), isTrue);
+    expect(sl.isRegistered<FijarUbicacionComercioUseCase>(), isTrue);
+    expect(sl.isRegistered<GetColaboradorActivoUseCase>(), isTrue);
+    expect(sl.isRegistered<GetEstablecimientosCercanosUseCase>(), isTrue);
+    expect(sl.isRegistered<BuscarProductosReporteUseCase>(), isTrue);
+    expect(sl.isRegistered<GetMisReportesUseCase>(), isTrue);
+    expect(sl.isRegistered<PaginatedBloc<MiReporte>>(), isTrue);
+    expect(sl.isRegistered<TomarFotoUseCase>(), isTrue);
+    expect(sl.isRegistered<EnviarReportePrecioUseCase>(), isTrue);
+    expect(sl.isRegistered<SugerirEstablecimientoUseCase>(), isTrue);
+    expect(sl.isRegistered<UbicacionBloc>(), isTrue);
+    expect(sl.isRegistered<ReporteFormBloc>(), isTrue);
+    expect(sl.isRegistered<SugerenciaBloc>(), isTrue);
+    expect(sl.isRegistered<PaginatedBloc<EstablecimientoCercano>>(), isTrue);
+    // PaginatedBloc<Producto> existe dos veces: sin nombre (catálogo, HU-10)
+    // y con nombre (búsqueda del reporte, HU-14).
+    expect(sl.isRegistered<PaginatedBloc<Producto>>(), isTrue);
+    expect(
+      sl.isRegistered<PaginatedBloc<Producto>>(
+        instanceName: InstanciasSl.busquedaProductos,
+      ),
+      isTrue,
+    );
+  });
+
+  group('HU-14: el localizador arma la cadena completa del reporte', () {
+    setUp(() {
+      setupDependencies();
+      sl.unregister<SupabaseClient>();
+      sl.registerLazySingleton<SupabaseClient>(
+        () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+      );
+    });
+
+    test('el GPS y la cámara son las implementaciones reales de los contratos',
+        () {
+      expect(sl<ServicioUbicacion>(), isA<GeolocatorServicioUbicacion>());
+      expect(sl<SelectorFoto>(), isA<ImagePickerSelectorFoto>());
+      expect(sl<ReportesRepository>(), isA<ReportesRepositoryImpl>());
+    });
+
+    test('las listas reciben su dato de la pantalla (param1 y param2)', () {
+      const ubicacion = Ubicacion(latitud: 3.45, longitud: -76.53);
+
+      expect(
+        sl<PaginatedBloc<EstablecimientoCercano>>(param1: ubicacion),
+        isA<PaginatedBloc<EstablecimientoCercano>>(),
+      );
+      expect(
+        sl<PaginatedBloc<Producto>>(
+          instanceName: InstanciasSl.busquedaProductos,
+          param1: 'c1',
+          param2: const ConsultaProductoReporte(texto: 'arroz'),
+        ),
+        isA<PaginatedBloc<Producto>>(),
+      );
+    });
+
+    test('el historial de reportes recibe el tamaño de página (param1)', () {
+      final home = sl<PaginatedBloc<MiReporte>>(param1: 3);
+      final pantalla = sl<PaginatedBloc<MiReporte>>(param1: 20);
+
+      expect(home.pageSize, 3);
+      expect(pantalla.pageSize, 20);
+      expect(identical(home, pantalla), isFalse);
+    });
+
+    test('el catálogo sigue pudiendo pedir su lista sin parámetros', () {
+      expect(sl<PaginatedBloc<Producto>>(), isA<PaginatedBloc<Producto>>());
+    });
+
+    test('los Bloc de los reportes son fábricas', () {
+      expect(identical(sl<UbicacionBloc>(), sl<UbicacionBloc>()), isFalse);
+      expect(identical(sl<ReporteFormBloc>(), sl<ReporteFormBloc>()), isFalse);
+      expect(identical(sl<SugerenciaBloc>(), sl<SugerenciaBloc>()), isFalse);
+      expect(identical(sl<ComercioBloc>(), sl<ComercioBloc>()), isFalse);
+    });
+
+    test('los casos de uso son únicos', () {
+      expect(
+        identical(
+            sl<EnviarReportePrecioUseCase>(), sl<EnviarReportePrecioUseCase>()),
+        isTrue,
+      );
+    });
+  });
+
+  test('HU-17: el carrito, los favoritos y la exploración se registran con '
+      'el tipo del contrato', () {
+    setupDependencies();
+
+    expect(sl.isRegistered<CarritoRepository>(), isTrue);
+    expect(sl.isRegistered<FavoritosRepository>(), isTrue);
+    expect(sl.isRegistered<ExplorarRepository>(), isTrue);
+    expect(sl.isRegistered<GetClienteActivoUseCase>(), isTrue);
+    expect(sl.isRegistered<GetCarritoUseCase>(), isTrue);
+    expect(sl.isRegistered<AgregarAlCarritoUseCase>(), isTrue);
+    expect(sl.isRegistered<CambiarCantidadCarritoUseCase>(), isTrue);
+    expect(sl.isRegistered<QuitarDelCarritoUseCase>(), isTrue);
+    expect(sl.isRegistered<GetFavoritosIdsUseCase>(), isTrue);
+    expect(sl.isRegistered<GetFavoritosProductosUseCase>(), isTrue);
+    expect(sl.isRegistered<GetFavoritosComerciosUseCase>(), isTrue);
+    expect(sl.isRegistered<CambiarFavoritoUseCase>(), isTrue);
+    expect(sl.isRegistered<ExplorarProductosUseCase>(), isTrue);
+    expect(sl.isRegistered<ExplorarComerciosUseCase>(), isTrue);
+    expect(sl.isRegistered<CarritoBloc>(), isTrue);
+    expect(sl.isRegistered<FavoritosBloc>(), isTrue);
+    // Las listas comparten tipo con otras, así que llevan nombre.
+    for (final nombre in [
+      InstanciasSl.explorarProductos,
+      InstanciasSl.favoritosProductos,
+    ]) {
+      expect(
+        sl.isRegistered<PaginatedBloc<ProductoConComercio>>(instanceName: nombre),
+        isTrue,
+        reason: nombre,
+      );
+    }
+    for (final nombre in [
+      InstanciasSl.explorarComercios,
+      InstanciasSl.favoritosComercios,
+    ]) {
+      expect(
+        sl.isRegistered<PaginatedBloc<ComercioResumen>>(instanceName: nombre),
+        isTrue,
+        reason: nombre,
+      );
+    }
+  });
+
+  group('HU-17: el localizador arma la cadena completa del cliente', () {
+    setUp(() {
+      setupDependencies();
+      sl.unregister<SupabaseClient>();
+      sl.registerLazySingleton<SupabaseClient>(
+        () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+      );
+    });
+
+    test('las implementaciones reales cumplen los contratos', () {
+      expect(sl<CarritoRepository>(), isA<CarritoRepositoryImpl>());
+      expect(sl<FavoritosRepository>(), isA<FavoritosRepositoryImpl>());
+      expect(sl<ExplorarRepository>(), isA<ExplorarRepositoryImpl>());
+    });
+
+    test('el carrito y los favoritos son fábricas: uno por sesión', () {
+      expect(identical(sl<CarritoBloc>(), sl<CarritoBloc>()), isFalse);
+      expect(identical(sl<FavoritosBloc>(), sl<FavoritosBloc>()), isFalse);
+    });
+
+    test('los casos de uso son únicos y comparten el repositorio', () {
+      expect(
+        identical(sl<AgregarAlCarritoUseCase>(), sl<AgregarAlCarritoUseCase>()),
+        isTrue,
+      );
+      expect(
+        identical(sl<GetClienteActivoUseCase>(), sl<GetClienteActivoUseCase>()),
+        isTrue,
+      );
+    });
+
+    test('las listas de exploración reciben el texto buscado (param1)', () {
+      final productos = sl<PaginatedBloc<ProductoConComercio>>(
+        instanceName: InstanciasSl.explorarProductos,
+        param1: 'arroz',
+      );
+      final comercios = sl<PaginatedBloc<ComercioResumen>>(
+        instanceName: InstanciasSl.explorarComercios,
+        param1: 'cali',
+      );
+
+      expect(productos, isA<PaginatedBloc<ProductoConComercio>>());
+      expect(comercios, isA<PaginatedBloc<ComercioResumen>>());
+    });
+
+    test('las listas de favoritos no necesitan parámetros', () {
+      expect(
+        sl<PaginatedBloc<ProductoConComercio>>(
+          instanceName: InstanciasSl.favoritosProductos,
+        ),
+        isA<PaginatedBloc<ProductoConComercio>>(),
+      );
+      expect(
+        sl<PaginatedBloc<ComercioResumen>>(
+          instanceName: InstanciasSl.favoritosComercios,
+        ),
+        isA<PaginatedBloc<ComercioResumen>>(),
+      );
     });
   });
 

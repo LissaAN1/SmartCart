@@ -63,6 +63,11 @@ AuthFailure mapPostgrestException(PostgrestException e) {
       );
     case '22023':
       return const AuthFailure('Revisa los datos e inténtalo de nuevo.');
+    // Las funciones de HU-14 explican el motivo en español ("Debes estar en
+    // el establecimiento...") con un `raise exception`: el mensaje ya se
+    // puede mostrar tal cual.
+    case 'P0001':
+      return AuthFailure(e.message);
     // Falta una tabla, columna o función: la base no tiene los últimos
     // scripts de docs/sql (por ejemplo, sprint2_hu11.sql).
     case '42703' || '42P01' || '42883' || 'PGRST200' || 'PGRST202' ||
@@ -75,5 +80,21 @@ AuthFailure mapPostgrestException(PostgrestException e) {
       return const AuthFailure(
         'No pudimos guardar o leer tus datos. Inténtalo de nuevo.',
       );
+  }
+}
+
+/// Ejecuta una operación de Supabase y traduce lo que falle a [AuthFailure]:
+/// los errores de la base con [mapPostgrestException] y cualquier otro (red,
+/// tiempo de espera) a "No pudimos conectarnos". Lo usan los data sources que
+/// no necesitan tratar ningún error de forma especial.
+Future<T> traducirErroresSupabase<T>(Future<T> Function() accion) async {
+  try {
+    return await accion();
+  } on AuthFailure {
+    rethrow;
+  } on PostgrestException catch (e) {
+    throw mapPostgrestException(e);
+  } on Exception {
+    throw connectionFailure();
   }
 }

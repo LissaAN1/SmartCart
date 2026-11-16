@@ -3,22 +3,46 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/colaborador_widgets.dart';
+import 'package:smartcart/components/error_message.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
+import 'package:smartcart/features/reportes/presentation/widgets/reporte_historial_item.dart';
 
 class ColaboradorHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
   final String nombre;
-  const ColaboradorHomeScreen({super.key, this.onTab, required this.nombre});
+
+  /// HU-14: abre el flujo de reporte de precio. Sin él avisa "próximamente".
+  final VoidCallback? onReportarPrecio;
+
+  /// HU-14: los últimos reportes reales del colaborador (los más recientes
+  /// primero), con sus estados. Los pendientes también se muestran.
+  final List<MiReporte> reportes;
+  final bool cargandoReportes;
+  final String? errorReportes;
+  final VoidCallback? onReintentarReportes;
+
+  /// Abre el historial completo. Sin él avisa "próximamente".
+  final VoidCallback? onVerHistorial;
+
+  /// Cuántos reportes se muestran en el Home; el resto está en el historial.
+  static const reportesEnHome = 3;
+
+  const ColaboradorHomeScreen({
+    super.key,
+    this.onTab,
+    required this.nombre,
+    this.onReportarPrecio,
+    this.reportes = const [],
+    this.cargandoReportes = false,
+    this.errorReportes,
+    this.onReintentarReportes,
+    this.onVerHistorial,
+  });
 
   static const _misiones = [
     (titulo: 'Verifica precios de lácteos', tienda: 'Éxito Calle 80', km: '1.2 km', pts: 150, hechos: 2, total: 5),
     (titulo: 'Fotografía la góndola de café', tienda: 'Carulla Calle 85', km: '2.4 km', pts: 90, hechos: 0, total: 3),
     (titulo: 'Confirma ofertas de aseo', tienda: 'D1 Chapinero', km: '0.8 km', pts: 60, hechos: 1, total: 4),
-  ];
-
-  static const _reportes = [
-    (producto: 'Arroz Diana 1kg', tienda: 'Éxito', precio: r'$ 4.900', fecha: 'Hoy', estado: EstadoReportePrecio.verificado),
-    (producto: 'Aceite Premier 900ml', tienda: 'Olímpica', precio: r'$ 12.300', fecha: 'Ayer', estado: EstadoReportePrecio.enRevision),
-    (producto: 'Huevos AA x30', tienda: 'Carulla', precio: r'$ 18.700', fecha: '14 Oct', estado: EstadoReportePrecio.verificado),
   ];
 
   @override
@@ -57,7 +81,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   icono: Icons.photo_camera_outlined,
                   titulo: 'Reportar precio',
                   subtitulo: 'Foto + precio',
-                  onTap: () => mostrarProximamente(context),
+                  onTap: onReportarPrecio ?? () => mostrarProximamente(context),
                 ),
               ),
               const SizedBox(width: 12),
@@ -66,7 +90,7 @@ class ColaboradorHomeScreen extends StatelessWidget {
                   icono: Icons.qr_code_scanner,
                   titulo: 'Escanear',
                   subtitulo: 'Código de barras',
-                  onTap: () => mostrarProximamente(context),
+                  onTap: onReportarPrecio ?? () => mostrarProximamente(context),
                 ),
               ),
             ],
@@ -95,22 +119,35 @@ class ColaboradorHomeScreen extends StatelessWidget {
           TituloSeccion(
             titulo: 'MIS ÚLTIMOS REPORTES',
             accion: 'Historial',
-            onAccion: () => mostrarProximamente(context),
+            onAccion: onVerHistorial ?? () => mostrarProximamente(context),
             padding: const EdgeInsets.only(top: 14, bottom: 8),
           ),
-          GrupoMenu(
-            items: [
-              for (final r in _reportes)
-                ReporteItem(
-                  producto: r.producto,
-                  tienda: r.tienda,
-                  precio: r.precio,
-                  fecha: r.fecha,
-                  estado: r.estado,
-                  onTap: () => mostrarProximamente(context),
-                ),
-            ],
-          ),
+          if (reportes.isNotEmpty)
+            GrupoMenu(
+              items: [
+                for (final r in reportes.take(reportesEnHome))
+                  ReporteHistorialItem(reporte: r, onTap: onVerHistorial),
+              ],
+            )
+          else if (cargandoReportes)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (errorReportes != null) ...[
+            ErrorMessage(message: errorReportes!),
+            TextButton(
+              onPressed: onReintentarReportes,
+              child: const Text('Reintentar'),
+            ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Aún no has enviado reportes. Toca "Reportar precio" para '
+                'enviar el primero.',
+              ),
+            ),
           const SizedBox(height: 20),
 
           const AvisoDestacado(

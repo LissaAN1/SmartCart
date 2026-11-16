@@ -22,7 +22,17 @@ class ProductoCard extends StatelessWidget {
   final Producto producto;
   final VoidCallback? onTap;
 
-  const ProductoCard({super.key, required this.producto, this.onTap});
+  /// Ícono del extremo derecho: la flecha del diseño de HU-11 (abre Editar
+  /// Producto) o el que se elija, por ejemplo al elegir el producto de un
+  /// reporte (HU-14).
+  final IconData icono;
+
+  const ProductoCard({
+    super.key,
+    required this.producto,
+    this.onTap,
+    this.icono = Icons.chevron_right,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +107,7 @@ class ProductoCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Icon(Icons.chevron_right, color: t.textoGris),
+                Icon(icono, color: t.textoGris),
               ],
             ),
           ],

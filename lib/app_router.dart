@@ -11,6 +11,7 @@ import 'package:smartcart/features/notificaciones/presentation/bloc/notificacion
 import 'package:smartcart/features/notificaciones/presentation/widgets/aviso_notificaciones.dart';
 import 'package:smartcart/core/routes/app_navigation.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
+import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
@@ -29,6 +30,7 @@ import 'package:smartcart/features/busqueda/presentation/pages/escaner_page.dart
 import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
+import 'package:smartcart/features/colaborador/presentation/pages/colaborador_home_screen.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
@@ -40,6 +42,26 @@ import 'package:smartcart/features/profile_selection/presentation/pages/profile_
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
+import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
+import 'package:smartcart/features/cart/presentation/pages/carrito_page.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto_con_comercio.dart';
+import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
+import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dart';
+import 'package:smartcart/features/explorar/presentation/pages/explorar_page.dart';
+import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.dart';
+import 'package:smartcart/features/favoritos/presentation/pages/favoritos_page.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/pages/escaner_codigo_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/mis_reportes_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_args.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_establecimiento_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_form_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reporte_producto_page.dart';
+import 'package:smartcart/features/reportes/presentation/pages/sugerir_establecimiento_page.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
 
@@ -91,7 +113,25 @@ abstract final class AppRouter {
             ),
           ],
           child: AvisoNotificaciones(
-            child: RolShell(rol: args.role, profile: args.profile),
+            child: RolShell(
+              rol: args.role,
+              profile: args.profile,
+              // HU-14: el Home del colaborador muestra sus últimos reportes
+              // reales (los más recientes).
+              // HU-17: el carrito y los favoritos del cliente, compartidos por
+              // todas sus pantallas.
+              crearCliente: args.role == UserRole.cliente
+                  ? () => ClienteBlocs(
+                        carrito: sl<CarritoBloc>(),
+                        favoritos: sl<FavoritosBloc>(),
+                      )
+                  : null,
+              crearMisReportes: args.role == UserRole.colaborador
+                  ? () => sl<PaginatedBloc<MiReporte>>(
+                        param1: ColaboradorHomeScreen.reportesEnHome,
+                      )
+                  : null,
+            ),
           ),
         ),
       AppRoutes.adminSolicitudes => AdminSolicitudesPage(
@@ -133,6 +173,66 @@ abstract final class AppRouter {
             child: ProductoFormPage(producto: producto),
           );
         }(),
+      // HU-14: flujo del reporte de precio del colaborador.
+      AppRoutes.reporteEstablecimiento => BlocProvider(
+          create: (_) => sl<UbicacionBloc>()..add(UbicacionSolicitada()),
+          child: ReporteEstablecimientoPage(
+            crearLista: (ubicacion) =>
+                sl<PaginatedBloc<EstablecimientoCercano>>(param1: ubicacion),
+          ),
+        ),
+      AppRoutes.reporteProducto when args is EstablecimientoCercano =>
+        ReporteProductoPage(
+          establecimiento: args,
+          crearLista: (idComercio, consulta) => sl<PaginatedBloc<Producto>>(
+            instanceName: InstanciasSl.busquedaProductos,
+            param1: idComercio,
+            param2: consulta,
+          ),
+        ),
+      AppRoutes.reporteFormulario when args is ReporteFormArgs => BlocProvider(
+          create: (_) => sl<ReporteFormBloc>(),
+          child: ReporteFormPage(args: args),
+        ),
+      AppRoutes.reporteSugerir => BlocProvider(
+          create: (_) => sl<SugerenciaBloc>(),
+          child: const SugerirEstablecimientoPage(),
+        ),
+      AppRoutes.reporteEscaner => const EscanerCodigoPage(),
+      // HU-17: pantallas del cliente. Reciben el carrito y los favoritos ya
+      // creados por el RolShell y no los cierran.
+      AppRoutes.carrito when args is ClienteBlocs =>
+        _conBlocsDelCliente(args, const CarritoPage()),
+      AppRoutes.favoritos when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          FavoritosPage(
+            crearProductos: () => sl<PaginatedBloc<ProductoConComercio>>(
+              instanceName: InstanciasSl.favoritosProductos,
+            ),
+            crearComercios: () => sl<PaginatedBloc<ComercioResumen>>(
+              instanceName: InstanciasSl.favoritosComercios,
+            ),
+          ),
+        ),
+      AppRoutes.explorar when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          ExplorarPage(
+            crearProductos: (texto) => sl<PaginatedBloc<ProductoConComercio>>(
+              instanceName: InstanciasSl.explorarProductos,
+              param1: texto,
+            ),
+            crearComercios: (texto) => sl<PaginatedBloc<ComercioResumen>>(
+              instanceName: InstanciasSl.explorarComercios,
+              param1: texto,
+            ),
+          ),
+        ),
+      AppRoutes.misReportes => BlocProvider(
+          create: (_) => sl<PaginatedBloc<MiReporte>>(
+            param1: PageRequest.defaultPageSize,
+          )..add(PaginatedStarted()),
+          child: const MisReportesPage(),
+        ),
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),
@@ -169,7 +269,15 @@ abstract final class AppRouter {
       // eliminar) para que el catálogo recargue su lista.
       AppRoutes.catalogoProducto =>
         MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
-      // El escáner devuelve el código leído.
+      // Los pasos del reporte devuelven `true` si el reporte se envió, para
+      // que los pasos anteriores se cierren.
+      AppRoutes.reporteEstablecimiento ||
+      AppRoutes.reporteProducto ||
+      AppRoutes.reporteFormulario ||
+      AppRoutes.reporteSugerir =>
+        MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
+      // Los escáneres (reporte de precio y búsqueda) devuelven el código leído.
+      AppRoutes.reporteEscaner ||
       AppRoutes.escaner =>
         MaterialPageRoute<String>(builder: (_) => page, settings: settings),
       // El detalle de una solicitud devuelve la decisión tomada.
@@ -177,5 +285,17 @@ abstract final class AppRouter {
           builder: (_) => page, settings: settings),
       _ => MaterialPageRoute<void>(builder: (_) => page, settings: settings),
     };
+  }
+
+  /// Entrega el carrito y los favoritos del cliente a una pantalla con
+  /// `BlocProvider.value`: ya los creó el `RolShell`, que es quien los cierra.
+  static Widget _conBlocsDelCliente(ClienteBlocs blocs, Widget pagina) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<CarritoBloc>.value(value: blocs.carrito),
+        BlocProvider<FavoritosBloc>.value(value: blocs.favoritos),
+      ],
+      child: pagina,
+    );
   }
 }

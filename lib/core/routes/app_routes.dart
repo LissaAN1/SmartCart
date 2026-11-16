@@ -29,6 +29,35 @@ abstract final class AppRoutes {
   /// HU-10: carga de productos desde un archivo CSV.
   static const catalogoCsv = '/comercio/catalogo/csv';
 
+  /// HU-14: primer paso del reporte de precio: elegir el establecimiento.
+  static const reporteEstablecimiento = '/colaborador/reporte';
+
+  /// HU-14: elegir el producto. Recibe el `EstablecimientoCercano`.
+  static const reporteProducto = '/colaborador/reporte/producto';
+
+  /// HU-14: precio, foto y envío. Recibe un `ReporteFormArgs`.
+  static const reporteFormulario = '/colaborador/reporte/formulario';
+
+  /// HU-14: sugerir un establecimiento que no está en la plataforma.
+  static const reporteSugerir = '/colaborador/reporte/sugerir';
+
+  /// HU-14: historial de reportes del colaborador (lista paginada).
+  static const misReportes = '/colaborador/reportes';
+
+  /// HU-14: escáner de códigos de barras. Devuelve el código leído.
+  static const reporteEscaner = '/colaborador/reporte/escaner';
+
+  /// HU-17: el carrito del cliente. Recibe un `ClienteBlocs`.
+  static const carrito = '/cliente/carrito';
+
+  /// HU-17: favoritos del cliente (productos y comercios). Recibe un
+  /// `ClienteBlocs`.
+  static const favoritos = '/cliente/favoritos';
+
+  /// HU-17: lista de productos y comercios para agregar al carrito o a
+  /// favoritos. Recibe un `ClienteBlocs`.
+  static const explorar = '/cliente/explorar';
+
   /// HU-12: búsqueda de productos del cliente. Recibe opcionalmente el texto
   /// escrito en el Home (`String`).
   static const busqueda = '/cliente/busqueda';

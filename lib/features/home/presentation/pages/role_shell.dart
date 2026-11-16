@@ -7,13 +7,18 @@ import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
 import 'package:smartcart/features/admin/admin.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
+import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
 import 'package:smartcart/features/cliente/cliente.dart';
+import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
 import 'package:smartcart/features/colaborador/colaborador.dart';
 import 'package:smartcart/features/comercio/comercio.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
+import 'package:smartcart/features/comercio/presentation/bloc/comercio_event.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_state.dart';
 import 'package:smartcart/features/comercio/presentation/widgets/comercio_gate.dart';
+import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/repartidor/repartidor.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
@@ -31,7 +36,23 @@ class RolShell extends StatefulWidget {
   final UserRole rol;
   final Profile profile;
 
-  const RolShell({super.key, required this.rol, required this.profile});
+  /// HU-14: crea la lista de los últimos reportes del colaborador para su
+  /// Home. Sin ella (por ejemplo en las pruebas de navegación) el Home
+  /// muestra el historial vacío.
+  final PaginatedBloc<MiReporte> Function()? crearMisReportes;
+
+  /// HU-17: crea el carrito y los favoritos del cliente. Sin él (por ejemplo
+  /// en las pruebas de navegación) la pestaña del carrito avisa que la
+  /// pantalla no está disponible.
+  final ClienteBlocs Function()? crearCliente;
+
+  const RolShell({
+    super.key,
+    required this.rol,
+    required this.profile,
+    this.crearMisReportes,
+    this.crearCliente,
+  });
 
   @override
   State<RolShell> createState() => _RolShellState();
@@ -40,6 +61,28 @@ class RolShell extends StatefulWidget {
 class _RolShellState extends State<RolShell> {
   bool _enPerfil = false;
   late Profile _profile = widget.profile;
+
+  /// HU-14: últimos reportes del colaborador. Se crea y se cierra aquí, y se
+  /// recarga al volver del flujo de reporte para que el nuevo aparezca.
+  PaginatedBloc<MiReporte>? _misReportes;
+
+  /// HU-17: el carrito y los favoritos del cliente. Se crean y se cierran
+  /// aquí; las pantallas del cliente los reciben como argumento de la ruta.
+  ClienteBlocs? _cliente;
+
+  @override
+  void initState() {
+    super.initState();
+    _misReportes = widget.crearMisReportes?.call()?..add(PaginatedStarted());
+    _cliente = widget.crearCliente?.call()?..iniciar();
+  }
+
+  @override
+  void dispose() {
+    _misReportes?.close();
+    _cliente?.cerrar();
+    super.dispose();
+  }
 
   RolTema get _tema => PerfilVisual.de(widget.rol).tema;
 
@@ -63,6 +106,12 @@ class _RolShellState extends State<RolShell> {
   /// Pestaña "Catálogo" del comercio (HU-10).
   static const _tabCatalogoComercio = 2;
 
+  /// Pestaña "Reportar Precio" del colaborador (HU-14).
+  static const _tabReportarColaborador = 2;
+
+  /// Pestaña "Carrito" del cliente (HU-17).
+  static const _tabCarritoCliente = 1;
+
   void _onTab(int i) {
     if (_tema == RolTema.admin && i == _tabAprobarAdmin) {
       _abrirAprobaciones();
@@ -72,11 +121,22 @@ class _RolShellState extends State<RolShell> {
       _abrirCatalogo();
       return;
     }
+    if (_tema == RolTema.colaborador && i == _tabReportarColaborador) {
+      _abrirReportePrecio();
+      return;
+    }
+    if (_tema == RolTema.cliente &&
+        i == _tabCarritoCliente &&
+        _cliente != null) {
+      _abrirCarrito();
+      return;
+    }
     final perfil = i == _tabPerfil;
     if (!perfil && i != 0) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Pantalla aún no disponible')));
+        ..showSnackBar(
+            const SnackBar(content: Text('Pantalla aún no disponible')));
       return;
     }
     setState(() => _enPerfil = perfil);
@@ -85,8 +145,8 @@ class _RolShellState extends State<RolShell> {
   /// HU-06: abre el onboarding y, si la persona activó el modo, se queda con
   /// el perfil actualizado (ya con el rol colaborador).
   Future<void> _activarColaborador() async {
-    final actualizado =
-        await Navigator.of(context).pushNamed<Profile>(AppRoutes.colaboradorOnboarding);
+    final actualizado = await Navigator.of(context)
+        .pushNamed<Profile>(AppRoutes.colaboradorOnboarding);
     if (actualizado != null && mounted) {
       setState(() => _profile = actualizado);
     }
@@ -95,6 +155,32 @@ class _RolShellState extends State<RolShell> {
   /// HU-24: lista de comercios y repartidores pendientes de aprobación.
   void _abrirAprobaciones() =>
       Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+
+  /// HU-17: el carrito, la exploración y los favoritos del cliente. Las
+  /// pantallas reciben el carrito y los favoritos como argumento de la ruta.
+  void _abrirCarrito() =>
+      Navigator.of(context).pushNamed(AppRoutes.carrito, arguments: _cliente);
+
+  void _abrirExplorar() =>
+      Navigator.of(context).pushNamed(AppRoutes.explorar, arguments: _cliente);
+
+  void _abrirFavoritos() =>
+      Navigator.of(context).pushNamed(AppRoutes.favoritos, arguments: _cliente);
+
+  /// HU-14: primer paso del reporte de precio. Al volver (con o sin reporte
+  /// enviado) se recarga el historial: es barato y evita mostrar uno viejo.
+  Future<void> _abrirReportePrecio() async {
+    await Navigator.of(context).pushNamed(AppRoutes.reporteEstablecimiento);
+    if (mounted) _recargarMisReportes();
+  }
+
+  void _recargarMisReportes() => _misReportes?.add(PaginatedStarted());
+
+  /// HU-14: historial completo de reportes del colaborador.
+  Future<void> _abrirMisReportes() async {
+    await Navigator.of(context).pushNamed(AppRoutes.misReportes);
+    if (mounted) _recargarMisReportes();
+  }
 
   /// HU-10: lista de productos del comercio.
   void _abrirCatalogo() => Navigator.of(context).pushNamed(AppRoutes.catalogo);
@@ -122,7 +208,8 @@ class _RolShellState extends State<RolShell> {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(SnackBar(
-                content: Text(state.errorMessage ?? 'No pudimos cerrar la sesión.')));
+                content: Text(
+                    state.errorMessage ?? 'No pudimos cerrar la sesión.')));
         }
       },
       child: switch (_tema) {
@@ -162,37 +249,38 @@ class _RolShellState extends State<RolShell> {
     final p = _profile;
     return switch ((_tema, _enPerfil)) {
       (RolTema.cliente, false) =>
-        ClienteHomeScreen(onTab: _onTab, nombre: _primerNombre),
-      (RolTema.cliente, true) => ClientePerfilScreen(
-          onTab: _onTab,
-          onCerrarSesion: _salir,
-          profile: p,
-          onActivarColaborador: _activarColaborador),
-      (RolTema.colaborador, false) =>
-        ColaboradorHomeScreen(onTab: _onTab, nombre: _primerNombre),
+        _conCarrito((itemsCarrito) => ClienteHomeScreen(
+              onTab: _onTab,
+              nombre: _primerNombre,
+              itemsCarrito: itemsCarrito,
+              onAbrirExplorar: _cliente == null ? null : _abrirExplorar,
+            )),
+      (RolTema.cliente, true) => _conCarrito((itemsCarrito) =>
+          ClientePerfilScreen(
+              onTab: _onTab,
+              onCerrarSesion: _salir,
+              profile: p,
+              onActivarColaborador: _activarColaborador,
+              itemsCarrito: itemsCarrito,
+              onAbrirFavoritos: _cliente == null ? null : _abrirFavoritos)),
+      (RolTema.colaborador, false) => _conMisReportes(),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
       // Aquí solo llega un repartidor aprobado (ver `build`).
-      (RolTema.repartidor, false) => _conDisponibilidad(
-          (disponible, cambiar) => RepartidorHomeScreen(
+      (RolTema.repartidor, false) => _conDisponibilidad((disponible, cambiar) =>
+          RepartidorHomeScreen(
               onTab: _onTab, enLinea: disponible, onCambioDisponible: cambiar)),
       (RolTema.repartidor, true) => RepartidorPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
-      (RolTema.comercio, false) => _conComercio((c) =>
-          ComercioHomeScreen(
-            onTab: _onTab,
-            nombreComercio: c.nombre,
-            onAbrirCatalogo: _abrirCatalogo,
-            onNuevoProducto: _nuevoProducto,
-          )),
+      (RolTema.comercio, false) => _conComercioHome(),
       (RolTema.comercio, true) => _conComercio((c) => ComercioPerfilScreen(
           onTab: _onTab, onCerrarSesion: _salir, profile: p, comercio: c)),
       (RolTema.admin, false) => AdminHomeScreen(
           onTab: _onTab,
           nombre: p.fullName,
           onAbrirAprobaciones: _abrirAprobaciones),
-      (RolTema.admin, true) => AdminPerfilScreen(
-          onTab: _onTab, onCerrarSesion: _salir, profile: p),
+      (RolTema.admin, true) =>
+        AdminPerfilScreen(onTab: _onTab, onCerrarSesion: _salir, profile: p),
     };
   }
 
@@ -218,6 +306,70 @@ class _RolShellState extends State<RolShell> {
                 .read<DisponibilidadBloc>()
                 .add(DisponibilidadCambiada(v)),
       ),
+    );
+  }
+
+  /// Pantalla del cliente con el número de productos del carrito (HU-17) en
+  /// la barra de pestañas. Se redibuja solo cuando ese número cambia.
+  Widget _conCarrito(Widget Function(int itemsCarrito) builder) {
+    final cliente = _cliente;
+    if (cliente == null) return builder(0);
+    return BlocBuilder<CarritoBloc, CarritoState>(
+      bloc: cliente.carrito,
+      buildWhen: (anterior, actual) => anterior.productos != actual.productos,
+      builder: (context, state) => builder(state.productos),
+    );
+  }
+
+  /// Home del colaborador con sus últimos reportes reales (HU-14), incluidos
+  /// los pendientes.
+  Widget _conMisReportes() {
+    Widget home(PaginatedState<MiReporte> estado) {
+      final cargando = estado.status == PaginatedStatus.initial ||
+          estado.status == PaginatedStatus.loading;
+      return ColaboradorHomeScreen(
+        onTab: _onTab,
+        nombre: _primerNombre,
+        onReportarPrecio: _abrirReportePrecio,
+        reportes: estado.items,
+        cargandoReportes: _misReportes != null && cargando,
+        errorReportes: estado.status == PaginatedStatus.failure
+            ? estado.errorMessage
+            : null,
+        onReintentarReportes: _recargarMisReportes,
+        onVerHistorial: _misReportes == null ? null : _abrirMisReportes,
+      );
+    }
+
+    final bloc = _misReportes;
+    if (bloc == null) return home(PaginatedState<MiReporte>());
+    return BlocBuilder<PaginatedBloc<MiReporte>, PaginatedState<MiReporte>>(
+      bloc: bloc,
+      builder: (context, estado) => home(estado),
+    );
+  }
+
+  /// Home del comercio aprobado. Además de los accesos, avisa si falta la
+  /// ubicación del comercio y deja guardarla (HU-14).
+  Widget _conComercioHome() {
+    return BlocBuilder<ComercioBloc, ComercioState>(
+      builder: (context, state) {
+        final comercio = state.comercio;
+        if (comercio == null) return const SizedBox.shrink();
+        return ComercioHomeScreen(
+          onTab: _onTab,
+          nombreComercio: comercio.nombre,
+          onAbrirCatalogo: _abrirCatalogo,
+          onNuevoProducto: _nuevoProducto,
+          sinUbicacion: !comercio.tieneUbicacion,
+          ubicando: state.status == ComercioStatus.locating,
+          errorUbicacion: state.status == ComercioStatus.locationFailed
+              ? state.errorMessage
+              : null,
+          onFijarUbicacion: () =>
+              context.read<ComercioBloc>().add(ComercioUbicacionSolicitada()),
+        );
+      },
     );
   }
 

@@ -64,8 +64,10 @@ void main() {
     testWidgets('"Ir al Catálogo" abre el catálogo', (tester) async {
       await _pumpHomeComercio(tester);
 
+      // Desde HU-14 el Home puede mostrar antes el aviso de ubicación, así
+      // que el botón queda más abajo y hay que desplazarse hasta él.
       final boton = find.text('Ir al Catálogo');
-      await tester.ensureVisible(boton);
+      await tester.scrollUntilVisible(boton, 300);
       await tester.pumpAndSettle();
       await tester.tap(boton);
       await tester.pumpAndSettle();

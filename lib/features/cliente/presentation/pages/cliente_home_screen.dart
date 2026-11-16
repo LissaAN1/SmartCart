@@ -9,7 +9,21 @@ import '../widgets/cliente_widgets.dart';
 class ClienteHomeScreen extends StatefulWidget {
   final ValueChanged<int>? onTab;
   final String nombre;
-  const ClienteHomeScreen({super.key, this.onTab, required this.nombre});
+
+  /// HU-17: cuántos productos hay en el carrito (el número de la pestaña).
+  final int itemsCarrito;
+
+  /// HU-17: abre la exploración de productos y comercios. Sin él avisa
+  /// "próximamente".
+  final VoidCallback? onAbrirExplorar;
+
+  const ClienteHomeScreen({
+    super.key,
+    this.onTab,
+    required this.nombre,
+    this.itemsCarrito = 0,
+    this.onAbrirExplorar,
+  });
 
   @override
   State<ClienteHomeScreen> createState() => _ClienteHomeScreenState();
@@ -34,16 +48,34 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
   ];
 
   static const _ofertas = [
-    (tienda: 'Éxito', nombre: 'Piña', precio: r'$ 12.900', antes: r'$ 18.500', tag: '-30%'),
-    (tienda: 'Carulla', nombre: 'Mix Frutas', precio: r'$ 8.400', antes: r'$ 10.200', tag: 'Top'),
-    (tienda: 'Olímpica', nombre: 'Leche entera 1L', precio: r'$ 4.250', antes: r'$ 5.000', tag: '-15%'),
+    (
+      tienda: 'Éxito',
+      nombre: 'Piña',
+      precio: r'$ 12.900',
+      antes: r'$ 18.500',
+      tag: '-30%'
+    ),
+    (
+      tienda: 'Carulla',
+      nombre: 'Mix Frutas',
+      precio: r'$ 8.400',
+      antes: r'$ 10.200',
+      tag: 'Top'
+    ),
+    (
+      tienda: 'Olímpica',
+      nombre: 'Leche entera 1L',
+      precio: r'$ 4.250',
+      antes: r'$ 5.000',
+      tag: '-15%'
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return PantallaRol(
       tema: TemaRol.cliente,
-      navItems: navCliente(),
+      navItems: navCliente(itemsCarrito: widget.itemsCarrito),
       tabActiva: 0,
       onTab: widget.onTab,
       barraSuperior: EncabezadoSaludo(
@@ -51,7 +83,9 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
         acciones: [
           BotonCircular(icono: Icons.search, onTap: _buscar),
           BotonCircular(
-              icono: Icons.notifications_none, conPunto: true, onTap: () => mostrarProximamente(context)),
+              icono: Icons.notifications_none,
+              conPunto: true,
+              onTap: () => mostrarProximamente(context)),
         ],
       ),
       cuerpo: ListView(
@@ -95,10 +129,12 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
               etiqueta: 'NUEVO',
               sobretitulo: 'Ahorro inteligente',
               titulo: 'Arma tu carrito y compáralo ahora',
-              descripcion: 'Encuentra el mejor precio entre Carulla, Éxito y más.',
+              descripcion:
+                  'Encuentra el mejor precio entre Carulla, Éxito y más.',
               textoBoton: 'Comenzar ahora',
               iconoGrande: Icons.shopping_cart_outlined,
-              onBoton: () => mostrarProximamente(context),
+              onBoton:
+                  widget.onAbrirExplorar ?? () => mostrarProximamente(context),
             ),
           ),
 

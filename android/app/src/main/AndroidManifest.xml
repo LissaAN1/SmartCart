@@ -1,7 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Supabase: sin este permiso la app instalada (release) no se conecta. -->
+    <!-- Supabase: sin INTERNET la app instalada (release) no se conecta. -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- HU-12: escanear el código de barras de un producto. -->
+    <!-- HU-14: verificar que el colaborador está en el establecimiento. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- HU-12 y HU-14: escáner de códigos de barras y foto de la etiqueta. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application

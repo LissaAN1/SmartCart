@@ -16,8 +16,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// filtra siempre por el id del comercio.
 class SupabaseCatalogoDataSource {
   /// Trae la categoría y el precio actual (HU-11) junto con el producto en
-  /// una sola consulta.
-  static const _seleccion =
+  /// una sola consulta. Es pública: la búsqueda de productos de los reportes
+  /// (HU-14) usa la misma selección.
+  static const seleccion =
       '*, ${SupabaseTables.categoria}(${SupabaseColumns.categoriaId}, '
       '${SupabaseColumns.categoriaNombre}), '
       '${SupabaseTables.precioProducto}(${SupabaseColumns.precioValor}, '
@@ -40,7 +41,7 @@ class SupabaseCatalogoDataSource {
     return _proteger(() async {
       var query = _client
           .from(SupabaseTables.producto)
-          .select(_seleccion)
+          .select(seleccion)
           .eq(SupabaseColumns.productoComercio, idComercio);
       final idCategoria = filtro.idCategoria;
       if (idCategoria != null) {
@@ -111,7 +112,7 @@ class SupabaseCatalogoDataSource {
           .from(SupabaseTables.producto)
           .update({SupabaseColumns.productoFotoUrl: url})
           .eq(SupabaseColumns.productoId, producto.id)
-          .select(_seleccion)
+          .select(seleccion)
           .maybeSingle();
       if (row == null) throw const AuthFailure('No encontramos ese producto.');
       return _toProducto(row);
@@ -144,7 +145,7 @@ class SupabaseCatalogoDataSource {
       final row = await _client
           .from(SupabaseTables.producto)
           .insert(_toRow(idComercio, datos))
-          .select(_seleccion)
+          .select(seleccion)
           .single();
       return _toProducto(row);
     });
@@ -156,7 +157,7 @@ class SupabaseCatalogoDataSource {
           .from(SupabaseTables.producto)
           .update(_toRow(null, datos))
           .eq(SupabaseColumns.productoId, idProducto)
-          .select(_seleccion)
+          .select(seleccion)
           .maybeSingle();
       // Si la política RLS no deja ver la fila (no es de este comercio),
       // el update no toca nada y no hay fila que devolver.
@@ -243,29 +244,34 @@ class SupabaseCatalogoDataSource {
         SupabaseColumns.productoStock: datos.stock,
       };
 
-  Producto _toProducto(Map<String, dynamic> row) {
-    final categoria = row[SupabaseTables.categoria];
-    // precio_producto es 1 a 1 con producto: llega como objeto, o como
-    // lista según cómo PostgREST lea la relación.
-    final embebido = row[SupabaseTables.precioProducto];
-    final precio = embebido is List
-        ? (embebido.isEmpty ? null : embebido.first)
-        : embebido;
-    return Producto(
-      id: row[SupabaseColumns.productoId].toString(),
-      nombre: row[SupabaseColumns.productoNombre] as String? ?? '',
-      marca: row[SupabaseColumns.productoMarca] as String?,
-      codigoBarras: row[SupabaseColumns.productoCodigoBarras] as String?,
-      idCategoria: row[SupabaseColumns.productoCategoria].toString(),
-      categoria: categoria is Map
-          ? categoria[SupabaseColumns.categoriaNombre] as String? ?? ''
-          : '',
-      precio: precio is Map ? parseInt(precio[SupabaseColumns.precioValor]) : null,
-      disponible: precio is Map
-          ? parseBool(precio[SupabaseColumns.precioDisponible])
-          : true,
-      stock: parseInt(row[SupabaseColumns.productoStock]) ?? 0,
-      fotoUrl: row[SupabaseColumns.productoFotoUrl] as String?,
-    );
-  }
+  Producto _toProducto(Map<String, dynamic> row) => productoFromRow(row);
+}
+
+/// Convierte una fila de `producto` (con su categoría y su precio anidados)
+/// en la entidad. La comparten el catálogo del comercio (HU-10 y HU-11) y la
+/// búsqueda de productos de los reportes (HU-14).
+Producto productoFromRow(Map<String, dynamic> row) {
+  final categoria = row[SupabaseTables.categoria];
+  // precio_producto es 1 a 1 con producto: llega como objeto, o como
+  // lista según cómo PostgREST lea la relación.
+  final embebido = row[SupabaseTables.precioProducto];
+  final precio = embebido is List
+      ? (embebido.isEmpty ? null : embebido.first)
+      : embebido;
+  return Producto(
+    id: row[SupabaseColumns.productoId].toString(),
+    nombre: row[SupabaseColumns.productoNombre] as String? ?? '',
+    marca: row[SupabaseColumns.productoMarca] as String?,
+    codigoBarras: row[SupabaseColumns.productoCodigoBarras] as String?,
+    idCategoria: row[SupabaseColumns.productoCategoria].toString(),
+    categoria: categoria is Map
+        ? categoria[SupabaseColumns.categoriaNombre] as String? ?? ''
+        : '',
+    precio: precio is Map ? parseInt(precio[SupabaseColumns.precioValor]) : null,
+    disponible: precio is Map
+        ? parseBool(precio[SupabaseColumns.precioDisponible])
+        : true,
+    stock: parseInt(row[SupabaseColumns.productoStock]) ?? 0,
+    fotoUrl: row[SupabaseColumns.productoFotoUrl] as String?,
+  );
 }

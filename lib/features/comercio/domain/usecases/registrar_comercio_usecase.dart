@@ -44,6 +44,7 @@ class RegistrarComercioUseCase {
         horaApertura: datos.horaApertura.trim(),
         horaCierre: datos.horaCierre.trim(),
         servicio: datos.servicio,
+        ubicacion: datos.ubicacion,
       ),
     );
   }
