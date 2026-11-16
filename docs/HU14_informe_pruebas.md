@@ -22,7 +22,7 @@ Con la concurrencia por defecto, `flutter test` se quedó sin memoria en este eq
 - Falló y se corrigió: la compilación del APK con la primera versión de `permission_handler` (se fijó la versión 12, que compila contra una API menor).
 - Durante el desarrollo, 3 pruebas de pantalla fallaron por textos que se desbordaban con la fuente de prueba y 3 por búsquedas en el árbol de widgets; se corrigieron en las etiquetas y en las pruebas.
 - Ejecutadas por el equipo contra Supabase: el SQL de la HU-14 y su script de pruebas (sección 2). Yo no tengo acceso a Supabase; los resultados son los que el equipo copió del SQL Editor.
-- **Pendiente, no ejecutada:** la app en un dispositivo Android: GPS, permiso y cámara, foto, escáner y envío reales.
+- Probada en un dispositivo Android: GPS, permiso y cámara, foto, escáner y envío reales funcionaron (informado por el equipo).
 
 ## 2. Criterios de aceptación y su verificación
 
@@ -102,7 +102,6 @@ El criterio de referencia es la tabla "Informe de criterios de calidad" del `REA
 ## 5. Pendientes y limitaciones
 
 1. ~~Ejecutar el SQL y las pruebas de las políticas en Supabase~~: hecho, 28 pruebas `OK` (sección 2). Si cambia el SQL, hay que volver a correrlas.
-2. **Probar en un teléfono o emulador Android**, con el SQL ya ejecutado: ubicar el comercio, enviar un reporte exitoso, uno lejos (escenario 2) y uno sin foto (escenario 3). Pasos en el README, sección "Probar el reporte de precios (HU-14)". El GPS, el permiso de cámara, la foto y el escáner reales solo se han probado con dobles.
-3. Dejar evidencia para la sustentación: capturas del flujo y de la tabla `reporte_precio` con el reporte pendiente.
-4. El escáner de códigos no se puede probar en Windows.
-5. Las dos advertencias de `tap()` de `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes y no vienen de este cambio.
+2. **Hecho:** prueba manual en Android (ubicar el comercio, reporte exitoso, uno lejos y uno sin foto). Pasos en el README, sección "Probar el reporte de precios (HU-14)".
+3. El escáner de códigos no se puede probar en Windows.
+4. Las dos advertencias de `tap()` de `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes y no vienen de este cambio.

@@ -35,6 +35,10 @@ import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto
 import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
 import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/catalog/data/repository/catalogo_repository_impl.dart';
+import 'package:smartcart/features/confianza/data/repository/reporte_incorrecto_repository_impl.dart';
+import 'package:smartcart/features/confianza/data/source/supabase_reporte_incorrecto_data_source.dart';
+import 'package:smartcart/features/confianza/domain/repository/reporte_incorrecto_repository.dart';
+import 'package:smartcart/features/confianza/domain/usecases/reportar_precio_incorrecto_usecase.dart';
 import 'package:smartcart/features/catalog/data/source/file_picker_selector_csv.dart';
 import 'package:smartcart/features/catalog/data/source/file_picker_selector_imagen.dart';
 import 'package:smartcart/features/catalog/data/source/supabase_catalogo_data_source.dart';
@@ -74,6 +78,7 @@ import 'package:smartcart/features/comercio/domain/usecases/get_mi_comercio_usec
 import 'package:smartcart/features/comercio/domain/usecases/registrar_comercio_usecase.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
 import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
 import 'package:smartcart/features/reportes/data/source/supabase_reportes_data_source.dart';
@@ -198,6 +203,9 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseBusquedaDataSource>(
     () => SupabaseBusquedaDataSource(client: sl()),
   );
+  sl.registerLazySingleton<SupabaseReporteIncorrectoDataSource>(
+    () => SupabaseReporteIncorrectoDataSource(client: sl()),
+  );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -236,6 +244,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<BusquedaRepository>(
     () => BusquedaRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<ReporteIncorrectoRepository>(
+    () => ReporteIncorrectoRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -396,6 +407,10 @@ void setupDependencies() {
   sl.registerLazySingleton(
     () => GetDetalleProductoUseCase(auth: sl(), busqueda: sl()),
   );
+  // HU-13: reportar un precio incorrecto desde el detalle.
+  sl.registerLazySingleton(
+    () => ReportarPrecioIncorrectoUseCase(cliente: sl(), reportes: sl()),
+  );
   sl.registerLazySingleton(
     () => GuardarProductoUseCase(
       crear: sl(),
@@ -554,7 +569,17 @@ void setupDependencies() {
     (texto, _) => BusquedaBloc(buscar: sl(), textoInicial: texto),
   );
   sl.registerFactoryParam<DetalleProductoBloc, ConsultaProducto, void>(
-    (consulta, _) => DetalleProductoBloc(consulta: consulta, detalle: sl()),
+    (consulta, _) => DetalleProductoBloc(
+      consulta: consulta,
+      detalle: sl(),
+      reportar: sl(),
+    ),
+  );
+
+  // HU-08: la disponibilidad del repartidor arranca con el valor guardado en
+  // su perfil: `sl<DisponibilidadBloc>(param1: perfil.courierAvailable)`.
+  sl.registerFactoryParam<DisponibilidadBloc, bool, void>(
+    (inicial, _) => DisponibilidadBloc(cambiar: sl(), inicial: inicial),
   );
 
   // HU-24: estos Bloc necesitan un dato de la pantalla, así que se piden

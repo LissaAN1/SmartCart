@@ -30,6 +30,41 @@ class ClienteBlocs {
   }
 }
 
+/// Argumento de ruta que acompaña al argumento propio de una pantalla (el
+/// texto de la búsqueda, qué producto abrir) con el carrito y los favoritos del
+/// cliente (HU-13). Las pantallas de la búsqueda se abrieron antes sin ellos;
+/// así los reciben cuando vienen del Home del cliente y, sin ellos (por
+/// ejemplo en las pruebas), siguen funcionando sin los botones de carrito y
+/// favoritos.
+class ConBlocsDelCliente {
+  final Object? argumento;
+  final ClienteBlocs blocs;
+
+  const ConBlocsDelCliente(this.argumento, this.blocs);
+}
+
+/// Separa el argumento propio de una ruta de los blocs del cliente, si los
+/// trae.
+(Object?, ClienteBlocs?) desempacarArgumentos(Object? args) => args
+        is ConBlocsDelCliente
+    ? (args.argumento, args.blocs)
+    : (args, null);
+
+/// El carrito y los favoritos del cliente, si esta pantalla los tiene en su
+/// árbol; `null` si no (por ejemplo, una pantalla abierta sin ellos).
+ClienteBlocs? clienteBlocsOrNull(BuildContext context) {
+  try {
+    return ClienteBlocs(
+      carrito: context.read<CarritoBloc>(),
+      favoritos: context.read<FavoritosBloc>(),
+    );
+  } catch (_) {
+    // `flutter_bloc` no exporta la excepción de "no hay proveedor": cualquier
+    // fallo al leerlos significa que esta pantalla no los tiene.
+    return null;
+  }
+}
+
 /// Atajos para abrir las pantallas del cliente desde otra pantalla que ya
 /// tiene el carrito y los favoritos en su árbol (por ejemplo, desde el
 /// carrito se abre la exploración).

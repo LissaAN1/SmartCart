@@ -50,6 +50,15 @@ select set_config('pruebas.otro_usuario', coalesce((
    where u.id_usuario::text <> current_setting('pruebas.dueno_aprobado')
    limit 1), ''), true);
 
+-- Desde la HU-14 los colaboradores leen los productos de comercios aprobados
+-- (política producto_select_colaborador, para elegir qué reportar). Si este
+-- "otro usuario" tiene ese rol, la prueba lo vería y fallaría sin que haya un
+-- error de seguridad. Por eso le quitamos el rol DENTRO de la transacción (el
+-- ROLLBACK final lo devuelve): queremos probar a alguien sin permiso de lectura.
+delete from public.usuario_rol
+ where id_usuario::text = nullif(current_setting('pruebas.otro_usuario'), '')
+   and id_rol in (select id_rol from public.rol where codigo = 'colaborador');
+
 -- Si la base no tiene ningún comercio pendiente, creamos uno temporal para
 -- poder probar el escenario 2. Se crea aquí dentro, con un usuario que aún no
 -- tenga comercio, y el ROLLBACK final lo elimina.

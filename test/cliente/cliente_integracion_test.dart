@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcart/core/domain/user_role.dart';
+import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
 import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
 import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
@@ -19,6 +20,7 @@ Future<(TestEnv, ClienteBlocs?)> _pumpShell(
   WidgetTester tester, {
   void Function(TestEnv env)? prepare,
   bool conCliente = true,
+  void Function(RouteSettings ruta)? alNavegar,
 }) async {
   setScreenSize(tester, 420, 1000);
   final env = TestEnv()..iniciarSesionComoCliente();
@@ -27,7 +29,10 @@ Future<(TestEnv, ClienteBlocs?)> _pumpShell(
 
   await tester.pumpWidget(
     MaterialApp(
-      onGenerateRoute: stubRoutes,
+      onGenerateRoute: (settings) {
+        alNavegar?.call(settings);
+        return stubRoutes(settings);
+      },
       home: BlocProvider<SessionBloc>(
         create: (_) => env.sessionBloc(),
         child: RolShell(
@@ -149,6 +154,51 @@ void main() {
 
       expect(find.text('BUSQUEDA'), findsOneWidget);
       expect(find.text('EXPLORAR'), findsNothing);
+    });
+
+    // HU-13: la búsqueda recibe el carrito y los favoritos, para poder agregar
+    // y guardar desde el detalle de un producto.
+    testWidgets('la lupa lleva a la búsqueda el carrito y los favoritos',
+        (tester) async {
+      RouteSettings? abierta;
+      final (_, blocs) =
+          await _pumpShell(tester, alNavegar: (r) => abierta = r);
+
+      await tester.tap(find.widgetWithIcon(BotonCircular, Icons.search));
+      await tester.pumpAndSettle();
+
+      expect(abierta?.name, AppRoutes.busqueda);
+      final args = abierta?.arguments;
+      expect(args, isA<ConBlocsDelCliente>());
+      expect((args as ConBlocsDelCliente).argumento, '');
+      expect(args.blocs.carrito, same(blocs!.carrito));
+      expect(args.blocs.favoritos, same(blocs.favoritos));
+    });
+
+    testWidgets('el buscador lleva lo escrito junto con los blocs',
+        (tester) async {
+      RouteSettings? abierta;
+      await _pumpShell(tester, alNavegar: (r) => abierta = r);
+
+      await tester.enterText(find.byType(TextField), 'arroz');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      final args = abierta?.arguments as ConBlocsDelCliente;
+      expect(args.argumento, 'arroz');
+    });
+
+    testWidgets('sin el carrito del cliente la búsqueda se abre solo con el '
+        'texto, como antes', (tester) async {
+      RouteSettings? abierta;
+      await _pumpShell(tester,
+          conCliente: false, alNavegar: (r) => abierta = r);
+
+      await tester.tap(find.widgetWithIcon(BotonCircular, Icons.search));
+      await tester.pumpAndSettle();
+
+      expect(abierta?.name, AppRoutes.busqueda);
+      expect(abierta?.arguments, '');
     });
 
     testWidgets('"Comenzar ahora" abre la exploración', (tester) async {

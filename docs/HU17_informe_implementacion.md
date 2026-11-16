@@ -10,7 +10,7 @@ Informe de implementación. Rama: `feat/hu17-carrito-compras-favoritos`, creada 
 
 | Criterio de aceptación del backlog | Estado | Cómo se cumple |
 |---|---|---|
-| Se puede agregar un producto al carrito desde los resultados o desde su detalle | Implementado desde la lista de resultados | `ExplorarPage` lista productos y cada uno tiene el botón de agregar. **El detalle del producto es la HU-13 (de otra persona) y todavía no existe**: el botón `AgregarCarritoBoton` es reutilizable para ponerlo ahí. |
+| Se puede agregar un producto al carrito desde los resultados o desde su detalle | Implementado desde la lista de resultados y, con la HU-13, desde el detalle | `ExplorarPage` lista productos y cada uno tiene el botón de agregar. **El detalle del producto (HU-12 y HU-13) ya lo tiene:** cada establecimiento muestra `AgregarCarritoBoton` y `FavoritoBoton` cuando se abre desde el Home del cliente (ver [HU13_informe_implementacion.md](HU13_informe_implementacion.md)). |
 | Se puede cambiar la cantidad y quitar productos | Implementado | `CarritoPage`: botones − y +, y quitar. |
 | El carrito se guarda y se recupera al volver a abrir la app | Implementado | Se guarda en Supabase (`carrito_item`); `CarritoBloc` lo lee al entrar al Home del cliente. |
 | Se pueden guardar productos y comercios como favoritos | Implementado | Tablas `favorito_producto` y `favorito_comercio`; `FavoritosPage` con una pestaña por tipo. |
@@ -130,7 +130,6 @@ Todo en `lib/core/di/injector.dart`, con el mecanismo y el orden existentes. No 
 
 - **Ejecutar en Supabase**, después de `sprint2_hu14.sql`: `docs/sql/sprint2_hu17.sql` y luego `docs/sql/pruebas_hu17_politicas.sql`, y revisar que todas las líneas digan `OK` (ninguna `ALERTA` ni `SALTADA`). **Ya se hizo en nuestro Supabase, también tras integrar `main`: todo `OK`.** En cualquier otra base hay que correrlos: sin ellos la app no encuentra el carrito, los favoritos ni la exploración.
 - **Probado en un dispositivo Android** (informado por el equipo): agregar, cambiar la cantidad, quitar y favoritos funcionan, y todo sigue ahí al reabrir la app.
-- **Coordinar con la HU-12 y la HU-13:** ponen sus botones de agregar y de favorito con los widgets de esta historia, y la exploración provisional se retira.
+- **Coordinar con la HU-12:** el detalle (HU-13) ya tiene los botones de agregar y de favorito; faltan las tarjetas de resultado de la búsqueda. Cuando las tengan, la exploración provisional se puede retirar.
 - **Decisión pendiente para la HU-18:** cómo reconocer el mismo producto en varios comercios (por código de barras, por nombre…). El carrito de hoy guarda productos concretos de un comercio.
 - Las tarjetas de "Ofertas cerca de ti" del Home son de ejemplo y su botón de agregar sigue avisando "próximamente".
-- El README tiene contraseñas de las cuentas de prueba en texto plano; conviene decidir si se quedan antes de publicar el repositorio.

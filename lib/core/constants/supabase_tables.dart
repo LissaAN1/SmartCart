@@ -22,6 +22,9 @@ class SupabaseTables {
   static const carritoItem = 'carrito_item';
   static const favoritoProducto = 'favorito_producto';
   static const favoritoComercio = 'favorito_comercio';
+
+  // HU-13. Ver docs/sql/sprint2_hu13.sql
+  static const reportePrecioIncorrecto = 'reporte_precio_incorrecto';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
@@ -52,6 +55,10 @@ class SupabaseFunctions {
   /// HU-17: productos y comercios aprobados para que el cliente los explore.
   static const explorarProductos = 'explorar_productos';
   static const explorarComercios = 'explorar_comercios';
+
+  /// HU-13: guarda un reporte pendiente del precio vigente de un producto.
+  /// Devuelve `registrado` o `ya_reportado`.
+  static const reportarPrecioIncorrecto = 'reportar_precio_incorrecto';
 
   /// HU-14: los reportes del colaborador con sesión iniciada, del más
   /// reciente al más antiguo y de cualquier estado.

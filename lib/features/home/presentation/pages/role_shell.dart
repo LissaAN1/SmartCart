@@ -164,6 +164,16 @@ class _RolShellState extends State<RolShell> {
   void _abrirExplorar() =>
       Navigator.of(context).pushNamed(AppRoutes.explorar, arguments: _cliente);
 
+  /// HU-13: la búsqueda (HU-12) también recibe el carrito y los favoritos, para
+  /// que su detalle pueda agregar al carrito y guardar favoritos.
+  void _abrirBusqueda(String texto) {
+    final cliente = _cliente;
+    Navigator.of(context).pushNamed(
+      AppRoutes.busqueda,
+      arguments: cliente == null ? texto : ConBlocsDelCliente(texto, cliente),
+    );
+  }
+
   void _abrirFavoritos() =>
       Navigator.of(context).pushNamed(AppRoutes.favoritos, arguments: _cliente);
 
@@ -254,6 +264,7 @@ class _RolShellState extends State<RolShell> {
               nombre: _primerNombre,
               itemsCarrito: itemsCarrito,
               onAbrirExplorar: _cliente == null ? null : _abrirExplorar,
+              onBuscar: _cliente == null ? null : _abrirBusqueda,
             )),
       (RolTema.cliente, true) => _conCarrito((itemsCarrito) =>
           ClientePerfilScreen(

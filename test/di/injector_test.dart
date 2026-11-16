@@ -9,6 +9,9 @@ import 'package:smartcart/features/notificaciones/domain/repository/notificacion
 import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
 import 'package:smartcart/features/catalog/data/repository/catalogo_repository_impl.dart';
+import 'package:smartcart/features/confianza/data/repository/reporte_incorrecto_repository_impl.dart';
+import 'package:smartcart/features/confianza/domain/repository/reporte_incorrecto_repository.dart';
+import 'package:smartcart/features/confianza/domain/usecases/reportar_precio_incorrecto_usecase.dart';
 import 'package:smartcart/features/catalog/data/source/file_picker_selector_csv.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
@@ -22,6 +25,7 @@ import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
+import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
 import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
 import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
@@ -434,6 +438,51 @@ void main() {
 
     const consulta = ConsultaPorCodigo('7701234567890');
     expect(sl<DetalleProductoBloc>(param1: consulta).consulta, consulta);
+  });
+
+  test('HU-13: el reporte de precio incorrecto se registra con el tipo del '
+      'contrato', () {
+    setupDependencies();
+
+    expect(sl.isRegistered<ReporteIncorrectoRepository>(), isTrue);
+    expect(sl.isRegistered<ReportarPrecioIncorrectoUseCase>(), isTrue);
+  });
+
+  test('HU-08: la disponibilidad del repartidor se pide al localizador con '
+      'el valor guardado (param1)', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    final disponible = sl<DisponibilidadBloc>(param1: true);
+    final noDisponible = sl<DisponibilidadBloc>(param1: false);
+
+    expect(disponible.state.disponible, isTrue);
+    expect(noDisponible.state.disponible, isFalse);
+    // Cada pantalla tiene su propio Bloc: es una fábrica.
+    expect(identical(disponible, sl<DisponibilidadBloc>(param1: true)), isFalse);
+  });
+
+  test('HU-13: el detalle arma el reporte con el repositorio real', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+    const consulta = ConsultaPorClave('cb:7701234567890');
+
+    expect(sl<ReporteIncorrectoRepository>(),
+        isA<ReporteIncorrectoRepositoryImpl>());
+    expect(sl<ReportarPrecioIncorrectoUseCase>(),
+        same(sl<ReportarPrecioIncorrectoUseCase>()));
+
+    final bloc = sl<DetalleProductoBloc>(param1: consulta);
+    expect(bloc.consulta, consulta);
+    expect(bloc.state.reportando, isEmpty);
+    // Cada pantalla de detalle tiene su propio Bloc.
+    expect(identical(bloc, sl<DetalleProductoBloc>(param1: consulta)), isFalse);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {

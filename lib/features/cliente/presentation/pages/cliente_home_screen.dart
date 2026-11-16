@@ -17,12 +17,18 @@ class ClienteHomeScreen extends StatefulWidget {
   /// "próximamente".
   final VoidCallback? onAbrirExplorar;
 
+  /// HU-13: abre la búsqueda (HU-12) con el texto escrito. Lo da el
+  /// `RolShell` para que la búsqueda lleve el carrito y los favoritos del
+  /// cliente; sin él, la abre sin ellos.
+  final ValueChanged<String>? onBuscar;
+
   const ClienteHomeScreen({
     super.key,
     this.onTab,
     required this.nombre,
     this.itemsCarrito = 0,
     this.onAbrirExplorar,
+    this.onBuscar,
   });
 
   @override
@@ -34,6 +40,11 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
 
   /// HU-12: abre la búsqueda, con el texto escrito si lo hay.
   void _buscar([String texto = '']) {
+    final onBuscar = widget.onBuscar;
+    if (onBuscar != null) {
+      onBuscar(texto.trim());
+      return;
+    }
     Navigator.of(context)
         .pushNamed(AppRoutes.busqueda, arguments: texto.trim());
   }

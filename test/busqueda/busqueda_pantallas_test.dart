@@ -22,9 +22,10 @@ Future<TestEnv> _pumpBusqueda(
   String texto = '',
   String? escaneado,
   double ancho = 420,
+  double alto = 900,
   void Function(TestEnv env)? prepare,
 }) async {
-  setScreenSize(tester, ancho, 900);
+  setScreenSize(tester, ancho, alto);
   final env = entornoBusqueda();
   prepare?.call(env);
   await tester.pumpWidget(
@@ -201,8 +202,9 @@ void main() {
   });
 
   group('Precios del producto', () {
-    Future<void> abrirArroz(WidgetTester tester, {double ancho = 420}) async {
-      await _pumpBusqueda(tester, texto: 'arroz', ancho: ancho);
+    Future<void> abrirArroz(WidgetTester tester,
+        {double ancho = 420, double alto = 900}) async {
+      await _pumpBusqueda(tester, texto: 'arroz', ancho: ancho, alto: alto);
       await tester.tap(find.text('Arroz Diana 500 g'));
       await tester.pumpAndSettle();
     }
@@ -217,7 +219,9 @@ void main() {
     });
 
     testWidgets('el más barato va primero, con su promoción', (tester) async {
-      await abrirArroz(tester);
+      // Una pantalla alta: con la fuente, la fecha y la confianza (HU-13) cada
+      // establecimiento ocupa más y la lista solo arma los que se ven.
+      await abrirArroz(tester, alto: 1800);
 
       expect(find.text('Mejor precio'), findsOneWidget);
       expect(find.text('Promoción'), findsOneWidget);

@@ -124,4 +124,3 @@ Todo se registra en `lib/core/di/injector.dart`, con el mecanismo y el orden exi
 - **SQL en Supabase: ejecutado y probado.** El equipo corrió `docs/sql/sprint2_hu10.sql` y luego `docs/sql/pruebas_hu10_politicas.sql`: 10 pruebas OK, sin saltadas ni fallos (detalle en `docs/HU10_informe_pruebas.md`). El equipo también comprobó a mano que la app funciona contra esa base.
 - **Selector de archivos real (`file_picker`):** el equipo lo probó a mano con los archivos de `docs/ejemplos/` y funcionó. No quedó registrado en qué plataforma, y no se probó en todas (Android, Windows, web). Las pruebas automáticas usan un doble.
 - Yo no pude ejecutar la app contra Supabase en mi entorno (el `.env` del repositorio está vacío); la prueba con la base real la hizo el equipo.
-- El README tiene contraseñas de las cuentas de prueba en texto plano; conviene decidir si se quedan antes de publicar el repositorio.
