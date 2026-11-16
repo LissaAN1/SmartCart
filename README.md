@@ -375,7 +375,7 @@ Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySi
 | `sl<` o `GetIt` fuera del inyector | Solo `app_router.dart` |
 | Data sources o repositorios construidos fuera del inyector | Ninguno |
 | Imports de `flutter`, `supabase_flutter`, `get_it` o `file_picker` en las carpetas `domain/` | Ninguno |
-| Registros en `injector.dart` | 59 (45 hasta la HU-10 y 14 de la HU-11) |
+| Registros en `injector.dart` | 58 (45 hasta la HU-10 y 13 de la HU-11) |
 | `test/di/injector_test.dart` | Comprueba los registros (repositorios con el tipo del contrato, Bloc de fábrica, casos de uso únicos), que `setupDependencies` no duplica, y que la cadena completa del catálogo se arma con un cliente de Supabase sin conexión |
 
 Para repetir las comprobaciones:
