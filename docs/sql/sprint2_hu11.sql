@@ -13,6 +13,10 @@
 --      aprobado? Es la regla que usan las políticas de esta historia.
 --   5. Políticas RLS: solo el dueño de un comercio APROBADO lee y cambia
 --      los precios, el historial y las promociones de sus productos.
+--   7. producto.stock y producto.foto_url, y resumen_catalogo(): total de
+--      productos, valor del stock y productos con stock bajo.
+--   8. Bucket "productos" de Storage para las fotos, con políticas por
+--      carpeta del comercio.
 -- Las pruebas de las políticas están en pruebas_hu11_politicas.sql.
 -- =====================================================================
 
@@ -232,3 +236,83 @@ drop policy if exists promocion_delete_own on public.promocion;
 create policy promocion_delete_own on public.promocion
   for delete to authenticated
   using (public.es_producto_propio(id_producto));
+
+
+-- ---------------------------------------------------------------------
+-- 7. Stock y foto del producto (diseño del catálogo)
+-- El catálogo muestra las unidades en stock, el valor del inventario y
+-- cuántos productos tienen stock bajo, y una foto por producto.
+-- ---------------------------------------------------------------------
+alter table public.producto add column if not exists stock integer not null default 0;
+alter table public.producto add column if not exists foto_url text;
+
+alter table public.producto drop constraint if exists producto_stock_check;
+alter table public.producto add constraint producto_stock_check
+  check (stock between 0 and 100000);
+
+-- Resumen del catálogo de un comercio. security invoker: corre con las
+-- políticas de quien llama, así que solo resume productos propios.
+-- "Stock bajo" = 10 unidades o menos (igual que ProductoValidators.stockBajo).
+create or replace function public.resumen_catalogo(p_id_comercio uuid)
+returns table (total_productos integer, valor_stock bigint, bajo_stock integer)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select
+    count(*)::integer,
+    coalesce(sum(pp.precio::bigint * p.stock), 0)::bigint,
+    (count(*) filter (where p.stock <= 10))::integer
+  from public.producto p
+  left join public.precio_producto pp on pp.id_producto = p.id_producto
+  where p.id_comercio = p_id_comercio;
+$$;
+
+revoke all on function public.resumen_catalogo(uuid) from public;
+grant execute on function public.resumen_catalogo(uuid) to authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- 8. Fotos de productos (Supabase Storage)
+-- Bucket público de lectura (las fotos se ven en el catálogo). Cada comercio
+-- sube a su propia carpeta: productos/<id_comercio>/<archivo>.
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('productos', 'productos', true)
+on conflict (id) do update set public = true;
+
+-- ¿La carpeta es el id de un comercio mío y aprobado? Una carpeta que no es
+-- un uuid devuelve false en vez de error.
+create or replace function public.es_carpeta_comercio_propia(p_carpeta text)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  return public.es_comercio_aprobado_propio(p_carpeta::uuid);
+exception when invalid_text_representation then
+  return false;
+end;
+$$;
+
+revoke all on function public.es_carpeta_comercio_propia(text) from public;
+grant execute on function public.es_carpeta_comercio_propia(text) to authenticated;
+
+drop policy if exists productos_fotos_insert_own on storage.objects;
+create policy productos_fotos_insert_own on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'productos'
+    and public.es_carpeta_comercio_propia((storage.foldername(name))[1])
+  );
+
+drop policy if exists productos_fotos_delete_own on storage.objects;
+create policy productos_fotos_delete_own on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'productos'
+    and public.es_carpeta_comercio_propia((storage.foldername(name))[1])
+  );

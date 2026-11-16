@@ -121,6 +121,21 @@ begin
   exception when check_violation then
     perform public.pruebas_log('OK A8: la fecha de fin no puede ser anterior al inicio');
   end;
+
+  -- Stock y resumen del catálogo.
+  update public.producto set stock = 5 where id_producto = v_id;
+  select bajo_stock into v_rows from public.resumen_catalogo(v_comercio::uuid);
+  if v_rows < 1 then
+    raise exception 'FALLO A9: el resumen no cuenta el producto con stock bajo';
+  end if;
+  perform public.pruebas_log('OK A9: el resumen cuenta el stock bajo');
+
+  begin
+    update public.producto set stock = -1 where id_producto = v_id;
+    raise exception 'FALLO A10: se guardó un stock negativo';
+  exception when check_violation then
+    perform public.pruebas_log('OK A10: el stock no puede ser negativo');
+  end;
 end $$;
 
 
@@ -167,6 +182,13 @@ begin
     raise exception 'FALLO B4: otro usuario eliminó una promoción ajena';
   end if;
   perform public.pruebas_log('OK B4: otro usuario no elimina promociones ajenas');
+
+  select total_productos into v_rows
+    from public.resumen_catalogo(current_setting('pruebas.comercio_aprobado')::uuid);
+  if v_rows <> 0 then
+    raise exception 'FALLO B5: otro usuario ve el resumen de un catálogo ajeno';
+  end if;
+  perform public.pruebas_log('OK B5: el resumen de un catálogo ajeno sale vacío');
 end $$;
 
 

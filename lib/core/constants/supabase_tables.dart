@@ -23,6 +23,18 @@ class SupabaseFunctions {
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
   static const decidirSolicitud = 'decidir_solicitud';
+
+  /// HU-11: total de productos, valor del stock y productos con stock bajo
+  /// de un comercio. Ver docs/sql/sprint2_hu11.sql.
+  static const resumenCatalogo = 'resumen_catalogo';
+}
+
+/// Buckets de Supabase Storage.
+class SupabaseBuckets {
+  const SupabaseBuckets._();
+
+  /// HU-11: fotos de productos, en la carpeta `<id_comercio>/`.
+  static const productos = 'productos';
 }
 
 /// Columnas que usa la autenticación. Las confirmamos contra
@@ -91,6 +103,13 @@ class SupabaseColumns {
   static const productoMarca = 'marca';
   static const productoCodigoBarras = 'codigo_barras';
   static const productoCreadoEn = 'creado_en';
+  static const productoStock = 'stock';
+  static const productoFotoUrl = 'foto_url';
+
+  // resumen_catalogo() (HU-11)
+  static const resumenTotal = 'total_productos';
+  static const resumenValorStock = 'valor_stock';
+  static const resumenBajoStock = 'bajo_stock';
 
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
