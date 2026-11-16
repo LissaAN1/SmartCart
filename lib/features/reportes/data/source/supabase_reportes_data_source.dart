@@ -45,7 +45,7 @@ class SupabaseReportesDataSource {
 
   Future<PagedResult<Producto>> buscarProductos(
     String idComercio,
-    ConsultaProducto consulta,
+    ConsultaProductoReporte consulta,
     PageRequest request,
   ) {
     return _proteger(() async {

@@ -59,6 +59,25 @@ import 'package:smartcart/features/favoritos/data/repository/favoritos_repositor
 import 'package:smartcart/features/favoritos/domain/repository/favoritos_repository.dart';
 import 'package:smartcart/features/favoritos/domain/usecases/favoritos_usecases.dart';
 import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.dart';
+import 'package:smartcart/features/prices/data/repository/precios_repository_impl.dart';
+import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/data/source/file_picker_selector_imagen.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_imagen.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
+import 'package:smartcart/features/busqueda/data/repository/busqueda_repository_impl.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -170,7 +189,7 @@ void main() {
     expect(sl.isRegistered<FijarUbicacionComercioUseCase>(), isTrue);
     expect(sl.isRegistered<GetColaboradorActivoUseCase>(), isTrue);
     expect(sl.isRegistered<GetEstablecimientosCercanosUseCase>(), isTrue);
-    expect(sl.isRegistered<BuscarProductosUseCase>(), isTrue);
+    expect(sl.isRegistered<BuscarProductosReporteUseCase>(), isTrue);
     expect(sl.isRegistered<GetMisReportesUseCase>(), isTrue);
     expect(sl.isRegistered<PaginatedBloc<MiReporte>>(), isTrue);
     expect(sl.isRegistered<TomarFotoUseCase>(), isTrue);
@@ -218,7 +237,7 @@ void main() {
         sl<PaginatedBloc<Producto>>(
           instanceName: InstanciasSl.busquedaProductos,
           param1: 'c1',
-          param2: const ConsultaProducto(texto: 'arroz'),
+          param2: const ConsultaProductoReporte(texto: 'arroz'),
         ),
         isA<PaginatedBloc<Producto>>(),
       );
@@ -355,6 +374,66 @@ void main() {
         isA<PaginatedBloc<ComercioResumen>>(),
       );
     });
+  });
+
+  test('HU-11: precios y promociones se registran con el tipo del contrato',
+      () {
+    setupDependencies();
+
+    expect(sl.isRegistered<PreciosRepository>(), isTrue);
+    expect(sl.isRegistered<GetFichaPrecioUseCase>(), isTrue);
+    expect(sl.isRegistered<ActualizarPrecioUseCase>(), isTrue);
+    expect(sl.isRegistered<GuardarPromocionUseCase>(), isTrue);
+    expect(sl.isRegistered<QuitarPromocionUseCase>(), isTrue);
+    expect(sl.isRegistered<PrecioProductoBloc>(), isTrue);
+    expect(sl.isRegistered<GuardarProductoUseCase>(), isTrue);
+    expect(sl.isRegistered<SelectorImagen>(), isTrue);
+    expect(sl.isRegistered<InventarioBloc>(), isTrue);
+  });
+
+  test('HU-11: el Bloc de precios recibe el producto y usa el repositorio real',
+      () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+    const producto = Producto(
+      id: 'p1',
+      nombre: 'Arroz blanco',
+      idCategoria: 'cat-super',
+      categoria: 'Super',
+    );
+
+    final bloc = sl<PrecioProductoBloc>(param1: producto);
+
+    expect(bloc.producto, producto);
+    expect(identical(bloc, sl<PrecioProductoBloc>(param1: producto)), isFalse);
+    expect(sl<PreciosRepository>(), isA<PreciosRepositoryImpl>());
+    expect(sl<SelectorImagen>(), isA<FilePickerSelectorImagen>());
+    // La lista del catálogo agrega búsqueda y filtro por categoría.
+    expect(sl<PaginatedBloc<Producto>>(), isA<CatalogoListaBloc>());
+    expect(sl<InventarioBloc>(), isNot(same(sl<InventarioBloc>())));
+    expect(sl<GuardarProductoUseCase>(), same(sl<GuardarProductoUseCase>()));
+  });
+
+  test('HU-12: la búsqueda se registra con los tipos del contrato', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<BusquedaRepository>(), isA<BusquedaRepositoryImpl>());
+    expect(sl<BuscarProductosUseCase>(), same(sl<BuscarProductosUseCase>()));
+    expect(sl.isRegistered<GetDetalleProductoUseCase>(), isTrue);
+
+    final busqueda = sl<PaginatedBloc<ResultadoBusqueda>>(param1: 'arroz');
+    expect(busqueda, isA<BusquedaBloc>());
+    expect((busqueda as BusquedaBloc).texto, 'arroz');
+
+    const consulta = ConsultaPorCodigo('7701234567890');
+    expect(sl<DetalleProductoBloc>(param1: consulta).consulta, consulta);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {

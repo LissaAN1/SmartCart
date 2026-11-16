@@ -16,7 +16,7 @@ abstract class ReportesRepository {
   /// [consulta]. Con texto vacío devuelve todos.
   Future<PagedResult<Producto>> buscarProductos(
     String idComercio,
-    ConsultaProducto consulta,
+    ConsultaProductoReporte consulta,
     PageRequest request,
   );
 

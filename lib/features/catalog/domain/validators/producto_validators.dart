@@ -8,6 +8,9 @@ abstract final class ProductoValidators {
   static const nombreMax = 100;
   static const marcaMax = 60;
 
+  /// HU-11: unidades en stock, como el `check` de la base.
+  static const stockMax = 100000;
+
   static final _codigoPattern = RegExp(r'^\d{8,14}$');
 
   static String? nombre(String? value) {
@@ -39,10 +42,26 @@ abstract final class ProductoValidators {
     return (idCategoria ?? '').isEmpty ? 'Elige una categoría' : null;
   }
 
+  /// HU-11: el texto del campo de stock. Vacío cuenta como 0.
+  static String? stock(String? value) {
+    final text = (value ?? '').trim();
+    if (text.isEmpty) return null;
+    final unidades = int.tryParse(text);
+    if (unidades == null) return 'Escribe solo números enteros';
+    return stockValor(unidades);
+  }
+
+  static String? stockValor(int unidades) {
+    if (unidades < 0) return 'El stock no puede ser negativo';
+    if (unidades > stockMax) return 'Usa máximo $stockMax unidades';
+    return null;
+  }
+
   /// Primer error de los datos completos, o `null` si todos son válidos.
   static String? datos(ProductoDatos datos) =>
       nombre(datos.nombre) ??
       marca(datos.marca) ??
       codigoBarras(datos.codigoBarras) ??
-      categoria(datos.idCategoria);
+      categoria(datos.idCategoria) ??
+      stockValor(datos.stock);
 }

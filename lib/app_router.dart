@@ -21,6 +21,14 @@ import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_csv_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/producto_form_page.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/pages/busqueda_page.dart';
+import 'package:smartcart/features/busqueda/presentation/pages/detalle_producto_page.dart';
+import 'package:smartcart/features/busqueda/presentation/pages/escaner_page.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_home_screen.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
@@ -133,16 +141,35 @@ abstract final class AppRouter {
           create: (_) => sl<DecisionSolicitudBloc>(param1: args),
           child: const SolicitudDetallePage(),
         ),
-      AppRoutes.catalogo => BlocProvider(
-          create: (_) =>
-              sl<PaginatedBloc<Producto>>()..add(PaginatedStarted()),
+      AppRoutes.catalogo => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  sl<PaginatedBloc<Producto>>()..add(PaginatedStarted()),
+            ),
+            // HU-11: chips de categorías, resumen e interruptor de cada fila.
+            BlocProvider(
+              create: (_) => sl<InventarioBloc>()..add(InventarioStarted()),
+            ),
+          ],
           child: const CatalogoPage(),
         ),
       AppRoutes.catalogoProducto => () {
           final producto = args is Producto ? args : null;
-          return BlocProvider(
-            create: (_) => sl<ProductoFormBloc>(param1: producto)
-              ..add(ProductoFormStarted()),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => sl<ProductoFormBloc>(param1: producto)
+                  ..add(ProductoFormStarted()),
+              ),
+              // HU-11: historial, disponibilidad y promoción del producto
+              // que se edita (uno nuevo todavía no tiene).
+              if (producto != null)
+                BlocProvider(
+                  create: (_) => sl<PrecioProductoBloc>(param1: producto)
+                    ..add(PrecioProductoStarted()),
+                ),
+            ],
             child: ProductoFormPage(producto: producto),
           );
         }(),
@@ -210,6 +237,21 @@ abstract final class AppRouter {
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),
         ),
+      // HU-12: búsqueda del cliente, detalle del producto y escáner.
+      AppRoutes.busqueda => () {
+          final texto = args is String ? args : '';
+          return BlocProvider(
+            create: (_) => sl<PaginatedBloc<ResultadoBusqueda>>(param1: texto)
+              ..add(PaginatedStarted()),
+            child: BusquedaPage(textoInicial: texto),
+          );
+        }(),
+      AppRoutes.busquedaDetalle when args is ConsultaProducto => BlocProvider(
+          create: (_) => sl<DetalleProductoBloc>(param1: args)
+            ..add(DetalleProductoStarted()),
+          child: const DetalleProductoPage(),
+        ),
+      AppRoutes.escaner => const EscanerPage(),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.
       _ => BlocProvider(
@@ -228,13 +270,15 @@ abstract final class AppRouter {
       AppRoutes.catalogoProducto =>
         MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
       // Los pasos del reporte devuelven `true` si el reporte se envió, para
-      // que los pasos anteriores se cierren; el escáner devuelve el código.
+      // que los pasos anteriores se cierren.
       AppRoutes.reporteEstablecimiento ||
       AppRoutes.reporteProducto ||
       AppRoutes.reporteFormulario ||
       AppRoutes.reporteSugerir =>
         MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
-      AppRoutes.reporteEscaner =>
+      // Los escáneres (reporte de precio y búsqueda) devuelven el código leído.
+      AppRoutes.reporteEscaner ||
+      AppRoutes.escaner =>
         MaterialPageRoute<String>(builder: (_) => page, settings: settings),
       // El detalle de una solicitud devuelve la decisión tomada.
       AppRoutes.adminSolicitudDetalle => MaterialPageRoute<ApprovalStatus>(

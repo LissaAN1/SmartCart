@@ -8,17 +8,17 @@ Resultados reales de las verificaciones hechas el 15 de noviembre de 2026 sobre 
 |---|---|
 | `flutter test --concurrency=1` (línea base, al empezar la HU-17) | 428 pruebas, todas pasan |
 | `flutter analyze` (final) | **No issues found** |
-| `flutter test --concurrency=1` (final) | **587 pruebas, todas pasan** (159 nuevas) |
-| `docs/sql/sprint2_hu17.sql` y `docs/sql/pruebas_hu17_politicas.sql` en Supabase | **Ejecutados** en el SQL Editor de Supabase: `pruebas_hu17_politicas.sql` dio **34 líneas `OK`** (más el `AVISO` esperado de los datos de prueba); ver sección 2 |
+| `flutter test --concurrency=1` (final) | **722 pruebas (con `main` integrado; 587 antes del merge), todas pasan** (159 nuevas) |
+| `docs/sql/sprint2_hu17.sql` y `docs/sql/pruebas_hu17_politicas.sql` en Supabase | **Todo `OK`**, también después de integrar `main` y quitar la política de lectura de `producto` (ver sección 2) |
 | `flutter build apk --debug` | **No se volvió a ejecutar en esta historia.** No agrega plugins ni permisos nativos; el último APK que compiló es el de la HU-14 |
 
 Con la concurrencia por defecto, `flutter test` se queda sin memoria en este equipo; con `--concurrency=1` corre completo.
 
 **Diferencia entre ejecutado, aprobado y pendiente**
 
-- Ejecutadas y aprobadas: las 587 pruebas de Dart/Flutter y `flutter analyze`.
-- Ejecutadas y aprobadas en Supabase: `sprint2_hu17.sql` y sus 34 pruebas de políticas y funciones.
-- **Pendiente, no ejecutada:** la app en un dispositivo Android.
+- Ejecutadas y aprobadas: las 722 pruebas (con `main` integrado; 587 antes del merge) de Dart/Flutter y `flutter analyze`.
+- Ejecutadas y aprobadas en Supabase: `sprint2_hu17.sql` y sus 34 pruebas de políticas, con la versión final del script (informado por el equipo).
+- Probada en un dispositivo Android: funcionó (informado por el equipo; no se guardaron capturas en el repositorio).
 
 ## 2. Criterios de aceptación y su verificación
 
@@ -35,11 +35,11 @@ Con la concurrencia por defecto, `flutter test` se queda sin memoria en este equ
 | Agregar desde el detalle del producto | **No verificable: el detalle es la HU-13.** El botón `AgregarCarritoBoton` es reutilizable | — |
 | Solo un cliente | Todos los casos de uso fallan sin sesión o sin perfil de cliente | `carrito_dominio_test`, `favoritos_test`, `explorar_test` |
 | Las listas se cargan por páginas | Favoritos y exploración (casos de uso y Bloc) | `favoritos_test`, `explorar_test` |
-| Integración con el Home y el Perfil del cliente | Pestaña "Carrito", lupa, buscador, "Comenzar ahora" y "Mis favoritos"; "Comparar" sigue avisando "próximamente"; sin `crearCliente` todo se comporta como antes | `cliente_integracion_test` |
+| Integración con el Home y el Perfil del cliente | Pestaña "Carrito", "Comenzar ahora" (exploración) y "Mis favoritos"; la lupa, el buscador y "Comparar" abren la búsqueda de la HU-12; sin `crearCliente` todo se comporta como antes | `cliente_integracion_test` |
 
 ### Políticas y funciones en la base real
 
-**Ejecutado y aprobado (34 `OK`).** `docs/sql/pruebas_hu17_politicas.sql` tiene 34 pruebas que simulan sesiones reales y terminan en `ROLLBACK`. Antes de pasar, la base real nos obligó a corregir tres cosas del SQL y del script (ninguna cambió el comportamiento de la app):
+**Ejecutado y aprobado con la versión final.** `docs/sql/pruebas_hu17_politicas.sql` tiene 34 pruebas que simulan sesiones reales y terminan en `ROLLBACK`. Antes de pasar, la base real y la integración con `main` nos obligaron a corregir varias cosas del SQL y del script (ninguna cambió el comportamiento de la app):
 
 - Las columnas de texto de las funciones se devuelven con `::text`, porque en la base real `comercio.nombre` y otras son `varchar(255)` y plpgsql exige el tipo exacto.
 - Un `%` literal en un mensaje del script se escribe `%%`.
@@ -47,7 +47,7 @@ Con la concurrencia por defecto, `flutter test` se queda sin memoria en este equ
 
 | Grupo | Qué demuestra |
 |---|---|
-| A1 a A5 | Un cliente explora productos y comercios **solo de comercios aprobados**, el filtro por nombre y el escape de comodines, y lee productos solo de comercios aprobados |
+| A1 a A5 | Un cliente explora productos y comercios **solo de comercios aprobados**, el filtro por nombre y el escape de comodines, y no lee la tabla `producto` directamente (solo por las funciones) |
 | B1 a B11 | Escenarios 1 y 2: agregar deja cantidad 1, agregar otra vez suma sin duplicar, `mi_carrito` trae los datos, cambiar la cantidad, la cantidad debe ir de 1 a 99, no se cambia el producto de una línea ni se inserta saltándose la función, tope de 99, un producto de un comercio pendiente o inexistente no se agrega, y quitar |
 | C1 y C2 | Otro cliente no ve ni modifica carritos ajenos |
 | D1 a D4 | Quien no tiene el rol cliente no agrega, no explora, no lee productos ajenos y no marca favoritos |
@@ -81,15 +81,15 @@ El criterio de referencia es la tabla "Informe de criterios de calidad" del `REA
 | BLoC | `CarritoBloc`, `FavoritosBloc` y `PaginatedBloc` con estados de carga, éxito y error, respuesta inmediata con vuelta atrás si falla, y protección contra el doble toque. | `carrito_bloc_test`, `favoritos_test` |
 | Reutilización | `PaginatedBloc`/`PaginatedListView`, `PantallaRol`, `TarjetaSuave`, `BotonPrimario`, `ErrorMessage`, `traducirErroresSupabase`, y los botones `AgregarCarritoBoton` y `FavoritoBoton` pensados para la HU-12 y la HU-13. | Revisión del código |
 | Manejo de errores | Errores de Supabase traducidos a mensajes en español; los de las funciones SQL llegan con su mensaje; error inesperado con mensaje genérico. | `carrito_bloc_test`, `favoritos_test`, pruebas de pantallas |
-| Seguridad | Cada cliente solo toca lo suyo; no se inserta en el carrito saltándose la función; solo se agrega lo disponible. | Demostrado en Supabase con `pruebas_hu17_politicas.sql` (34 `OK`) |
+| Seguridad | Cada cliente solo toca lo suyo; no se inserta en el carrito saltándose la función; solo se agrega lo disponible. | `pruebas_hu17_politicas.sql`: todo `OK` en Supabase |
 | Paginado | Favoritos y exploración usan la base común. | `favoritos_test`, `explorar_test` |
 | Pruebas | 159 pruebas nuevas; la suite completa pasa. | Sección 1 |
 | Análisis estático | `flutter analyze` sin problemas. | Sección 1 |
 
 ## 5. Pendientes y limitaciones
 
-1. **Hecho:** `sprint2_hu17.sql` y `pruebas_hu17_politicas.sql` corridos en Supabase; las 34 líneas dieron `OK`. Quien despliegue en otra base debe correr los dos scripts en ese orden, después de `sprint2_hu14.sql`.
-2. **Probar en un teléfono o emulador Android**: agregar, cambiar la cantidad, quitar, marcar favoritos, y cerrar y volver a abrir la app para comprobar que todo se recupera. Pasos en el README, sección "Probar el carrito y los favoritos (HU-17)".
+1. **Hecho:** `sprint2_hu17.sql` y `pruebas_hu17_politicas.sql` corridos en Supabase con la versión final (sin la política `producto_select_cliente`, que contradecía a HU-10 y HU-12). Quien despliegue en otra base debe correr los dos, en ese orden, después de los de HU-11, HU-12 y HU-14.
+2. **Hecho:** prueba manual en Android (agregar, cambiar la cantidad, quitar, favoritos, cerrar y volver a abrir). Pasos en el README, sección "Probar el carrito y los favoritos (HU-17)".
 3. Dejar evidencia para la sustentación: capturas del carrito con el número en la pestaña, de los favoritos, y de las tablas `carrito_item` y `favorito_*`.
 4. "Agregar desde el detalle" depende de la HU-13.
 5. Las dos advertencias de `tap()` de `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes y no vienen de este cambio.

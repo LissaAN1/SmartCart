@@ -13,18 +13,15 @@ class SupabaseTables {
   static const categoria = 'categoria';
   static const establecimientoSugerido = 'establecimiento_sugerido';
 
+  // HU-11. Ver docs/sql/sprint2_hu11.sql
+  static const precioProducto = 'precio_producto';
+  static const historialPrecio = 'historial_precio';
+  static const promocion = 'promocion';
+
   // HU-17. Ver docs/sql/sprint2_hu17.sql
   static const carritoItem = 'carrito_item';
   static const favoritoProducto = 'favorito_producto';
   static const favoritoComercio = 'favorito_comercio';
-}
-
-/// Buckets de Supabase Storage. Ver docs/sql/sprint2_hu14.sql.
-class SupabaseBuckets {
-  const SupabaseBuckets._();
-
-  /// HU-14: fotos de las etiquetas de precio, en `<id_usuario>/<archivo>`.
-  static const reportes = 'reportes';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
@@ -63,6 +60,29 @@ class SupabaseFunctions {
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
   static const decidirSolicitud = 'decidir_solicitud';
+
+  /// HU-11: total de productos, valor del stock y productos con stock bajo
+  /// de un comercio. Ver docs/sql/sprint2_hu11.sql.
+  static const resumenCatalogo = 'resumen_catalogo';
+
+  /// HU-12: búsqueda del cliente con rango de precios y establecimientos.
+  /// Ver docs/sql/sprint2_hu12.sql.
+  static const buscarProductos = 'buscar_productos';
+
+  /// HU-12: un producto con el precio de cada establecimiento.
+  static const preciosDeProducto = 'precios_de_producto';
+}
+
+/// Buckets de Supabase Storage. Ver docs/sql/sprint2_hu11.sql y
+/// docs/sql/sprint2_hu14.sql.
+class SupabaseBuckets {
+  const SupabaseBuckets._();
+
+  /// HU-11: fotos de productos, en la carpeta `<id_comercio>/`.
+  static const productos = 'productos';
+
+  /// HU-14: fotos de las etiquetas de precio, en `<id_usuario>/<archivo>`.
+  static const reportes = 'reportes';
 }
 
 /// Columnas que usa la autenticación. Las confirmamos contra
@@ -131,6 +151,34 @@ class SupabaseColumns {
   static const productoMarca = 'marca';
   static const productoCodigoBarras = 'codigo_barras';
   static const productoCreadoEn = 'creado_en';
+  static const productoStock = 'stock';
+  static const productoFotoUrl = 'foto_url';
+
+  // resumen_catalogo() (HU-11)
+  static const resumenTotal = 'total_productos';
+  static const resumenValorStock = 'valor_stock';
+  static const resumenBajoStock = 'bajo_stock';
+
+  // buscar_productos() y precios_de_producto() (HU-12)
+  static const busquedaClave = 'clave';
+  static const busquedaNombre = 'nombre';
+  static const busquedaMarca = 'marca';
+  static const busquedaCodigo = 'codigo_barras';
+  static const busquedaCategoria = 'categoria';
+  static const busquedaFoto = 'foto_url';
+  static const busquedaPrecioMin = 'precio_min';
+  static const busquedaPrecioMax = 'precio_max';
+  static const busquedaEstablecimientos = 'establecimientos';
+  static const ofertaProducto = 'id_producto';
+  static const ofertaComercio = 'comercio';
+  static const ofertaDireccion = 'direccion';
+  static const ofertaCiudad = 'ciudad';
+  static const ofertaPrecio = 'precio';
+  static const ofertaPrecioNormal = 'precio_normal';
+  static const ofertaEnPromocion = 'en_promocion';
+  static const ofertaDisponible = 'disponible';
+  static const ofertaFuente = 'fuente';
+  static const ofertaActualizadoEn = 'actualizado_en';
 
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
@@ -173,4 +221,27 @@ class SupabaseColumns {
   static const sugeridoCiudad = 'ciudad';
   static const sugeridoLatitud = 'latitud';
   static const sugeridoLongitud = 'longitud';
+
+  // precio_producto (HU-11). Ver docs/sql/sprint2_hu11.sql
+  static const precioProducto = 'id_producto';
+  static const precioValor = 'precio';
+  static const precioDisponible = 'disponible';
+  static const precioFuente = 'fuente';
+  static const precioActualizadoEn = 'actualizado_en';
+
+  // historial_precio (HU-11): lo escribe un trigger, la app solo lo lee
+  static const historialId = 'id_historial';
+  static const historialProducto = 'id_producto';
+  static const historialPrecio = 'precio';
+  static const historialDisponible = 'disponible';
+  static const historialFuente = 'fuente';
+  static const historialRegistradoEn = 'registrado_en';
+
+  // promocion (HU-11): una por producto
+  static const promocionId = 'id_promocion';
+  static const promocionProducto = 'id_producto';
+  static const promocionPrecio = 'precio_promocional';
+  static const promocionInicio = 'fecha_inicio';
+  static const promocionFin = 'fecha_fin';
+  static const promocionActualizadoEn = 'actualizado_en';
 }

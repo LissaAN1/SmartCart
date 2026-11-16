@@ -185,18 +185,14 @@ begin
   end if;
   perform public.pruebas_log('OK A4: el cliente explora solo comercios aprobados');
 
-  -- A5: la política de lectura de productos.
+  -- A5: el cliente no lee la tabla producto directamente: solo ve los
+  -- productos por las funciones (A1). Así se mantiene la regla de la HU-10 y
+  -- de la HU-12 (los productos son del dueño).
   select count(*) into v_n from public.producto where id_producto = v_producto;
-  if v_n <> 1 then
-    raise exception 'FALLO A5: el cliente no lee un producto de un comercio aprobado';
+  if v_n <> 0 then
+    raise exception 'FALLO A5: el cliente lee la tabla producto directamente';
   end if;
-  if v_pend_prod is not null then
-    select count(*) into v_n from public.producto where id_producto = v_pend_prod;
-    if v_n <> 0 then
-      raise exception 'FALLO A5: el cliente lee un producto de un comercio pendiente';
-    end if;
-  end if;
-  perform public.pruebas_log('OK A5: el cliente lee productos solo de comercios aprobados');
+  perform public.pruebas_log('OK A5: el cliente no lee la tabla producto, solo las funciones');
 end $$;
 
 

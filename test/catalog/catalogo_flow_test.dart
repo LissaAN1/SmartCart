@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:smartcart/components/auth_text_field.dart';
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/catalog/domain/entities/resultado_carga_csv.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_csv_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/producto_form_page.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 
 import '../support/fakes.dart';
 import '../support/pump_helpers.dart';
@@ -34,10 +35,22 @@ Future<TestEnv> _pumpCatalogo(
           final producto = args is Producto ? args : null;
           return MaterialPageRoute<bool>(
             settings: settings,
-            builder: (_) => BlocProvider(
-              create: (_) => env.productoFormBloc(editando: producto)
-                ..add(ProductoFormStarted()),
-              child: ProductoFormPage(producto: producto),
+            builder: (_) => MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) => env.productoFormBloc(editando: producto)
+                    ..add(ProductoFormStarted()),
+                ),
+                if (producto != null)
+                  BlocProvider(
+                    create: (_) => env.precioBloc(producto)
+                      ..add(PrecioProductoStarted()),
+                  ),
+              ],
+              child: ProductoFormPage(
+                producto: producto,
+                ahora: () => env.ahora,
+              ),
             ),
           );
         }
@@ -52,8 +65,15 @@ Future<TestEnv> _pumpCatalogo(
         }
         return null;
       },
-      home: BlocProvider(
-        create: (_) => env.productosBloc()..add(PaginatedStarted()),
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider<PaginatedBloc<Producto>>(
+            create: (_) => env.productosBloc()..add(PaginatedStarted()),
+          ),
+          BlocProvider(
+            create: (_) => env.inventarioBloc()..add(InventarioStarted()),
+          ),
+        ],
         child: const CatalogoPage(),
       ),
     ),
@@ -62,19 +82,50 @@ Future<TestEnv> _pumpCatalogo(
   return env;
 }
 
-/// El campo se identifica por la etiqueta que lleva arriba.
+/// Editar producto es una lista larga y `ListView` solo construye lo que se
+/// ve: baja hasta que [finder] aparezca.
+Future<void> _verAbajo(WidgetTester tester, Finder finder) async {
+  // Editar Producto construye todos sus campos (SingleChildScrollView), así
+  // que basta con llevar el widget a la vista. Antes se quita el foco (como
+  // al cerrar el teclado): si no, el campo enfocado vuelve a mover la vista.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
+/// Lo mismo hacia arriba (por ejemplo, para ver el error del nombre después
+/// de tocar "Guardar Cambios").
+Future<void> _verArriba(WidgetTester tester, Finder finder) async {
+  // Editar Producto construye todos sus campos (SingleChildScrollView), así
+  // que basta con llevar el widget a la vista. Antes se quita el foco (como
+  // al cerrar el teclado): si no, el campo enfocado vuelve a mover la vista.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
+/// Cada campo de Editar producto tiene su `Key`.
+const _campos = {
+  'Nombre del producto': 'campo-nombre',
+  'Marca (opcional)': 'campo-marca',
+  'Código de barras (opcional)': 'campo-codigo',
+  'Precio actual (COP)': 'campo-precio',
+  'Stock (unidades)': 'campo-stock',
+};
+
 Future<void> _escribir(WidgetTester tester, String etiqueta, String texto) async {
   final input = find.descendant(
-    of: find.ancestor(
-      of: find.text(etiqueta),
-      matching: find.byType(AuthTextField),
-    ),
+    of: find.byKey(Key(_campos[etiqueta]!)),
     matching: find.byType(TextFormField),
   );
+  await _verAbajo(tester, input);
   await tester.enterText(input, texto);
 }
 
 Future<void> _elegirCategoria(WidgetTester tester, String nombre) async {
+  await _verAbajo(tester, find.byType(DropdownButtonFormField<String>));
   await tester.tap(find.byType(DropdownButtonFormField<String>));
   await tester.pumpAndSettle();
   await tester.tap(find.text(nombre).last);
@@ -82,8 +133,8 @@ Future<void> _elegirCategoria(WidgetTester tester, String nombre) async {
 }
 
 Future<void> _tocarGuardar(WidgetTester tester) async {
-  final boton = find.widgetWithText(FilledButton, 'Guardar');
-  await tester.ensureVisible(boton);
+  final boton = find.widgetWithText(FilledButton, 'Guardar Cambios');
+  await _verAbajo(tester, boton);
   await tester.tap(boton);
   await tester.pumpAndSettle();
 }
@@ -104,7 +155,7 @@ void main() {
         env.catalogo.precargar('otro-comercio', 2);
       });
 
-      expect(find.text('Mi catálogo'), findsOneWidget);
+      expect(find.text('Catálogo'), findsOneWidget);
       expect(find.text('Arroz blanco 500 g'), findsOneWidget);
       expect(find.text('Diana · Super'), findsOneWidget);
       expect(find.text('Código 7701234567890'), findsOneWidget);
@@ -150,7 +201,7 @@ void main() {
 
       await tester.dragUntilVisible(
         find.text('Producto 45'),
-        find.byType(ListView),
+        find.byType(ListView).first,
         const Offset(0, -400),
       );
       await tester.pumpAndSettle();
@@ -166,13 +217,15 @@ void main() {
       await tester.tap(find.byTooltip('Agregar producto'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nuevo producto'), findsOneWidget);
+      expect(find.text('Nuevo Producto'), findsOneWidget);
       expect(find.text('Eliminar producto'), findsNothing);
 
+      await _verAbajo(tester, find.byType(DropdownButtonFormField<String>));
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
-      expect(find.text('Frutas'), findsOneWidget);
-      expect(find.text('Lácteos'), findsOneWidget);
+      // También aparecen en los chips del catálogo, que sigue debajo.
+      expect(find.text('Frutas'), findsWidgets);
+      expect(find.text('Lácteos'), findsWidgets);
     });
 
     testWidgets('sin completar lo obligatorio muestra los errores y no guarda',
@@ -183,6 +236,7 @@ void main() {
 
       await _tocarGuardar(tester);
 
+      await _verArriba(tester, find.text('Escribe el nombre del producto'));
       expect(find.text('Escribe el nombre del producto'), findsOneWidget);
       expect(find.text('Elige una categoría'), findsOneWidget);
       expect(env.catalogo.creados, isEmpty);
@@ -216,7 +270,7 @@ void main() {
       await _tocarGuardar(tester);
 
       // Vuelve a la lista y el producto ya aparece.
-      expect(find.text('Mi catálogo'), findsOneWidget);
+      expect(find.text('Catálogo'), findsOneWidget);
       expect(find.text('Arroz blanco 500 g'), findsOneWidget);
       expect(find.text('Diana · Super'), findsOneWidget);
       expect(env.catalogo.creados.single.idComercio, 'c1');
@@ -236,7 +290,7 @@ void main() {
       await _elegirCategoria(tester, 'Super');
       await _tocarGuardar(tester);
 
-      expect(find.text('Nuevo producto'), findsOneWidget);
+      expect(find.text('Nuevo Producto'), findsOneWidget);
       expect(
         find.text('Ya tienes un producto con ese código de barras.'),
         findsOneWidget,
@@ -257,7 +311,7 @@ void main() {
       await tester.tap(find.text('Reintentar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Categoría'), findsOneWidget);
+      expect(find.text('CATEGORÍA'), findsOneWidget);
     });
   });
 
@@ -281,12 +335,14 @@ void main() {
     testWidgets('abre con los datos del producto', (tester) async {
       await abrirEdicion(tester);
 
-      expect(find.text('Editar producto'), findsOneWidget);
-      expect(find.text('Arroz blanco 500 g'), findsOneWidget);
+      expect(find.text('Editar Producto'), findsOneWidget);
+      // En la cabecera y en el campo.
+      expect(find.text('Arroz blanco 500 g'), findsWidgets);
       expect(find.text('Diana'), findsOneWidget);
-      // El campo también conserva su texto de ejemplo, por eso `findsWidgets`.
-      expect(find.text('7701234567890'), findsWidgets);
-      expect(find.text('Super'), findsOneWidget);
+      // El código se muestra como SKU en la cabecera.
+      expect(find.text('SKU: 7701234567890'), findsOneWidget);
+      await _verAbajo(tester, find.text('Super'));
+      expect(find.text('Super'), findsWidgets);
     });
 
     testWidgets('cambiar el nombre y guardar actualiza la lista', (tester) async {
@@ -295,7 +351,7 @@ void main() {
       await _escribir(tester, 'Nombre del producto', 'Arroz integral 500 g');
       await _tocarGuardar(tester);
 
-      expect(find.text('Mi catálogo'), findsOneWidget);
+      expect(find.text('Catálogo'), findsOneWidget);
       expect(find.text('Arroz integral 500 g'), findsOneWidget);
       expect(find.text('Arroz blanco 500 g'), findsNothing);
     });
@@ -303,7 +359,7 @@ void main() {
     testWidgets('eliminar pide confirmación y quita el producto', (tester) async {
       final env = await abrirEdicion(tester);
 
-      await tester.ensureVisible(find.text('Eliminar producto'));
+      await _verAbajo(tester, find.text('Eliminar producto'));
       await tester.tap(find.text('Eliminar producto'));
       await tester.pumpAndSettle();
       expect(find.text('¿Eliminar Arroz blanco 500 g?'), findsOneWidget);
@@ -311,7 +367,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, 'Eliminar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mi catálogo'), findsOneWidget);
+      expect(find.text('Catálogo'), findsOneWidget);
       expect(find.text('Arroz blanco 500 g'), findsNothing);
       expect(env.catalogo.deComercio('c1'), isEmpty);
     });
@@ -319,13 +375,13 @@ void main() {
     testWidgets('cancelar la confirmación no elimina nada', (tester) async {
       final env = await abrirEdicion(tester);
 
-      await tester.ensureVisible(find.text('Eliminar producto'));
+      await _verAbajo(tester, find.text('Eliminar producto'));
       await tester.tap(find.text('Eliminar producto'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Editar producto'), findsOneWidget);
+      expect(find.text('Editar Producto'), findsOneWidget);
       expect(env.catalogo.deComercio('c1').length, 1);
     });
   });
@@ -382,7 +438,7 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.text('Mi catálogo'), findsOneWidget);
+      expect(find.text('Catálogo'), findsOneWidget);
       expect(find.text('Leche entera'), findsOneWidget);
     });
 

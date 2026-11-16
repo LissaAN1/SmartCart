@@ -15,11 +15,17 @@ class PaginatedListView<T> extends StatefulWidget {
 
   final EdgeInsetsGeometry padding;
 
+  /// Contenido fijo arriba de los elementos (buscador, filtros, resumen) que
+  /// se desplaza junto con la lista. Se muestra también mientras carga, si
+  /// falla o si la lista está vacía.
+  final Widget? encabezado;
+
   const PaginatedListView({
     super.key,
     required this.itemBuilder,
     this.emptyMessage = 'No hay información disponible',
     this.padding = const EdgeInsets.all(16),
+    this.encabezado,
   });
 
   @override
@@ -70,6 +76,8 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
   Widget build(BuildContext context) {
     return BlocBuilder<PaginatedBloc<T>, PaginatedState<T>>(
       builder: (context, state) {
+        final encabezado = widget.encabezado;
+        if (encabezado != null) return _conEncabezado(context, state, encabezado);
         if (state.status == PaginatedStatus.failure) {
           return _Reintentable(
             mensaje: state.errorMessage ?? 'No pudimos cargar la información.',
@@ -106,6 +114,66 @@ class _PaginatedListViewState<T> extends State<PaginatedListView<T>> {
                   context.read<PaginatedBloc<T>>().add(NextPageRequested()),
             );
           },
+        );
+      },
+    );
+  }
+
+  /// Misma lista, con [encabezado] como primera fila. Los estados de carga,
+  /// error y lista vacía se muestran debajo del encabezado.
+  Widget _conEncabezado(
+    BuildContext context,
+    PaginatedState<T> state,
+    Widget encabezado,
+  ) {
+    final Widget? aviso = switch (state.status) {
+      PaginatedStatus.failure => _Reintentable(
+          mensaje: state.errorMessage ?? 'No pudimos cargar la información.',
+          onReintentar: () =>
+              context.read<PaginatedBloc<T>>().add(PaginatedStarted()),
+        ),
+      PaginatedStatus.success when state.isEmpty => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Center(
+            child: Text(widget.emptyMessage, textAlign: TextAlign.center),
+          ),
+        ),
+      PaginatedStatus.success => null,
+      _ => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+    };
+    if (aviso != null) {
+      return ListView(
+        controller: _controller,
+        padding: widget.padding,
+        children: [encabezado, aviso],
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _llenarPantalla());
+    final hayPie = state.loadingMore || state.errorMessage != null;
+    return ListView.builder(
+      controller: _controller,
+      padding: widget.padding,
+      itemCount: 1 + state.items.length + (hayPie ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == 0) return encabezado;
+        final i = index - 1;
+        if (i < state.items.length) {
+          return widget.itemBuilder(context, state.items[i]);
+        }
+        if (state.loadingMore) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _Reintentable(
+          mensaje: state.errorMessage!,
+          onReintentar: () =>
+              context.read<PaginatedBloc<T>>().add(NextPageRequested()),
         );
       },
     );

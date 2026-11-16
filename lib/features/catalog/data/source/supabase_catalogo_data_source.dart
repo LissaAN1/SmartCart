@@ -1,9 +1,13 @@
 import 'package:smartcart/core/constants/supabase_tables.dart';
 import 'package:smartcart/core/pagination/paged_result.dart';
+import 'package:smartcart/core/utils/json_helpers.dart';
 import 'package:smartcart/features/auth/data/source/supabase_error_mapper.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
+import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
+import 'package:smartcart/features/catalog/domain/entities/imagen_producto.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/entities/resumen_catalogo.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Único archivo que lee y escribe las tablas `producto` y `categoria`.
@@ -11,10 +15,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// comercio (políticas RLS de docs/sql/sprint2_hu10.sql); aquí además se
 /// filtra siempre por el id del comercio.
 class SupabaseCatalogoDataSource {
-  /// Trae la categoría junto con el producto en una sola consulta.
+  /// Trae la categoría y el precio actual (HU-11) junto con el producto en
+  /// una sola consulta. Es pública: la búsqueda de productos de los reportes
+  /// (HU-14) usa la misma selección.
   static const seleccion =
       '*, ${SupabaseTables.categoria}(${SupabaseColumns.categoriaId}, '
-      '${SupabaseColumns.categoriaNombre})';
+      '${SupabaseColumns.categoriaNombre}), '
+      '${SupabaseTables.precioProducto}(${SupabaseColumns.precioValor}, '
+      '${SupabaseColumns.precioDisponible})';
 
   /// Tamaño de cada lote al enviar varios productos o consultar varios
   /// códigos: evita pedidos demasiado grandes.
@@ -27,13 +35,26 @@ class SupabaseCatalogoDataSource {
 
   Future<PagedResult<Producto>> productos(
     String idComercio,
-    PageRequest request,
-  ) {
+    PageRequest request, {
+    FiltroCatalogo filtro = const FiltroCatalogo(),
+  }) {
     return _proteger(() async {
-      final rows = await _client
+      var query = _client
           .from(SupabaseTables.producto)
           .select(seleccion)
-          .eq(SupabaseColumns.productoComercio, idComercio)
+          .eq(SupabaseColumns.productoComercio, idComercio);
+      final idCategoria = filtro.idCategoria;
+      if (idCategoria != null) {
+        query = query.eq(SupabaseColumns.productoCategoria, idCategoria);
+      }
+      final texto = textoBuscable(filtro.texto);
+      if (texto.isNotEmpty) {
+        query = query.or(
+          '${SupabaseColumns.productoNombre}.ilike.%$texto%,'
+          '${SupabaseColumns.productoMarca}.ilike.%$texto%',
+        );
+      }
+      final rows = await query
           .order(SupabaseColumns.productoCreadoEn, ascending: false)
           .order(SupabaseColumns.productoId, ascending: true)
           .range(request.from, request.to);
@@ -43,6 +64,65 @@ class SupabaseCatalogoDataSource {
       );
     });
   }
+
+  /// HU-11: lo calcula la base (`resumen_catalogo`), así incluye los
+  /// productos de todas las páginas.
+  Future<ResumenCatalogo> resumen(String idComercio) {
+    return _proteger(() async {
+      final rows = await _client.rpc(
+        SupabaseFunctions.resumenCatalogo,
+        params: {'p_id_comercio': idComercio},
+      );
+      final fila = rows is List && rows.isNotEmpty ? rows.first : rows;
+      if (fila is! Map) return const ResumenCatalogo();
+      return ResumenCatalogo(
+        totalProductos: parseInt(fila[SupabaseColumns.resumenTotal]) ?? 0,
+        valorStock: parseInt(fila[SupabaseColumns.resumenValorStock]) ?? 0,
+        bajoStock: parseInt(fila[SupabaseColumns.resumenBajoStock]) ?? 0,
+      );
+    });
+  }
+
+  /// HU-11: sube la foto a `productos/<id_comercio>/` (la política de Storage
+  /// solo deja escribir en la carpeta del comercio propio) y guarda su URL
+  /// pública en el producto. Un nombre nuevo cada vez evita que el teléfono
+  /// muestre la foto anterior guardada en caché.
+  Future<Producto> subirFoto(
+    String idComercio,
+    Producto producto,
+    ImagenProducto foto,
+  ) {
+    return _proteger(() async {
+      final ruta = '$idComercio/${producto.id}-'
+          '${DateTime.now().millisecondsSinceEpoch}.${foto.extension}';
+      final bucket = _client.storage.from(SupabaseBuckets.productos);
+      try {
+        await bucket.uploadBinary(
+          ruta,
+          foto.bytes,
+          fileOptions: FileOptions(contentType: foto.contentType),
+        );
+      } on StorageException {
+        throw const AuthFailure(
+          'No pudimos subir la foto. Revisa tu conexión e inténtalo de nuevo.',
+        );
+      }
+      final url = bucket.getPublicUrl(ruta);
+      final row = await _client
+          .from(SupabaseTables.producto)
+          .update({SupabaseColumns.productoFotoUrl: url})
+          .eq(SupabaseColumns.productoId, producto.id)
+          .select(seleccion)
+          .maybeSingle();
+      if (row == null) throw const AuthFailure('No encontramos ese producto.');
+      return _toProducto(row);
+    });
+  }
+
+  /// Quita del texto buscado los caracteres que tienen significado en el
+  /// filtro `or` de PostgREST (coma, paréntesis) y los comodines de `ilike`.
+  static String textoBuscable(String texto) =>
+      texto.replaceAll(RegExp(r'[,()%*\\]'), ' ').trim();
 
   Future<List<Categoria>> categorias() {
     return _proteger(() async {
@@ -161,16 +241,23 @@ class SupabaseCatalogoDataSource {
         SupabaseColumns.productoMarca: datos.marca,
         SupabaseColumns.productoCodigoBarras: datos.codigoBarras,
         SupabaseColumns.productoCategoria: datos.idCategoria,
+        SupabaseColumns.productoStock: datos.stock,
       };
 
   Producto _toProducto(Map<String, dynamic> row) => productoFromRow(row);
 }
 
-/// Convierte una fila de `producto` (con su categoría anidada) en la entidad.
-/// La comparten el catálogo del comercio (HU-10) y la búsqueda de productos
-/// de los reportes (HU-14).
+/// Convierte una fila de `producto` (con su categoría y su precio anidados)
+/// en la entidad. La comparten el catálogo del comercio (HU-10 y HU-11) y la
+/// búsqueda de productos de los reportes (HU-14).
 Producto productoFromRow(Map<String, dynamic> row) {
   final categoria = row[SupabaseTables.categoria];
+  // precio_producto es 1 a 1 con producto: llega como objeto, o como
+  // lista según cómo PostgREST lea la relación.
+  final embebido = row[SupabaseTables.precioProducto];
+  final precio = embebido is List
+      ? (embebido.isEmpty ? null : embebido.first)
+      : embebido;
   return Producto(
     id: row[SupabaseColumns.productoId].toString(),
     nombre: row[SupabaseColumns.productoNombre] as String? ?? '',
@@ -180,5 +267,11 @@ Producto productoFromRow(Map<String, dynamic> row) {
     categoria: categoria is Map
         ? categoria[SupabaseColumns.categoriaNombre] as String? ?? ''
         : '',
+    precio: precio is Map ? parseInt(precio[SupabaseColumns.precioValor]) : null,
+    disponible: precio is Map
+        ? parseBool(precio[SupabaseColumns.precioDisponible])
+        : true,
+    stock: parseInt(row[SupabaseColumns.productoStock]) ?? 0,
+    fotoUrl: row[SupabaseColumns.productoFotoUrl] as String?,
   );
 }

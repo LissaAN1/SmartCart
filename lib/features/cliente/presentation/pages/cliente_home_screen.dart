@@ -2,6 +2,7 @@
 // Home del CLIENTE. Solo UI: los datos de ejemplo están en las listas
 // privadas de abajo; reemplázalos por lo que venga de tu Bloc.
 import 'package:flutter/material.dart';
+import '../../../../core/routes/app_routes.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/cliente_widgets.dart';
 
@@ -30,6 +31,12 @@ class ClienteHomeScreen extends StatefulWidget {
 
 class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
   int _categoria = 0;
+
+  /// HU-12: abre la búsqueda, con el texto escrito si lo hay.
+  void _buscar([String texto = '']) {
+    Navigator.of(context)
+        .pushNamed(AppRoutes.busqueda, arguments: texto.trim());
+  }
 
   static const _categorias = [
     (Icons.shopping_cart_outlined, 'Super'),
@@ -74,10 +81,7 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
       barraSuperior: EncabezadoSaludo(
         nombre: widget.nombre,
         acciones: [
-          BotonCircular(
-              icono: Icons.search,
-              onTap:
-                  widget.onAbrirExplorar ?? () => mostrarProximamente(context)),
+          BotonCircular(icono: Icons.search, onTap: _buscar),
           BotonCircular(
               icono: Icons.notifications_none,
               conPunto: true,
@@ -91,12 +95,8 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: BuscadorComparar(
-              // Escribir y buscar abre la exploración. "Comparar" es del
-              // Sprint 3 (alternativas de carrito).
-              onBuscar: widget.onAbrirExplorar == null
-                  ? null
-                  : (_) => widget.onAbrirExplorar!(),
-              onComparar: () => mostrarProximamente(context),
+              onBuscar: _buscar,
+              onComparar: () => _buscar(),
             ),
           ),
 

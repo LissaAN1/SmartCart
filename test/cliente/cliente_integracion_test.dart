@@ -126,23 +126,29 @@ void main() {
   });
 
   group('Home del cliente · explorar y favoritos', () {
-    testWidgets('la lupa del encabezado abre la exploración', (tester) async {
+    // La lupa y el buscador del Home son de la HU-12: abren la búsqueda real,
+    // no la exploración provisional de esta historia.
+    testWidgets('la lupa del encabezado abre la búsqueda (HU-12)',
+        (tester) async {
       await _pumpShell(tester);
 
       await tester.tap(find.widgetWithIcon(BotonCircular, Icons.search));
       await tester.pumpAndSettle();
 
-      expect(find.text('EXPLORAR'), findsOneWidget);
+      expect(find.text('BUSQUEDA'), findsOneWidget);
+      expect(find.text('EXPLORAR'), findsNothing);
     });
 
-    testWidgets('buscar desde el buscador abre la exploración', (tester) async {
+    testWidgets('buscar desde el buscador abre la búsqueda (HU-12)',
+        (tester) async {
       await _pumpShell(tester);
 
       await tester.enterText(find.byType(TextField), 'arroz');
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
 
-      expect(find.text('EXPLORAR'), findsOneWidget);
+      expect(find.text('BUSQUEDA'), findsOneWidget);
+      expect(find.text('EXPLORAR'), findsNothing);
     });
 
     testWidgets('"Comenzar ahora" abre la exploración', (tester) async {
@@ -157,15 +163,14 @@ void main() {
       expect(find.text('EXPLORAR'), findsOneWidget);
     });
 
-    testWidgets('"Comparar" sigue avisando que es de un sprint posterior',
+    testWidgets('"Comparar" abre la búsqueda (HU-12), no la exploración',
         (tester) async {
       await _pumpShell(tester);
 
       await tester.tap(find.text('Comparar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Esta función estará disponible próximamente.'),
-          findsOneWidget);
+      expect(find.text('BUSQUEDA'), findsOneWidget);
       expect(find.text('EXPLORAR'), findsNothing);
     });
 
@@ -196,15 +201,14 @@ void main() {
       expect(_insigniaDelCarrito(tester), isNull);
     });
 
-    testWidgets('la lupa avisa "próximamente" en vez de abrir la exploración',
+    testWidgets('la lupa abre la búsqueda aunque no haya carrito',
         (tester) async {
       await _pumpShell(tester, conCliente: false);
 
       await tester.tap(find.widgetWithIcon(BotonCircular, Icons.search));
       await tester.pumpAndSettle();
 
-      expect(find.text('Esta función estará disponible próximamente.'),
-          findsOneWidget);
+      expect(find.text('BUSQUEDA'), findsOneWidget);
       expect(find.text('EXPLORAR'), findsNothing);
     });
   });

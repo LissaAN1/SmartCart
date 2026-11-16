@@ -7,11 +7,11 @@ import 'package:smartcart/features/reportes/domain/usecases/get_colaborador_acti
 /// Una página de los productos de un establecimiento, filtrados por nombre,
 /// marca o código de barras. El código escaneado se busca igual que un texto
 /// pero con coincidencia exacta.
-class BuscarProductosUseCase {
+class BuscarProductosReporteUseCase {
   final GetColaboradorActivoUseCase _colaborador;
   final ReportesRepository _reportes;
 
-  BuscarProductosUseCase({
+  BuscarProductosReporteUseCase({
     required GetColaboradorActivoUseCase colaborador,
     required ReportesRepository reportes,
   })  : _colaborador = colaborador,
@@ -19,13 +19,13 @@ class BuscarProductosUseCase {
 
   Future<PagedResult<Producto>> call(
     String idComercio,
-    ConsultaProducto consulta,
+    ConsultaProductoReporte consulta,
     PageRequest request,
   ) async {
     await _colaborador();
     return _reportes.buscarProductos(
       idComercio,
-      ConsultaProducto(texto: consulta.texto.trim(), esCodigo: consulta.esCodigo),
+      ConsultaProductoReporte(texto: consulta.texto.trim(), esCodigo: consulta.esCodigo),
       request,
     );
   }

@@ -23,7 +23,7 @@ class ReportesRepositoryImpl implements ReportesRepository {
   @override
   Future<PagedResult<Producto>> buscarProductos(
     String idComercio,
-    ConsultaProducto consulta,
+    ConsultaProductoReporte consulta,
     PageRequest request,
   ) =>
       _dataSource.buscarProductos(idComercio, consulta, request);

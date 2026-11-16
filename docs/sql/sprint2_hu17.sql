@@ -63,15 +63,16 @@ grant execute on function public.producto_disponible(uuid) to authenticated;
 
 
 -- ---------------------------------------------------------------------
--- 2. Los clientes leen los productos de comercios aprobados
--- Es solo lectura: crear, editar y eliminar sigue siendo del dueño
--- (sprint2_hu10.sql). Las políticas permisivas se suman con OR.
--- La búsqueda de la HU-12 puede reutilizar esta política.
+-- 2. Los clientes NO leen la tabla producto
+-- Decidimos no abrirla: igual que en la búsqueda (HU-12), el cliente solo ve
+-- los productos a través de funciones security definer (explorar_productos,
+-- mi_carrito, mis_favoritos_productos), que ya filtran por comercio aprobado.
+-- Así el dueño sigue siendo el único que lee su catálogo (HU-10) y no hace
+-- falta ninguna política nueva sobre `producto`.
+-- La versión anterior de este script creaba `producto_select_cliente`; esta
+-- línea la elimina si ya se había ejecutado.
 -- ---------------------------------------------------------------------
 drop policy if exists producto_select_cliente on public.producto;
-create policy producto_select_cliente on public.producto
-  for select to authenticated
-  using (public.es_cliente() and public.es_comercio_aprobado(id_comercio));
 
 
 -- ---------------------------------------------------------------------

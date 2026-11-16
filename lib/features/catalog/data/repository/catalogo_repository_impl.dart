@@ -1,7 +1,10 @@
 import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/features/catalog/data/source/supabase_catalogo_data_source.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
+import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
+import 'package:smartcart/features/catalog/domain/entities/imagen_producto.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/entities/resumen_catalogo.dart';
 import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
 
 /// Cumple CatalogoRepository delegando en el data source de Supabase.
@@ -14,9 +17,22 @@ class CatalogoRepositoryImpl implements CatalogoRepository {
   @override
   Future<PagedResult<Producto>> productos(
     String idComercio,
-    PageRequest request,
+    PageRequest request, {
+    FiltroCatalogo filtro = const FiltroCatalogo(),
+  }) =>
+      _dataSource.productos(idComercio, request, filtro: filtro);
+
+  @override
+  Future<ResumenCatalogo> resumen(String idComercio) =>
+      _dataSource.resumen(idComercio);
+
+  @override
+  Future<Producto> subirFoto(
+    String idComercio,
+    Producto producto,
+    ImagenProducto foto,
   ) =>
-      _dataSource.productos(idComercio, request);
+      _dataSource.subirFoto(idComercio, producto, foto);
 
   @override
   Future<List<Categoria>> categorias() => _dataSource.categorias();

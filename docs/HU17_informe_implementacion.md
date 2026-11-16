@@ -27,7 +27,7 @@ Escenarios 1 (agregar con cantidad 1), 2 (cambiar la cantidad) y 3 (favoritos) t
 
 El backlog dice "desde los resultados o desde su detalle", pero la búsqueda (HU-12) y el detalle (HU-13) los hacen otras personas y no están en el repositorio. Sin una lista de productos para el cliente no habría desde dónde agregar nada, así que hicimos la mínima: dos pestañas (**Productos** y **Comercios**) con buscador por nombre, de solo comercios aprobados.
 
-Los botones son reutilizables (`AgregarCarritoBoton(idProducto)` y `FavoritoBoton(tipo, id)`): quien haga la HU-12 o la HU-13 los pone en sus pantallas y la exploración se puede retirar. Si la HU-12 también agrega una política de lectura de productos para clientes, convive con la nuestra (`producto_select_cliente`) sin conflicto: las políticas permisivas se suman.
+Los botones son reutilizables (`AgregarCarritoBoton(idProducto)` y `FavoritoBoton(tipo, id)`): quien haga la HU-12 o la HU-13 los pone en sus pantallas y la exploración se puede retirar. La búsqueda de la HU-12 ya está en `main`; sus pantallas todavía no traen estos botones. HU-17 **no** abre la tabla `producto` a los clientes: todo pasa por funciones `security definer`, igual que la HU-12.
 
 ## 4. Supuestos que tomamos (el backlog no los define)
 
@@ -48,8 +48,8 @@ Los botones son reutilizables (`AgregarCarritoBoton(idProducto)` y `FavoritoBoto
 
 | Archivo | Qué hace |
 |---|---|
-| `docs/sql/sprint2_hu17.sql` | `es_cliente()`, `producto_disponible()`, política de lectura de productos para clientes, `carrito_item`, `favorito_producto`, `favorito_comercio` con su RLS, y las funciones `agregar_al_carrito()`, `mi_carrito()`, `mis_favoritos_productos()`, `mis_favoritos_comercios()`, `explorar_productos()` y `explorar_comercios()`. Idempotente. |
-| `docs/sql/pruebas_hu17_politicas.sql` | 34 pruebas de las políticas y funciones. Termina en `ROLLBACK` y devuelve una tabla con los resultados. **Ejecutado en Supabase: 34 `OK`.** |
+| `docs/sql/sprint2_hu17.sql` | `es_cliente()`, `producto_disponible()`, `carrito_item`, `favorito_producto`, `favorito_comercio` con su RLS, y las funciones `agregar_al_carrito()`, `mi_carrito()`, `mis_favoritos_productos()`, `mis_favoritos_comercios()`, `explorar_productos()` y `explorar_comercios()`. Idempotente. |
+| `docs/sql/pruebas_hu17_politicas.sql` | 34 pruebas de las políticas y funciones. Termina en `ROLLBACK` y devuelve una tabla con los resultados. **Ejecutado en Supabase con la versión final: todo `OK`.** |
 | `lib/features/cart/` | Carrito: `ItemCarrito`, `CarritoReglas`, contrato `CarritoRepository`, 4 casos de uso, `SupabaseCarritoDataSource`, `CarritoBloc`, `CarritoPage` y `AgregarCarritoBoton`. |
 | `lib/features/favoritos/` | Favoritos: `TipoFavorito`, `FavoritosIds`, contrato `FavoritosRepository`, 4 casos de uso, `SupabaseFavoritosDataSource`, `FavoritosBloc`, `FavoritosPage` y `FavoritoBoton`. |
 | `lib/features/explorar/` | Exploración: contrato `ExplorarRepository`, 2 casos de uso, `SupabaseExplorarDataSource` y `ExplorarPage`. |
@@ -68,7 +68,7 @@ Los botones son reutilizables (`AgregarCarritoBoton(idProducto)` y `FavoritoBoto
 | `lib/core/routes/app_routes.dart`, `lib/app_router.dart` | Rutas `carrito`, `favoritos` y `explorar`. Reciben los Blocs ya creados como argumento y los entregan con `BlocProvider.value`. |
 | `lib/core/di/injector.dart` | Registros nuevos (ver sección 7). |
 | `lib/features/home/presentation/pages/role_shell.dart` | Para el cliente crea y cierra el carrito y los favoritos (parámetro opcional `crearCliente`), abre el carrito desde la pestaña y muestra el número en la barra. |
-| `lib/features/cliente/presentation/pages/cliente_home_screen.dart` y `cliente_perfil_screen.dart` | El número del carrito en la pestaña; la lupa, el buscador y "Comenzar ahora" abren la exploración; "Mis favoritos" en el Perfil. "Comparar" sigue avisando "próximamente" (Sprint 3). |
+| `lib/features/cliente/presentation/pages/cliente_home_screen.dart` y `cliente_perfil_screen.dart` | El número del carrito en la pestaña; "Comenzar ahora" abre la exploración; "Mis favoritos" en el Perfil. La lupa, el buscador y "Comparar" abren la búsqueda de la HU-12 (al integrar `main` quedaron con esa pantalla). |
 | `lib/features/auth/data/source/supabase_error_mapper.dart` | `traducirErroresSupabase`: ejecuta una operación y traduce lo que falle a `AuthFailure` (lo usan los tres data sources nuevos, en vez de repetir el mismo `try/catch`). |
 | `test/support/pump_helpers.dart`, `test/di/injector_test.dart` | Rutas de apoyo y 6 pruebas de registros. No se cambió ninguna prueba existente. |
 
@@ -128,8 +128,8 @@ Todo en `lib/core/di/injector.dart`, con el mecanismo y el orden existentes. No 
 
 ## 10. Pendientes y riesgos
 
-- **Ejecutar en Supabase**, después de `sprint2_hu14.sql`: `docs/sql/sprint2_hu17.sql` y luego `docs/sql/pruebas_hu17_politicas.sql`, y revisar que todas las líneas digan `OK` (ninguna `ALERTA` ni `SALTADA`). **Ya se ejecutaron en nuestro Supabase y las 34 pruebas dieron `OK`**; en cualquier otra base hay que correrlos igual, porque sin ellos la app no encuentra el carrito, los favoritos ni la exploración.
-- **Probar en un dispositivo Android**: agregar, cambiar la cantidad, quitar, marcar favoritos y comprobar que todo sigue ahí al cerrar y volver a abrir la app. Solo se verificó con pruebas automáticas (con dobles).
+- **Ejecutar en Supabase**, después de `sprint2_hu14.sql`: `docs/sql/sprint2_hu17.sql` y luego `docs/sql/pruebas_hu17_politicas.sql`, y revisar que todas las líneas digan `OK` (ninguna `ALERTA` ni `SALTADA`). **Ya se hizo en nuestro Supabase, también tras integrar `main`: todo `OK`.** En cualquier otra base hay que correrlos: sin ellos la app no encuentra el carrito, los favoritos ni la exploración.
+- **Probado en un dispositivo Android** (informado por el equipo): agregar, cambiar la cantidad, quitar y favoritos funcionan, y todo sigue ahí al reabrir la app.
 - **Coordinar con la HU-12 y la HU-13:** ponen sus botones de agregar y de favorito con los widgets de esta historia, y la exploración provisional se retira.
 - **Decisión pendiente para la HU-18:** cómo reconocer el mismo producto en varios comercios (por código de barras, por nombre…). El carrito de hoy guarda productos concretos de un comercio.
 - Las tarjetas de "Ofertas cerca de ti" del Home son de ejemplo y su botón de agregar sigue avisando "próximamente".

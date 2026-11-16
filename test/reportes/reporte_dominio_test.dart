@@ -366,7 +366,7 @@ void main() {
     });
   });
 
-  group('BuscarProductosUseCase', () {
+  group('BuscarProductosReporteUseCase', () {
     late TestEnv env;
     setUp(() {
       env = TestEnv()..iniciarSesionComoColaborador();
@@ -383,40 +383,40 @@ void main() {
       ];
     });
 
-    Future<List<String>> buscar(ConsultaProducto consulta) async {
+    Future<List<String>> buscar(ConsultaProductoReporte consulta) async {
       final pagina =
-          await env.buscarProductos('c1', consulta, const PageRequest());
+          await env.buscarProductosReporte('c1', consulta, const PageRequest());
       return [for (final p in pagina.items) p.id];
     }
 
     test('por nombre o por marca', () async {
-      expect(await buscar(const ConsultaProducto(texto: 'arroz')), ['p1']);
-      expect(await buscar(const ConsultaProducto(texto: 'ALPINA')), ['p2']);
+      expect(await buscar(const ConsultaProductoReporte(texto: 'arroz')), ['p1']);
+      expect(await buscar(const ConsultaProductoReporte(texto: 'ALPINA')), ['p2']);
     });
 
     test('con el código de barras escaneado, la coincidencia es exacta',
         () async {
-      expect(await buscar(const ConsultaProducto.codigo('7709990001112')), ['p2']);
-      expect(await buscar(const ConsultaProducto.codigo('7709990')), isEmpty);
+      expect(await buscar(const ConsultaProductoReporte.codigo('7709990001112')), ['p2']);
+      expect(await buscar(const ConsultaProductoReporte.codigo('7709990')), isEmpty);
     });
 
     test('sin texto devuelve todos los productos del establecimiento', () async {
-      expect(await buscar(const ConsultaProducto()), ['p1', 'p2']);
+      expect(await buscar(const ConsultaProductoReporte()), ['p1', 'p2']);
     });
 
     test('ignora los espacios de los bordes', () async {
-      expect(await buscar(const ConsultaProducto(texto: '  leche  ')), ['p2']);
+      expect(await buscar(const ConsultaProductoReporte(texto: '  leche  ')), ['p2']);
     });
 
     test('un código sin producto no devuelve nada', () async {
-      expect(await buscar(const ConsultaProducto.codigo('1234567890123')), isEmpty);
+      expect(await buscar(const ConsultaProductoReporte.codigo('1234567890123')), isEmpty);
     });
 
     test('exige el modo Colaborador', () async {
       env.iniciarSesionCon({UserRole.cliente});
 
       await expectLater(
-        env.buscarProductos('c1', const ConsultaProducto(), const PageRequest()),
+        env.buscarProductosReporte('c1', const ConsultaProductoReporte(), const PageRequest()),
         _falla('modo Colaborador'),
       );
     });

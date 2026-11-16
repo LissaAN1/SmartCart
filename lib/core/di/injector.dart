@@ -13,11 +13,11 @@ import 'package:smartcart/features/notificaciones/domain/repository/notificacion
 import 'package:smartcart/features/notificaciones/domain/usecases/get_notificaciones_no_leidas_usecase.dart';
 import 'package:smartcart/features/notificaciones/domain/usecases/marcar_notificaciones_leidas_usecase.dart';
 import 'package:smartcart/features/notificaciones/presentation/bloc/notificaciones_bloc.dart';
-import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/data/repository/auth_repository_impl.dart';
 import 'package:smartcart/features/auth/data/repository/profile_repository_impl.dart';
 import 'package:smartcart/features/auth/data/source/supabase_auth_data_source.dart';
 import 'package:smartcart/features/auth/data/source/supabase_profile_data_source.dart';
+import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/auth/domain/repository/auth_repository.dart';
 import 'package:smartcart/features/auth/domain/repository/profile_repository.dart';
 import 'package:smartcart/features/auth/domain/usecases/get_my_profile_usecase.dart';
@@ -26,22 +26,46 @@ import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/activar_modo_colaborador_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
+import 'package:smartcart/features/busqueda/data/repository/busqueda_repository_impl.dart';
+import 'package:smartcart/features/busqueda/data/source/supabase_busqueda_data_source.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/catalog/data/repository/catalogo_repository_impl.dart';
 import 'package:smartcart/features/catalog/data/source/file_picker_selector_csv.dart';
+import 'package:smartcart/features/catalog/data/source/file_picker_selector_imagen.dart';
 import 'package:smartcart/features/catalog/data/source/supabase_catalogo_data_source.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
 import 'package:smartcart/features/catalog/domain/repository/selector_archivo_csv.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_imagen.dart';
 import 'package:smartcart/features/catalog/domain/usecases/cargar_productos_csv_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/crear_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/editar_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/elegir_archivo_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/elegir_foto_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/eliminar_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_categorias_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_encabezado_catalogo_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_formulario_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
+import 'package:smartcart/features/prices/data/repository/precios_repository_impl.dart';
+import 'package:smartcart/features/prices/data/source/supabase_precios_data_source.dart';
+import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/data/repository/comercio_repository_impl.dart';
 import 'package:smartcart/features/comercio/data/source/supabase_comercio_data_source.dart';
@@ -165,6 +189,15 @@ void setupDependencies() {
   // estas líneas conocen `geolocator`, `image_picker` y `permission_handler`.
   sl.registerLazySingleton<ServicioUbicacion>(() => GeolocatorServicioUbicacion());
   sl.registerLazySingleton<SelectorFoto>(() => ImagePickerSelectorFoto());
+  // HU-11: la foto del producto; también es la única línea que conoce
+  // `file_picker` para esta tarea.
+  sl.registerLazySingleton<SelectorImagen>(() => FilePickerSelectorImagen());
+  sl.registerLazySingleton<SupabasePreciosDataSource>(
+    () => SupabasePreciosDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<SupabaseBusquedaDataSource>(
+    () => SupabaseBusquedaDataSource(client: sl()),
+  );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -197,6 +230,12 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<ReportesRepository>(
     () => ReportesRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<PreciosRepository>(
+    () => PreciosRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<BusquedaRepository>(
+    () => BusquedaRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -270,7 +309,7 @@ void setupDependencies() {
     () => GetEstablecimientosCercanosUseCase(colaborador: sl(), reportes: sl()),
   );
   sl.registerLazySingleton(
-    () => BuscarProductosUseCase(colaborador: sl(), reportes: sl()),
+    () => BuscarProductosReporteUseCase(colaborador: sl(), reportes: sl()),
   );
   sl.registerLazySingleton(
     () => GetMisReportesUseCase(colaborador: sl(), reportes: sl()),
@@ -325,6 +364,47 @@ void setupDependencies() {
       ubicacion: sl(),
     ),
   );
+  // HU-11: precios, disponibilidad y promociones. También parten del
+  // comercio aprobado.
+  sl.registerLazySingleton(
+    () => GetFichaPrecioUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ActualizarPrecioUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GuardarPromocionUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => QuitarPromocionUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  // HU-11: catálogo con el diseño nuevo (encabezado, formulario con foto y
+  // "Guardar cambios" que guarda producto, foto y precio en un paso).
+  sl.registerLazySingleton(
+    () => GetEncabezadoCatalogoUseCase(
+        comercioAprobado: sl(), categorias: sl(), catalogo: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetFormularioProductoUseCase(comercioAprobado: sl(), categorias: sl()),
+  );
+  sl.registerLazySingleton(() => ElegirFotoProductoUseCase(selector: sl()));
+
+  // HU-12: búsqueda del cliente.
+  sl.registerLazySingleton(
+    () => BuscarProductosUseCase(auth: sl(), busqueda: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetDetalleProductoUseCase(auth: sl(), busqueda: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GuardarProductoUseCase(
+      crear: sl(),
+      editar: sl(),
+      actualizarPrecio: sl(),
+      comercioAprobado: sl(),
+      catalogo: sl(),
+    ),
+  );
 
   // ── Blocs: uno nuevo por pantalla (factory), porque guardan estado ──
   sl.registerFactory(() => LoginBloc(signIn: sl()));
@@ -345,15 +425,11 @@ void setupDependencies() {
 
   // HU-10: la lista del catálogo y la carga por archivo no necesitan datos.
   sl.registerFactory(() => CargaCsvBloc(elegir: sl(), cargar: sl()));
-  sl.registerFactory<PaginatedBloc<Producto>>(() {
-    final getProductos = sl<GetProductosUseCase>();
-    // El aviso "tu comercio está pendiente de aprobación" debe llegar a la
-    // pantalla, no un error genérico.
-    return PaginatedBloc<Producto>(
-      fetchPage: getProductos.call,
-      errorMessageFor: mensajeDeFallo,
-    );
-  });
+  // HU-11: la lista del catálogo agrega búsqueda y filtro por categoría.
+  sl.registerFactory<PaginatedBloc<Producto>>(
+    () => CatalogoListaBloc(getProductos: sl<GetProductosUseCase>()),
+  );
+  sl.registerFactory(() => InventarioBloc(encabezado: sl()));
 
   // HU-14: el reporte de precio y la ubicación no necesitan datos.
   sl.registerFactory(() => UbicacionBloc(obtener: sl()));
@@ -438,9 +514,9 @@ void setupDependencies() {
       errorMessageFor: mensajeDeFallo,
     );
   });
-  sl.registerFactoryParam<PaginatedBloc<Producto>, String, ConsultaProducto>(
+  sl.registerFactoryParam<PaginatedBloc<Producto>, String, ConsultaProductoReporte>(
     (idComercio, consulta) {
-      final buscar = sl<BuscarProductosUseCase>();
+      final buscar = sl<BuscarProductosReporteUseCase>();
       return PaginatedBloc<Producto>(
         fetchPage: (request) => buscar(idComercio, consulta, request),
         errorMessageFor: mensajeDeFallo,
@@ -454,11 +530,31 @@ void setupDependencies() {
   sl.registerFactoryParam<ProductoFormBloc, Producto?, void>(
     (producto, _) => ProductoFormBloc(
       editando: producto,
-      categorias: sl(),
-      crear: sl(),
-      editar: sl(),
+      formulario: sl(),
+      guardar: sl(),
       eliminar: sl(),
+      elegirFoto: sl(),
     ),
+  );
+
+  // HU-11: la edición rápida recibe el producto:
+  // `sl<PrecioProductoBloc>(param1: producto)`.
+  sl.registerFactoryParam<PrecioProductoBloc, Producto, void>(
+    (producto, _) => PrecioProductoBloc(
+      producto: producto,
+      ficha: sl(),
+      guardarPromocion: sl(),
+      quitarPromocion: sl(),
+    ),
+  );
+
+  // HU-12: la búsqueda arranca con el texto del Home y el detalle recibe qué
+  // producto abrir: `sl<PaginatedBloc<ResultadoBusqueda>>(param1: texto)`.
+  sl.registerFactoryParam<PaginatedBloc<ResultadoBusqueda>, String, void>(
+    (texto, _) => BusquedaBloc(buscar: sl(), textoInicial: texto),
+  );
+  sl.registerFactoryParam<DetalleProductoBloc, ConsultaProducto, void>(
+    (consulta, _) => DetalleProductoBloc(consulta: consulta, detalle: sl()),
   );
 
   // HU-24: estos Bloc necesitan un dato de la pantalla, así que se piden

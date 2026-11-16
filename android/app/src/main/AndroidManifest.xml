@@ -1,10 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Supabase: sin INTERNET la app no abre en modo release. -->
+    <!-- Supabase: sin INTERNET la app instalada (release) no se conecta. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- HU-14: verificar que el colaborador está en el establecimiento. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <!-- HU-14: foto de la etiqueta y escáner de códigos de barras. -->
+    <!-- HU-12 y HU-14: escáner de códigos de barras y foto de la etiqueta. -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application

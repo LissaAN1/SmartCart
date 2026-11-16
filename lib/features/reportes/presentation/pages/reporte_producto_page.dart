@@ -16,7 +16,7 @@ import 'package:smartcart/features/reportes/presentation/pages/reporte_args.dart
 /// coinciden con una consulta. Lo entrega el `AppRouter` (con GetIt).
 typedef CrearListaProductos = PaginatedBloc<Producto> Function(
   String idComercio,
-  ConsultaProducto consulta,
+  ConsultaProductoReporte consulta,
 );
 
 /// HU-14, paso 2: el colaborador identifica el producto, escaneando su código
@@ -52,7 +52,7 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
 
   final _texto = TextEditingController();
   Timer? _temporizador;
-  ConsultaProducto _consulta = const ConsultaProducto();
+  ConsultaProductoReporte _consulta = const ConsultaProductoReporte();
 
   /// Se activa al leer un código: si la búsqueda trae exactamente un producto,
   /// se abre su formulario sin que la persona tenga que tocarlo. Se apaga al
@@ -89,7 +89,7 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
     _temporizador?.cancel();
     _temporizador = Timer(_pausa, () {
       if (!mounted) return;
-      setState(() => _consulta = ConsultaProducto(texto: valor));
+      setState(() => _consulta = ConsultaProductoReporte(texto: valor));
     });
   }
 
@@ -101,7 +101,7 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
     _texto.text = codigo;
     setState(() {
       _abrirAlEncontrar = true;
-      _consulta = ConsultaProducto.codigo(codigo);
+      _consulta = ConsultaProductoReporte.codigo(codigo);
     });
   }
 
@@ -110,7 +110,7 @@ class _ReporteProductoPageState extends State<ReporteProductoPage> {
     _texto.clear();
     setState(() {
       _abrirAlEncontrar = false;
-      _consulta = const ConsultaProducto();
+      _consulta = const ConsultaProductoReporte();
     });
   }
 

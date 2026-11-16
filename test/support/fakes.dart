@@ -46,22 +46,47 @@ import 'package:smartcart/features/auth/domain/usecases/get_my_profile_usecase.d
 import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/entities/detalle_producto.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
+import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
+import 'package:smartcart/features/catalog/domain/entities/imagen_producto.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/entities/resumen_catalogo.dart';
 import 'package:smartcart/features/catalog/domain/entities/resultado_carga_csv.dart';
 import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
 import 'package:smartcart/features/catalog/domain/repository/selector_archivo_csv.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_imagen.dart';
 import 'package:smartcart/features/catalog/domain/usecases/cargar_productos_csv_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/crear_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/editar_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/elegir_archivo_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/elegir_foto_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/eliminar_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_categorias_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_encabezado_catalogo_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_formulario_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
+import 'package:smartcart/features/prices/domain/entities/precio.dart';
+import 'package:smartcart/features/prices/domain/entities/promocion.dart';
+import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/domain/usecases/get_mi_comercio_usecase.dart';
@@ -399,6 +424,7 @@ class FakeCatalogoRepository implements CatalogoRepository {
         marca: datos.marca,
         codigoBarras: datos.codigoBarras,
         idCategoria: datos.idCategoria,
+        stock: datos.stock,
         categoria: categoriasDePrueba
             .firstWhere((c) => c.id == datos.idCategoria,
                 orElse: () => const Categoria(id: '', nombre: ''))
@@ -416,17 +442,65 @@ class FakeCatalogoRepository implements CatalogoRepository {
     }
   }
 
+  /// Filtros con los que se pidió cada página (HU-11).
+  final filtrosPedidos = <FiltroCatalogo>[];
+  Object? resumenError;
+  Object? fotoError;
+  final fotosSubidas = <({String idComercio, String idProducto})>[];
+
   @override
   Future<PagedResult<Producto>> productos(
     String idComercio,
-    PageRequest request,
-  ) async {
+    PageRequest request, {
+    FiltroCatalogo filtro = const FiltroCatalogo(),
+  }) async {
     if (listError != null) throw listError!;
+    filtrosPedidos.add(filtro);
+    final texto = filtro.texto.trim().toLowerCase();
     final filas = deComercio(idComercio)
+        .where((p) =>
+            filtro.idCategoria == null || p.idCategoria == filtro.idCategoria)
+        .where((p) =>
+            texto.isEmpty ||
+            p.nombre.toLowerCase().contains(texto) ||
+            (p.marca ?? '').toLowerCase().contains(texto))
         .skip(request.from)
         .take(request.pageSize + 1)
         .toList();
     return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<ResumenCatalogo> resumen(String idComercio) async {
+    if (resumenError != null) throw resumenError!;
+    final productos = deComercio(idComercio);
+    return ResumenCatalogo(
+      totalProductos: productos.length,
+      valorStock: productos.fold(
+          0, (suma, p) => suma + (p.precio ?? 0) * p.stock),
+      bajoStock: productos.where((p) => p.stockBajo).length,
+    );
+  }
+
+  @override
+  Future<Producto> subirFoto(
+    String idComercio,
+    Producto producto,
+    ImagenProducto foto,
+  ) async {
+    if (fotoError != null) throw fotoError!;
+    fotosSubidas.add((idComercio: idComercio, idProducto: producto.id));
+    final conFoto = producto.copyWith(
+        fotoUrl: 'https://fotos.test/$idComercio/${producto.id}.${foto.extension}');
+    _reemplazar(conFoto);
+    return conFoto;
+  }
+
+  void _reemplazar(Producto producto) {
+    for (final lista in productosPorComercio.values) {
+      final i = lista.indexWhere((p) => p.id == producto.id);
+      if (i >= 0) lista[i] = producto;
+    }
   }
 
   /// Categorías que devuelve la base; por defecto las tres de prueba.
@@ -586,7 +660,7 @@ class FakeSelectorFoto implements SelectorFoto {
 class FakeReportesRepository implements ReportesRepository {
   final establecimientos = <EstablecimientoCercano>[];
   final productosPorComercio = <String, List<Producto>>{};
-  final consultas = <ConsultaProducto>[];
+  final consultas = <ConsultaProductoReporte>[];
   final reportes = <({
     String userId,
     ReporteDatos datos,
@@ -642,7 +716,7 @@ class FakeReportesRepository implements ReportesRepository {
   @override
   Future<PagedResult<Producto>> buscarProductos(
     String idComercio,
-    ConsultaProducto consulta,
+    ConsultaProductoReporte consulta,
     PageRequest request,
   ) async {
     if (listError != null) throw listError!;
@@ -693,6 +767,166 @@ const productoDePrueba = Producto(
   categoria: 'Super',
 );
 
+/// Selector de fotos en memoria (HU-11): devuelve [foto] o lanza [error].
+class FakeSelectorImagen implements SelectorImagen {
+  ImagenProducto? foto;
+  Object? error;
+  int llamadas = 0;
+
+  @override
+  Future<ImagenProducto?> elegir() async {
+    llamadas++;
+    if (error != null) throw error!;
+    return foto;
+  }
+}
+
+/// Precios, promociones e historial en memoria (HU-11). Imita a la base:
+/// fija la fecha y la fuente "comercio" y escribe el historial solo cuando
+/// cambia el precio o la disponibilidad.
+class FakePreciosRepository implements PreciosRepository {
+  final precios = <String, PrecioProducto>{};
+  final promociones = <String, Promocion>{};
+  final historiales = <String, List<RegistroPrecio>>{};
+  final guardados = <({String idProducto, PrecioDatos datos})>[];
+  Object? leerError;
+  Object? guardarError;
+  Object? promocionError;
+  DateTime fecha = DateTime(2026, 11, 15, 14, 5);
+  int quitarCalls = 0;
+
+  /// Deja un precio guardado sin pasar por los casos de uso.
+  void precargar(String idProducto, int precio, {bool disponible = true}) {
+    precios[idProducto] = PrecioProducto(
+      idProducto: idProducto,
+      precio: precio,
+      disponible: disponible,
+      fuente: FuentePrecio.comercio,
+      actualizadoEn: fecha,
+    );
+  }
+
+  @override
+  Future<PrecioProducto?> precio(String idProducto) async {
+    final error = leerError;
+    if (error != null) throw error;
+    return precios[idProducto];
+  }
+
+  @override
+  Future<Promocion?> promocion(String idProducto) async {
+    final error = leerError;
+    if (error != null) throw error;
+    return promociones[idProducto];
+  }
+
+  @override
+  Future<List<RegistroPrecio>> historial(
+    String idProducto, {
+    int limite = 10,
+  }) async {
+    final error = leerError;
+    if (error != null) throw error;
+    final lista = historiales[idProducto] ?? const [];
+    return lista.reversed.take(limite).toList();
+  }
+
+  @override
+  Future<PrecioProducto> guardarPrecio(
+    String idProducto,
+    PrecioDatos datos,
+  ) async {
+    final error = guardarError;
+    if (error != null) throw error;
+    guardados.add((idProducto: idProducto, datos: datos));
+    final anterior = precios[idProducto];
+    final guardado = PrecioProducto(
+      idProducto: idProducto,
+      precio: datos.precio,
+      disponible: datos.disponible,
+      fuente: FuentePrecio.comercio,
+      actualizadoEn: fecha,
+    );
+    precios[idProducto] = guardado;
+    if (anterior == null ||
+        anterior.precio != datos.precio ||
+        anterior.disponible != datos.disponible) {
+      historiales.putIfAbsent(idProducto, () => []).add(RegistroPrecio(
+            precio: datos.precio,
+            disponible: datos.disponible,
+            fuente: FuentePrecio.comercio,
+            registradoEn: fecha,
+          ));
+    }
+    return guardado;
+  }
+
+  @override
+  Future<Promocion> guardarPromocion(
+    String idProducto,
+    PromocionDatos datos,
+  ) async {
+    final error = promocionError;
+    if (error != null) throw error;
+    return promociones[idProducto] = Promocion(
+      idProducto: idProducto,
+      precioPromocional: datos.precioPromocional,
+      inicio: datos.inicio,
+      fin: datos.fin,
+    );
+  }
+
+  @override
+  Future<void> quitarPromocion(String idProducto) async {
+    final error = promocionError;
+    if (error != null) throw error;
+    quitarCalls++;
+    promociones.remove(idProducto);
+  }
+}
+
+/// Búsqueda del cliente en memoria (HU-12). Imita a `buscar_productos`: busca
+/// en el nombre o la marca sin distinguir mayúsculas y pagina.
+class FakeBusquedaRepository implements BusquedaRepository {
+  final resultados = <ResultadoBusqueda>[];
+  final detalles = <String, DetalleProducto>{};
+  final textosBuscados = <String>[];
+  final clavesPedidas = <String>[];
+  Object? buscarError;
+  Object? detalleError;
+
+  /// Si se asigna, `buscar` espera a que se complete (para probar cargas en
+  /// curso).
+  Completer<void>? pausa;
+
+  @override
+  Future<PagedResult<ResultadoBusqueda>> buscar(
+    String texto,
+    PageRequest request,
+  ) async {
+    textosBuscados.add(texto);
+    final espera = pausa;
+    if (espera != null) await espera.future;
+    if (buscarError != null) throw buscarError!;
+    final t = texto.toLowerCase();
+    final filas = resultados
+        .where((r) =>
+            r.nombre.toLowerCase().contains(t) ||
+            (r.marca ?? '').toLowerCase().contains(t))
+        .skip(request.from)
+        .take(request.pageSize + 1)
+        .toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<DetalleProducto?> detalle(String clave) async {
+    clavesPedidas.add(clave);
+    if (detalleError != null) throw detalleError!;
+    return detalles[clave];
+  }
+}
+
 /// Agrupa los dobles y construye los Blocs con ellos.
 class TestEnv {
   final auth = FakeAuthRepository();
@@ -705,6 +939,12 @@ class TestEnv {
   final servicioUbicacion = FakeServicioUbicacion();
   final selectorFoto = FakeSelectorFoto();
   final reportes = FakeReportesRepository();
+  final precios = FakePreciosRepository();
+  final selectorImagen = FakeSelectorImagen();
+  final busqueda = FakeBusquedaRepository();
+
+  /// "Hoy" para las promociones (HU-11): 15 de noviembre de 2026.
+  DateTime ahora = DateTime(2026, 11, 15, 10);
 
   DecidirSolicitudUseCase get decidirSolicitud => DecidirSolicitudUseCase(
       auth: auth, profiles: profiles, solicitudes: solicitudes);
@@ -758,6 +998,50 @@ class TestEnv {
   CargarProductosCsvUseCase get cargarProductosCsv => CargarProductosCsvUseCase(
       comercioAprobado: comercioAprobado, catalogo: catalogo);
 
+  // HU-11: precios, disponibilidad y promociones.
+  GetFichaPrecioUseCase get getFichaPrecio =>
+      GetFichaPrecioUseCase(comercioAprobado: comercioAprobado, precios: precios);
+  ActualizarPrecioUseCase get actualizarPrecio => ActualizarPrecioUseCase(
+      comercioAprobado: comercioAprobado, precios: precios);
+  GuardarPromocionUseCase get guardarPromocion => GuardarPromocionUseCase(
+      comercioAprobado: comercioAprobado,
+      precios: precios,
+      ahora: () => ahora);
+  QuitarPromocionUseCase get quitarPromocion => QuitarPromocionUseCase(
+      comercioAprobado: comercioAprobado, precios: precios);
+
+  // HU-11: catálogo con el diseño nuevo.
+  GetEncabezadoCatalogoUseCase get getEncabezado => GetEncabezadoCatalogoUseCase(
+      comercioAprobado: comercioAprobado,
+      categorias: getCategorias,
+      catalogo: catalogo);
+  GetFormularioProductoUseCase get getFormulario =>
+      GetFormularioProductoUseCase(
+          comercioAprobado: comercioAprobado, categorias: getCategorias);
+  ElegirFotoProductoUseCase get elegirFoto =>
+      ElegirFotoProductoUseCase(selector: selectorImagen);
+  GuardarProductoUseCase get guardarProducto => GuardarProductoUseCase(
+        crear: crearProducto,
+        editar: editarProducto,
+        actualizarPrecio: actualizarPrecio,
+        comercioAprobado: comercioAprobado,
+        catalogo: catalogo,
+      );
+
+  // HU-12: búsqueda del cliente.
+  BuscarProductosUseCase get buscarProductos =>
+      BuscarProductosUseCase(auth: auth, busqueda: busqueda);
+  GetDetalleProductoUseCase get getDetalleProducto =>
+      GetDetalleProductoUseCase(auth: auth, busqueda: busqueda);
+  BusquedaBloc busquedaBloc({String texto = '', int pageSize = 20}) =>
+      BusquedaBloc(
+        buscar: buscarProductos,
+        textoInicial: texto,
+        pageSize: pageSize,
+      );
+  DetalleProductoBloc detalleBloc(ConsultaProducto consulta) =>
+      DetalleProductoBloc(consulta: consulta, detalle: getDetalleProducto);
+
   /// Deja la sesión iniciada como dueño de un comercio con el [estado] dado
   /// (el comercio de prueba tiene el id `c1`).
   void iniciarSesionComoComercio(ApprovalStatus estado) {
@@ -765,18 +1049,21 @@ class TestEnv {
     comercios.stored = comercioConEstado(estado);
   }
 
-  PaginatedBloc<Producto> productosBloc({int pageSize = 20}) =>
-      PaginatedBloc<Producto>(
-        fetchPage: getProductos.call,
-        pageSize: pageSize,
-        errorMessageFor: mensajeDeFallo,
-      );
+  CatalogoListaBloc productosBloc({int pageSize = 20}) =>
+      CatalogoListaBloc(getProductos: getProductos, pageSize: pageSize);
+  InventarioBloc inventarioBloc() => InventarioBloc(encabezado: getEncabezado);
   ProductoFormBloc productoFormBloc({Producto? editando}) => ProductoFormBloc(
         editando: editando,
-        categorias: getCategorias,
-        crear: crearProducto,
-        editar: editarProducto,
+        formulario: getFormulario,
+        guardar: guardarProducto,
         eliminar: eliminarProducto,
+        elegirFoto: elegirFoto,
+      );
+  PrecioProductoBloc precioBloc(Producto producto) => PrecioProductoBloc(
+        producto: producto,
+        ficha: getFichaPrecio,
+        guardarPromocion: guardarPromocion,
+        quitarPromocion: quitarPromocion,
       );
   CargaCsvBloc cargaCsvBloc() =>
       CargaCsvBloc(elegir: elegirArchivoCsv, cargar: cargarProductosCsv);
@@ -812,8 +1099,9 @@ class TestEnv {
   GetEstablecimientosCercanosUseCase get getEstablecimientos =>
       GetEstablecimientosCercanosUseCase(
           colaborador: colaboradorActivo, reportes: reportes);
-  BuscarProductosUseCase get buscarProductos => BuscarProductosUseCase(
-      colaborador: colaboradorActivo, reportes: reportes);
+  BuscarProductosReporteUseCase get buscarProductosReporte =>
+      BuscarProductosReporteUseCase(
+          colaborador: colaboradorActivo, reportes: reportes);
   GetMisReportesUseCase get getMisReportes => GetMisReportesUseCase(
       colaborador: colaboradorActivo, reportes: reportes);
   TomarFotoUseCase get tomarFoto => TomarFotoUseCase(selector: selectorFoto);
@@ -847,10 +1135,11 @@ class TestEnv {
       );
   PaginatedBloc<Producto> busquedaProductosBloc(
     String idComercio,
-    ConsultaProducto consulta,
+    ConsultaProductoReporte consulta,
   ) =>
       PaginatedBloc<Producto>(
-        fetchPage: (request) => buscarProductos(idComercio, consulta, request),
+        fetchPage: (request) =>
+            buscarProductosReporte(idComercio, consulta, request),
         errorMessageFor: mensajeDeFallo,
       );
   PaginatedBloc<MiReporte> misReportesBloc({int pageSize = 20}) =>

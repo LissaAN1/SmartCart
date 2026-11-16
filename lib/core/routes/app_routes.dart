@@ -21,7 +21,8 @@ abstract final class AppRoutes {
   /// HU-10: catálogo de productos del comercio (lista paginada).
   static const catalogo = '/comercio/catalogo';
 
-  /// HU-10: formulario de un producto. Recibe el `Producto` a editar como
+  /// HU-10 + HU-11: Editar producto (datos, foto, stock, precio, historial,
+  /// disponibilidad y promoción). Recibe el `Producto` a editar como
   /// argumento (sin argumento crea uno nuevo) y devuelve `true` si cambió algo.
   static const catalogoProducto = '/comercio/catalogo/producto';
 
@@ -56,6 +57,17 @@ abstract final class AppRoutes {
   /// HU-17: lista de productos y comercios para agregar al carrito o a
   /// favoritos. Recibe un `ClienteBlocs`.
   static const explorar = '/cliente/explorar';
+
+  /// HU-12: búsqueda de productos del cliente. Recibe opcionalmente el texto
+  /// escrito en el Home (`String`).
+  static const busqueda = '/cliente/busqueda';
+
+  /// HU-12: un producto con el precio de cada establecimiento. Recibe una
+  /// `ConsultaProducto` (por clave de un resultado o por código escaneado).
+  static const busquedaDetalle = '/cliente/busqueda/producto';
+
+  /// HU-12: escáner de código de barras. Devuelve el código (`String`).
+  static const escaner = '/cliente/escaner';
 
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con

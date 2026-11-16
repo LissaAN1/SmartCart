@@ -27,13 +27,13 @@ class EstablecimientoCercano {
 
 /// Cómo se busca el producto dentro de un establecimiento: por nombre o
 /// marca (texto libre) o por el código de barras escaneado.
-class ConsultaProducto {
+class ConsultaProductoReporte {
   final String texto;
   final bool esCodigo;
 
-  const ConsultaProducto({this.texto = '', this.esCodigo = false});
+  const ConsultaProductoReporte({this.texto = '', this.esCodigo = false});
 
-  const ConsultaProducto.codigo(String codigo)
+  const ConsultaProductoReporte.codigo(String codigo)
       : texto = codigo,
         esCodigo = true;
 }
