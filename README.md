@@ -18,7 +18,8 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
 | **HU-11** | **Precios, disponibilidad y promociones** | **Implementada (rama `feat/hu11-precios`). Con el diseño del equipo para el catálogo y Editar Producto (stock, fotos, buscador, gráfica del historial). Probada con repositorios falsos (373 pruebas en total). Falta ejecutar sus pruebas de políticas en Supabase.** Ver [docs/HU11_informe_implementacion.md](docs/HU11_informe_implementacion.md) |
-| HU-12, HU-13, HU-14, HU-17 | Búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
+| **HU-12** | **Búsqueda de productos** | **Implementada (rama `feat/hu12-busqueda`). Búsqueda por nombre o marca y por código de barras con la cámara, rango de precios y establecimientos, paginada. Probada con repositorios falsos (413 pruebas en total). Falta ejecutar sus pruebas en Supabase.** Ver [docs/HU12_informe_implementacion.md](docs/HU12_informe_implementacion.md) |
+| HU-13, HU-14, HU-17 | Detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
 
@@ -118,6 +119,12 @@ Para repetir la prueba desde cero hay que eliminar antes los productos cargados:
    - Si al guardar aparece "La base de datos no está actualizada", falta ejecutar la versión más reciente de `sprint2_hu11.sql` (por ejemplo, la columna `producto.stock`).
 3. Al tocar un producto se abre **Editar Producto**: foto (botón de cámara), código, tienda, gráfica del historial de los últimos 4 meses, precio actual con su variación, stock, interruptor **Disponible/Agotado** y promoción. **Guardar Cambios** guarda el producto, la foto, el precio y la disponibilidad en un solo paso (para marcar agotado hace falta escribir el precio); el precio queda con la fecha, la hora y la fuente "Comercio". Si la promoción ya terminó, aparece como "Vencida" y rige el precio normal.
 
+### Probar la búsqueda de productos (HU-12)
+
+1. Ejecutamos `docs/sql/sprint2_hu12.sql` en Supabase (pasos 7 y 8 de la tabla de scripts) y corremos `flutter pub get` (se agregó `mobile_scanner`).
+2. Entramos como **Cliente** y tocamos la lupa o escribimos en el buscador del Home. Cada resultado muestra el rango de precios ("$ 4.200 – $ 5.000") y en cuántos establecimientos está; si no hay coincidencias aparece "No encontramos productos".
+3. Al tocar un resultado vemos el precio en cada tienda (el más barato primero, con promoción y fuente). Con **Escanear código de barras** abrimos la cámara; en el emulador, "Escribir el código" hace lo mismo.
+
 ## Tecnologías
 
 | Tecnología | Uso |
@@ -127,7 +134,8 @@ Para repetir la prueba desde cero hay que eliminar antes los productos cargados:
 | supabase_flutter | Cliente de Supabase |
 | flutter_bloc | Gestión de estado con BLoC |
 | get_it | Localizador de servicios (Service Locator) para la inyección de dependencias |
-| file_picker | Selector de archivos del sistema para la carga del catálogo por CSV (HU-10) |
+| file_picker | Selector de archivos del sistema para la carga del catálogo por CSV (HU-10) y la foto del producto (HU-11) |
+| mobile_scanner | Escáner de código de barras con la cámara (HU-12) |
 | flutter_dotenv | Variables de entorno desde `.env` |
 | Clean Architecture por feature | Organización del código (presentación, dominio y datos) |
 
@@ -228,6 +236,8 @@ order by u.correo;
 | 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
 | 5 | `sprint2_hu11.sql` | `precio_producto`, `historial_precio` y `promocion`, sus triggers, `es_producto_propio()` y sus políticas; `producto.stock` y `producto.foto_url`, `resumen_catalogo()` y el bucket `productos` de Storage para las fotos |
 | 6 | `pruebas_hu11_politicas.sql` | Prueba de las políticas y los triggers de precios (termina en `ROLLBACK`) |
+| 7 | `sprint2_hu12.sql` | Funciones de la búsqueda del cliente: `buscar_productos()` y `precios_de_producto()` |
+| 8 | `pruebas_hu12_busqueda.sql` | Prueba de la búsqueda (termina en `ROLLBACK`) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo, y sin el paso 5 la lista del catálogo falla porque también pide el precio de cada producto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -268,7 +278,7 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-11), `flutter analyze` no reporta problemas y `flutter test` pasa las **373 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-12), `flutter analyze` no reporta problemas y `flutter test` pasa las **413 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
 Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`) ni el selector de archivos del sistema (eso lo probamos a mano).
 
@@ -283,6 +293,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista, errores y mensajes propios de error |
 | `test/aprobaciones/`, `test/notificaciones/`, `test/comercio/`, `test/colaborador/` | HU-06, HU-07, HU-08 y HU-24 (registro, estado y aprobación) |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
+| `test/busqueda/` | HU-12: búsqueda por nombre y marca, código escaneado, paginado, detalle por establecimiento y accesos desde el Home del cliente |
 | `test/prices/`, `test/catalog/catalogo_hu11_test.dart`, `test/catalog/catalogo_diseno_test.dart` | HU-11: formato COP y de fechas, validaciones, vigencia de promociones, casos de uso, Blocs, historial y las pantallas Catálogo y Editar Producto con el diseño (incluye 320 px) |
 
 ## Estructura
@@ -314,6 +325,7 @@ lib/
     ├── home/                      RolShell: Home y Perfil del perfil activo
     ├── catalog/                   HU-10: catálogo del comercio (domain, data, presentation)
     ├── prices/                    HU-11: precios, disponibilidad, promociones e historial (domain, data, presentation)
+    ├── busqueda/                  HU-12: búsqueda del cliente, detalle por establecimiento y escáner
     ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
     ├── notificaciones/            HU-24: aviso al solicitante
     └── admin | cliente | colaborador | comercio | repartidor
@@ -349,7 +361,7 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Diseño | Los colores y estilos salen de `TemaRol`, sin colores escritos a mano en las pantallas; corregimos la selección de perfil, que los tenía fijos. Arreglamos los desbordes de texto en pantallas angostas y la imagen de la segunda pantalla de bienvenida se ajusta completa (`BoxFit.contain`). | `lib/core/ui/roles/`, `lib/features/onboarding/` |
 | Navegación | Agregamos la flecha de regreso en la segunda pantalla de bienvenida y en la selección de perfil. Arreglamos que la app abría la selección de perfil como si fuera la primera pantalla; ahora arranca en la bienvenida. Al cerrar sesión volvemos a la primera pantalla y borramos el historial, así que no se puede regresar al Home con el botón atrás. | `lib/app.dart`, `lib/core/routes/`, `lib/features/home/` |
 | Manejo de errores y experiencia de usuario | Los errores de Supabase se traducen a mensajes en español y se muestran al usuario. Los formularios validan antes de enviar, muestran carga y no dejan enviar dos veces. Los botones que todavía no tienen función muestran "Esta función estará disponible próximamente." en vez de quedar sin respuesta. | `lib/features/auth/domain/failures/`, `lib/core/ui/roles/widgets/varios.dart` |
-| Calidad y pruebas | Con la última versión (rama de la HU-11), `flutter analyze` no reporta problemas y `flutter test` pasa las 373 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
+| Calidad y pruebas | Con la última versión (rama de la HU-12), `flutter analyze` no reporta problemas y `flutter test` pasa las 413 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
 | Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a dos listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24) y el catálogo del comercio (HU-10). `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
 
 ## Auditoría del Service Locator (GetIt)
@@ -363,7 +375,7 @@ Revisamos que la app implemente el patrón Service Locator y dónde se aplica. *
 | Contenedor | `lib/core/di/injector.dart` (`final GetIt sl`) | Es el único contenedor. No hay otro. |
 | Registro | `setupDependencies()`, llamada una vez desde `lib/main.dart` | Registra, de adentro hacia afuera: `SupabaseClient` → data sources → repositorios (con el tipo del contrato) → casos de uso → Blocs. Es idempotente: llamarla de nuevo no duplica registros. |
 | Consulta | `lib/app_router.dart` | Es el único lugar que pide dependencias con `sl<...>()`, para dárselas a cada pantalla con `BlocProvider`. Las pantallas y los Blocs no conocen el localizador. |
-| Parámetros | `registerFactoryParam` | Los Blocs que necesitan un dato de la pantalla: `DecisionSolicitudBloc` y `PaginatedBloc<Solicitud>` (HU-24) `ProductoFormBloc` (HU-10, con `null` para crear) y `PrecioProductoBloc` (HU-11, con el producto). La lista del catálogo se registra como `PaginatedBloc<Producto>` pero es un `CatalogoListaBloc` (agrega búsqueda y filtro). |
+| Parámetros | `registerFactoryParam` | Los Blocs que necesitan un dato de la pantalla: `DecisionSolicitudBloc` y `PaginatedBloc<Solicitud>` (HU-24) `ProductoFormBloc` (HU-10, con `null` para crear), `PrecioProductoBloc` (HU-11, con el producto), y `PaginatedBloc<ResultadoBusqueda>` (con el texto del Home) y `DetalleProductoBloc` (con la consulta) de la HU-12. La lista del catálogo se registra como `PaginatedBloc<Producto>` pero es un `CatalogoListaBloc` (agrega búsqueda y filtro). |
 
 Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySingleton` (sin estado); los Blocs son `registerFactory`, porque guardan estado y cada pantalla debe tener el suyo.
 
@@ -375,7 +387,7 @@ Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySi
 | `sl<` o `GetIt` fuera del inyector | Solo `app_router.dart` |
 | Data sources o repositorios construidos fuera del inyector | Ninguno |
 | Imports de `flutter`, `supabase_flutter`, `get_it` o `file_picker` en las carpetas `domain/` | Ninguno |
-| Registros en `injector.dart` | 58 (45 hasta la HU-10 y 13 de la HU-11) |
+| Registros en `injector.dart` | 64 (45 hasta la HU-10, 13 de la HU-11 y 6 de la HU-12) |
 | `test/di/injector_test.dart` | Comprueba los registros (repositorios con el tipo del contrato, Bloc de fábrica, casos de uso únicos), que `setupDependencies` no duplica, y que la cadena completa del catálogo se arma con un cliente de Supabase sin conexión |
 
 Para repetir las comprobaciones:
@@ -419,7 +431,11 @@ flutter test test/di
   - El aviso del diseño ("los cambios serán validados por colaboradores") se cambió por el comportamiento real de la HU-11: el precio del comercio se publica de inmediato con fuente "Comercio".
   - La vigencia de la promoción se compara con la fecha del teléfono.
   - Los clientes todavía no ven los precios: la lectura llega con la HU-12.
-- `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it` y, en la HU-10, `file_picker`).
+- **HU-12 (búsqueda):**
+  - "El mismo producto" en varias tiendas se reconoce por el código de barras o, si no tiene, por el nombre y la marca exactos.
+  - Solo aparecen productos con precio de comercios aprobados. El nivel de confianza del precio llega con la HU-13.
+  - En el emulador no hay cámara: el escáner ofrece "Escribir el código".
+- `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it`, `file_picker` en la HU-10 y `mobile_scanner` en la HU-12).
 
 ## Equipo
 
