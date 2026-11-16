@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Supabase: sin este permiso la app instalada (release) no se conecta. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- HU-12: escanear el código de barras de un producto. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="smartcart"
         android:name="${applicationName}"

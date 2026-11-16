@@ -29,6 +29,17 @@ abstract final class AppRoutes {
   /// HU-10: carga de productos desde un archivo CSV.
   static const catalogoCsv = '/comercio/catalogo/csv';
 
+  /// HU-12: búsqueda de productos del cliente. Recibe opcionalmente el texto
+  /// escrito en el Home (`String`).
+  static const busqueda = '/cliente/busqueda';
+
+  /// HU-12: un producto con el precio de cada establecimiento. Recibe una
+  /// `ConsultaProducto` (por clave de un resultado o por código escaneado).
+  static const busquedaDetalle = '/cliente/busqueda/producto';
+
+  /// HU-12: escáner de código de barras. Devuelve el código (`String`).
+  static const escaner = '/cliente/escaner';
+
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con
   /// cambiar esta constante por [onboarding].

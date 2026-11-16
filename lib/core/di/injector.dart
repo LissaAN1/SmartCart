@@ -25,6 +25,14 @@ import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/activar_modo_colaborador_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
+import 'package:smartcart/features/busqueda/data/repository/busqueda_repository_impl.dart';
+import 'package:smartcart/features/busqueda/data/source/supabase_busqueda_data_source.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/catalog/data/repository/catalogo_repository_impl.dart';
 import 'package:smartcart/features/catalog/data/source/file_picker_selector_csv.dart';
 import 'package:smartcart/features/catalog/data/source/file_picker_selector_imagen.dart';
@@ -113,6 +121,9 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabasePreciosDataSource>(
     () => SupabasePreciosDataSource(client: sl()),
   );
+  sl.registerLazySingleton<SupabaseBusquedaDataSource>(
+    () => SupabaseBusquedaDataSource(client: sl()),
+  );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -135,6 +146,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<PreciosRepository>(
     () => PreciosRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<BusquedaRepository>(
+    () => BusquedaRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -216,6 +230,14 @@ void setupDependencies() {
     () => GetFormularioProductoUseCase(comercioAprobado: sl(), categorias: sl()),
   );
   sl.registerLazySingleton(() => ElegirFotoProductoUseCase(selector: sl()));
+
+  // HU-12: búsqueda del cliente.
+  sl.registerLazySingleton(
+    () => BuscarProductosUseCase(auth: sl(), busqueda: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetDetalleProductoUseCase(auth: sl(), busqueda: sl()),
+  );
   sl.registerLazySingleton(
     () => GuardarProductoUseCase(
       crear: sl(),
@@ -265,6 +287,15 @@ void setupDependencies() {
       guardarPromocion: sl(),
       quitarPromocion: sl(),
     ),
+  );
+
+  // HU-12: la búsqueda arranca con el texto del Home y el detalle recibe qué
+  // producto abrir: `sl<PaginatedBloc<ResultadoBusqueda>>(param1: texto)`.
+  sl.registerFactoryParam<PaginatedBloc<ResultadoBusqueda>, String, void>(
+    (texto, _) => BusquedaBloc(buscar: sl(), textoInicial: texto),
+  );
+  sl.registerFactoryParam<DetalleProductoBloc, ConsultaProducto, void>(
+    (consulta, _) => DetalleProductoBloc(consulta: consulta, detalle: sl()),
   );
 
   // HU-24: estos Bloc necesitan un dato de la pantalla, así que se piden
