@@ -13,6 +13,15 @@ class PaginatedStarted extends PaginatedEvent {}
 /// Cargar la página siguiente (la lista llegó al final).
 class NextPageRequested extends PaginatedEvent {}
 
+/// Cambiar un elemento ya cargado sin recargar la lista (por ejemplo, un
+/// interruptor de la fila). Se reemplazan los elementos que cumplen [donde].
+class PaginatedItemReplaced<T> extends PaginatedEvent {
+  final T item;
+  final bool Function(T actual) donde;
+
+  PaginatedItemReplaced(this.item, {required this.donde});
+}
+
 enum PaginatedStatus { initial, loading, success, failure }
 
 /// Estado único de una lista paginada.
@@ -85,6 +94,17 @@ class PaginatedBloc<T> extends Bloc<PaginatedEvent, PaginatedState<T>> {
         super(PaginatedState<T>()) {
     on<PaginatedStarted>(_onStarted);
     on<NextPageRequested>(_onNextPage);
+    on<PaginatedItemReplaced<T>>(_onItemReplaced);
+  }
+
+  void _onItemReplaced(
+    PaginatedItemReplaced<T> event,
+    Emitter<PaginatedState<T>> emit,
+  ) {
+    if (state.status != PaginatedStatus.success) return;
+    emit(state.copyWith(items: [
+      for (final item in state.items) event.donde(item) ? event.item : item,
+    ]));
   }
 
   Future<void> _onStarted(

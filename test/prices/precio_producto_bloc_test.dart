@@ -21,10 +21,6 @@ Future<PrecioProductoState> _hasta(
 ) =>
     bloc.stream.firstWhere(condicion);
 
-/// Espera a que termine la acción en curso.
-Future<PrecioProductoState> _alTerminar(PrecioProductoBloc bloc) =>
-    _hasta(bloc, (s) => s.accion == AccionPrecio.ninguna);
-
 void main() {
   late TestEnv env;
 
@@ -58,43 +54,21 @@ void main() {
     await bloc.close();
   });
 
-  test('escenario 1: guardar el precio recarga la ficha con el historial',
+  test('escenario 2: marcar agotado devuelve la ficha con el historial',
       () async {
-    final bloc = await listo();
-
-    bloc.add(PrecioGuardado(2800));
-    expect(
-      (await _hasta(bloc, (s) => s.ocupado)).accion,
-      AccionPrecio.guardandoPrecio,
-    );
-    final state = await _alTerminar(bloc);
-
-    expect(state.aviso, 'Precio actualizado');
-    expect(state.ficha.precio?.precio, 2800);
-    expect(state.ficha.historial, hasLength(1));
-    await bloc.close();
-  });
-
-  test('guardar el precio conserva la disponibilidad actual', () async {
-    env.precios.precargar('p1', 2500, disponible: false);
-    final bloc = await listo();
-
-    bloc.add(PrecioGuardado(2600));
-    await _alTerminar(bloc);
-
-    expect(env.precios.guardados.single.datos.disponible, isFalse);
-    await bloc.close();
-  });
-
-  test('escenario 2: marcar agotado', () async {
     env.precios.precargar('p1', 2500);
     final bloc = await listo();
 
     bloc.add(DisponibilidadCambiada(false));
+    expect(
+      (await _hasta(bloc, (s) => s.ocupado)).accion,
+      AccionPrecio.cambiandoDisponibilidad,
+    );
     final state = await _hasta(bloc, (s) => s.aviso != null);
 
     expect(state.aviso, 'Marcado como agotado');
     expect(state.ficha.precio?.disponible, isFalse);
+    expect(state.ficha.historial, hasLength(1));
     await bloc.close();
   });
 
@@ -122,22 +96,23 @@ void main() {
     final bloc = await listo();
     env.precios.guardarError = const AuthFailure('Sin conexión');
 
-    bloc.add(PrecioGuardado(2800));
+    bloc.add(DisponibilidadCambiada(false));
     final state = await _hasta(bloc, (s) => s.errorMessage != null);
 
     expect(state.errorMessage, 'Sin conexión');
     expect(state.accion, AccionPrecio.ninguna);
-    expect(state.ficha.precio?.precio, 2500);
+    expect(state.ficha.precio?.disponible, isTrue);
     await bloc.close();
   });
 
   test('un segundo toque mientras guarda no reenvía', () async {
+    env.precios.precargar('p1', 2500);
     final bloc = await listo();
 
     bloc
-      ..add(PrecioGuardado(2800))
-      ..add(PrecioGuardado(2900));
-    await _alTerminar(bloc);
+      ..add(DisponibilidadCambiada(false))
+      ..add(DisponibilidadCambiada(true));
+    await _hasta(bloc, (s) => s.aviso != null);
     await Future<void>.delayed(Duration.zero);
 
     expect(env.precios.guardados, hasLength(1));

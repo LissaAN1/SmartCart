@@ -91,7 +91,9 @@ class BotonSuave extends StatelessWidget {
               Icon(icono, size: 18),
               const SizedBox(width: 8),
             ],
-            Text(texto),
+            // Flexible: igual que BotonPrimario, no se desborda en pantallas
+            // angostas.
+            Flexible(child: Text(texto, textAlign: TextAlign.center)),
           ],
         ),
       ),

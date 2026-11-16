@@ -2,8 +2,9 @@ import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado
 import 'package:smartcart/features/prices/domain/entities/ficha_precio.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
 
-/// Cuántos cambios del historial muestra la pantalla.
-const limiteHistorialPrecios = 10;
+/// Cuántos cambios del historial se leen: alcanzan para la gráfica de los
+/// últimos meses.
+const limiteHistorialPrecios = 60;
 
 /// Lee precio, promoción e historial de un producto. La usan la consulta y
 /// los casos de uso que escriben, para devolver la ficha ya actualizada (con

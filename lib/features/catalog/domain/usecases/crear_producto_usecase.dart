@@ -17,6 +17,7 @@ ProductoDatos normalizarProducto(ProductoDatos datos) {
     marca: opcional(datos.marca),
     codigoBarras: opcional(datos.codigoBarras),
     idCategoria: datos.idCategoria,
+    stock: datos.stock,
   );
 }
 

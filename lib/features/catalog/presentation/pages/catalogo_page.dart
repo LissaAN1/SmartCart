@@ -1,86 +1,190 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/ui/pagination/paginated_list_view.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
+import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/widgets/encabezado_inventario.dart';
 import 'package:smartcart/features/catalog/presentation/widgets/producto_card.dart';
 
-/// HU-10: catálogo del comercio. Lista paginada de sus productos, con acceso
-/// al formulario (crear y editar) y a la carga por archivo.
+/// HU-10 + HU-11: catálogo del comercio. Buscador, chips de categorías,
+/// resumen del inventario y la lista paginada de productos con su precio,
+/// stock e interruptor ACTIVO/INACTIVO. Da acceso al formulario (crear y
+/// editar) y a la carga por archivo.
 ///
-/// Necesita un `PaginatedBloc<Producto>` arriba en el árbol (lo provee
-/// `AppRouter`). Si el comercio no está aprobado, la lista muestra el aviso
-/// de espera que viene del caso de uso.
-class CatalogoPage extends StatelessWidget {
+/// Necesita arriba en el árbol un `PaginatedBloc<Producto>` (un
+/// `CatalogoListaBloc`) y un `InventarioBloc` (los provee `AppRouter`). Si el
+/// comercio no está aprobado, la lista muestra el aviso de espera que viene
+/// del caso de uso.
+class CatalogoPage extends StatefulWidget {
   const CatalogoPage({super.key});
 
-  /// Abre el formulario; si se guardó o eliminó algo, recarga la lista.
-  Future<void> _abrirFormulario(BuildContext context, [Producto? producto]) {
-    return _abrir(context, AppRoutes.catalogoProducto, producto);
+  @override
+  State<CatalogoPage> createState() => _CatalogoPageState();
+}
+
+class _CatalogoPageState extends State<CatalogoPage> {
+  /// Espera tras la última tecla antes de buscar, para no consultar la base
+  /// con cada letra.
+  static const _pausaBusqueda = Duration(milliseconds: 350);
+
+  final _buscador = TextEditingController();
+  Timer? _espera;
+  String? _idCategoria;
+
+  @override
+  void dispose() {
+    _espera?.cancel();
+    _buscador.dispose();
+    super.dispose();
   }
 
-  Future<void> _abrirCsv(BuildContext context) {
-    return _abrir(context, AppRoutes.catalogoCsv, null);
+  FiltroCatalogo get _filtro =>
+      FiltroCatalogo(texto: _buscador.text, idCategoria: _idCategoria);
+
+  void _aplicarFiltro() {
+    context.read<PaginatedBloc<Producto>>().add(FiltroCatalogoCambiado(_filtro));
   }
 
-  /// HU-11: edición rápida de precio, disponibilidad y promoción.
-  Future<void> _abrirPrecio(BuildContext context, Producto producto) {
-    return _abrir(context, AppRoutes.catalogoPrecio, producto);
+  void _alBuscar(String _) {
+    _espera?.cancel();
+    _espera = Timer(_pausaBusqueda, _aplicarFiltro);
   }
 
-  Future<void> _abrir(
-    BuildContext context,
-    String ruta,
-    Object? argumentos,
-  ) async {
-    final bloc = context.read<PaginatedBloc<Producto>>();
+  void _alElegirCategoria(String? idCategoria) {
+    if (idCategoria == _idCategoria) return;
+    setState(() => _idCategoria = idCategoria);
+    _aplicarFiltro();
+  }
+
+  /// Recarga la lista (con el filtro vigente) y el resumen.
+  void _recargar() {
+    context.read<PaginatedBloc<Producto>>().add(PaginatedStarted());
+    context.read<InventarioBloc>().add(InventarioStarted());
+  }
+
+  Future<void> _abrirFormulario([Producto? producto]) =>
+      _abrir(AppRoutes.catalogoProducto, producto);
+
+  Future<void> _abrirCsv() => _abrir(AppRoutes.catalogoCsv, null);
+
+  Future<void> _abrir(String ruta, Object? argumentos) async {
     // Las rutas devuelven tipos distintos (el formulario un `bool`, el CSV
     // nada), por eso el resultado se pide como `Object?`.
     final cambio = await Navigator.of(context)
         .pushNamed<Object?>(ruta, arguments: argumentos);
-    // Del CSV y de los precios se puede volver con el gesto "atrás" sin
-    // devolver nada, así que ahí siempre recargamos.
-    if (cambio == true ||
-        ruta == AppRoutes.catalogoCsv ||
-        ruta == AppRoutes.catalogoPrecio) {
-      bloc.add(PaginatedStarted());
-    }
+    // Del CSV se puede volver con el gesto "atrás" sin devolver nada, así
+    // que ahí siempre recargamos.
+    if (!mounted) return;
+    if (cambio == true || ruta == AppRoutes.catalogoCsv) _recargar();
+  }
+
+  Future<void> _confirmarEliminar(Producto producto) async {
+    final bloc = context.read<InventarioBloc>();
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('¿Eliminar ${producto.nombre}?'),
+        content: const Text(
+          'Se quitará de tu catálogo con su historial de precios y no se '
+          'puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: ColoresEstado.rojo),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmado == true) bloc.add(ProductoEliminadoDeLista(producto));
   }
 
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.comercio;
-    return PantallaRol(
-      tema: t,
-      barraSuperior: BarraTituloRol(
-        titulo: 'Mi catálogo',
-        mostrarAtras: true,
-        acciones: [
-          IconButton(
-            tooltip: 'Cargar por archivo',
-            icon: Icon(Icons.upload_file, color: t.texto),
-            onPressed: () => _abrirCsv(context),
-          ),
-        ],
-      ),
-      fab: FloatingActionButton(
-        tooltip: 'Agregar producto',
-        backgroundColor: t.primario,
-        shape: const CircleBorder(),
-        onPressed: () => _abrirFormulario(context),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
-      ),
-      cuerpo: PaginatedListView<Producto>(
-        emptyMessage:
-            'Aún no tienes productos. Toca + para agregar el primero.',
-        // Espacio abajo para que el botón + no tape la última fila.
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        itemBuilder: (context, producto) => ProductoCard(
-          producto: producto,
-          onTap: () => _abrirFormulario(context, producto),
-          onPrecio: () => _abrirPrecio(context, producto),
+    return BlocListener<InventarioBloc, InventarioState>(
+      listener: (context, state) {
+        final actualizado = state.actualizado;
+        if (actualizado != null) {
+          context.read<PaginatedBloc<Producto>>().add(
+                PaginatedItemReplaced<Producto>(
+                  actualizado,
+                  donde: (p) => p.id == actualizado.id,
+                ),
+              );
+        }
+        if (state.eliminado) _recargar();
+        final error = state.errorMessage;
+        if (error != null) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(error)));
+        }
+      },
+      child: PantallaRol(
+        tema: t,
+        barraSuperior: BarraTituloRol(
+          titulo: 'Catálogo',
+          mostrarAtras: true,
+          acciones: [
+            IconButton(
+              tooltip: 'Cargar por archivo',
+              icon: Icon(Icons.upload_file, color: t.texto),
+              onPressed: _abrirCsv,
+            ),
+          ],
+        ),
+        fab: FloatingActionButton(
+          tooltip: 'Agregar producto',
+          backgroundColor: t.primario,
+          shape: const CircleBorder(),
+          onPressed: _abrirFormulario,
+          child: Icon(Icons.add, color: t.superficie, size: 30),
+        ),
+        cuerpo: BlocBuilder<InventarioBloc, InventarioState>(
+          builder: (context, inventario) {
+            return PaginatedListView<Producto>(
+              emptyMessage: _filtro.vacio
+                  ? 'Aún no tienes productos. Toca + para agregar el primero.'
+                  : 'No encontramos productos con ese filtro.',
+              // Espacio abajo para que el botón + no tape la última fila.
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+              encabezado: EncabezadoInventario(
+                buscador: _buscador,
+                onBuscar: _alBuscar,
+                categorias: inventario.encabezado?.categorias ?? const [],
+                idCategoria: _idCategoria,
+                onCategoria: _alElegirCategoria,
+                resumen: inventario.encabezado?.resumen,
+              ),
+              itemBuilder: (context, producto) => ProductoCard(
+                producto: producto,
+                onTap: () => _abrirFormulario(producto),
+                // Sin precio no se puede marcar la disponibilidad (HU-11).
+                onDisponible: producto.precio == null ||
+                        inventario.cambiandoId == producto.id
+                    ? null
+                    : (valor) => context
+                        .read<InventarioBloc>()
+                        .add(DisponibilidadEnListaCambiada(producto, valor)),
+                onEliminar: () => _confirmarEliminar(producto),
+              ),
+            );
+          },
         ),
       ),
     );

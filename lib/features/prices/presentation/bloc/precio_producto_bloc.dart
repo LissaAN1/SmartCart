@@ -2,9 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/prices/domain/entities/ficha_precio.dart';
-import 'package:smartcart/features/prices/domain/entities/precio.dart';
 import 'package:smartcart/features/prices/domain/entities/promocion.dart';
-import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
@@ -15,13 +13,6 @@ abstract class PrecioProductoEvent {}
 /// Al abrir la pantalla (y al reintentar): carga precio, promoción e
 /// historial.
 class PrecioProductoStarted extends PrecioProductoEvent {}
-
-/// Escenario 1: "Guardar precio".
-class PrecioGuardado extends PrecioProductoEvent {
-  final int precio;
-
-  PrecioGuardado(this.precio);
-}
 
 /// Escenario 2: el interruptor disponible / agotado.
 class DisponibilidadCambiada extends PrecioProductoEvent {
@@ -44,7 +35,6 @@ enum PrecioProductoStatus { initial, loading, loadFailed, ready }
 /// deshabilitan.
 enum AccionPrecio {
   ninguna,
-  guardandoPrecio,
   cambiandoDisponibilidad,
   guardandoPromocion,
   quitandoPromocion,
@@ -89,15 +79,15 @@ class PrecioProductoState {
   }
 }
 
-/// HU-11: edición rápida del precio, la disponibilidad y la promoción de un
-/// producto del catálogo. Cada evento hace una sola llamada a un caso de uso;
+/// HU-11: disponibilidad, promoción e historial de un producto, dentro de
+/// "Editar producto". El precio se guarda con el resto del formulario
+/// (`GuardarProductoUseCase`). Cada evento hace una sola llamada a un caso de uso;
 /// los que escriben devuelven la ficha ya actualizada (con la fecha y el
 /// historial que guardó la base).
 class PrecioProductoBloc
     extends Bloc<PrecioProductoEvent, PrecioProductoState> {
   final Producto producto;
   final GetFichaPrecioUseCase _ficha;
-  final ActualizarPrecioUseCase _actualizar;
   final CambiarDisponibilidadProductoUseCase _disponibilidad;
   final GuardarPromocionUseCase _guardarPromocion;
   final QuitarPromocionUseCase _quitarPromocion;
@@ -105,29 +95,15 @@ class PrecioProductoBloc
   PrecioProductoBloc({
     required this.producto,
     required GetFichaPrecioUseCase ficha,
-    required ActualizarPrecioUseCase actualizar,
     required CambiarDisponibilidadProductoUseCase disponibilidad,
     required GuardarPromocionUseCase guardarPromocion,
     required QuitarPromocionUseCase quitarPromocion,
   })  : _ficha = ficha,
-        _actualizar = actualizar,
         _disponibilidad = disponibilidad,
         _guardarPromocion = guardarPromocion,
         _quitarPromocion = quitarPromocion,
         super(const PrecioProductoState()) {
     on<PrecioProductoStarted>(_onStarted);
-    on<PrecioGuardado>((event, emit) => _ejecutar(
-          emit,
-          AccionPrecio.guardandoPrecio,
-          () => _actualizar(
-            producto.id,
-            PrecioDatos(
-              precio: event.precio,
-              disponible: state.ficha.precio?.disponible ?? true,
-            ),
-          ),
-          'Precio actualizado',
-        ));
     on<DisponibilidadCambiada>((event, emit) => _ejecutar(
           emit,
           AccionPrecio.cambiandoDisponibilidad,

@@ -27,19 +27,28 @@ import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
+import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
+import 'package:smartcart/features/catalog/domain/entities/imagen_producto.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/entities/resumen_catalogo.dart';
 import 'package:smartcart/features/catalog/domain/entities/resultado_carga_csv.dart';
 import 'package:smartcart/features/catalog/domain/repository/catalogo_repository.dart';
 import 'package:smartcart/features/catalog/domain/repository/selector_archivo_csv.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_imagen.dart';
 import 'package:smartcart/features/catalog/domain/usecases/cargar_productos_csv_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/crear_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/editar_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/elegir_archivo_csv_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/elegir_foto_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/eliminar_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_categorias_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_encabezado_catalogo_usecase.dart';
+import 'package:smartcart/features/catalog/domain/usecases/get_formulario_producto_usecase.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/prices/domain/entities/precio.dart';
@@ -48,6 +57,7 @@ import 'package:smartcart/features/prices/domain/repository/precios_repository.d
 import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
@@ -363,6 +373,7 @@ class FakeCatalogoRepository implements CatalogoRepository {
         marca: datos.marca,
         codigoBarras: datos.codigoBarras,
         idCategoria: datos.idCategoria,
+        stock: datos.stock,
         categoria: categoriasDePrueba
             .firstWhere((c) => c.id == datos.idCategoria,
                 orElse: () => const Categoria(id: '', nombre: ''))
@@ -380,17 +391,65 @@ class FakeCatalogoRepository implements CatalogoRepository {
     }
   }
 
+  /// Filtros con los que se pidió cada página (HU-11).
+  final filtrosPedidos = <FiltroCatalogo>[];
+  Object? resumenError;
+  Object? fotoError;
+  final fotosSubidas = <({String idComercio, String idProducto})>[];
+
   @override
   Future<PagedResult<Producto>> productos(
     String idComercio,
-    PageRequest request,
-  ) async {
+    PageRequest request, {
+    FiltroCatalogo filtro = const FiltroCatalogo(),
+  }) async {
     if (listError != null) throw listError!;
+    filtrosPedidos.add(filtro);
+    final texto = filtro.texto.trim().toLowerCase();
     final filas = deComercio(idComercio)
+        .where((p) =>
+            filtro.idCategoria == null || p.idCategoria == filtro.idCategoria)
+        .where((p) =>
+            texto.isEmpty ||
+            p.nombre.toLowerCase().contains(texto) ||
+            (p.marca ?? '').toLowerCase().contains(texto))
         .skip(request.from)
         .take(request.pageSize + 1)
         .toList();
     return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<ResumenCatalogo> resumen(String idComercio) async {
+    if (resumenError != null) throw resumenError!;
+    final productos = deComercio(idComercio);
+    return ResumenCatalogo(
+      totalProductos: productos.length,
+      valorStock: productos.fold(
+          0, (suma, p) => suma + (p.precio ?? 0) * p.stock),
+      bajoStock: productos.where((p) => p.stockBajo).length,
+    );
+  }
+
+  @override
+  Future<Producto> subirFoto(
+    String idComercio,
+    Producto producto,
+    ImagenProducto foto,
+  ) async {
+    if (fotoError != null) throw fotoError!;
+    fotosSubidas.add((idComercio: idComercio, idProducto: producto.id));
+    final conFoto = producto.copyWith(
+        fotoUrl: 'https://fotos.test/$idComercio/${producto.id}.${foto.extension}');
+    _reemplazar(conFoto);
+    return conFoto;
+  }
+
+  void _reemplazar(Producto producto) {
+    for (final lista in productosPorComercio.values) {
+      final i = lista.indexWhere((p) => p.id == producto.id);
+      if (i >= 0) lista[i] = producto;
+    }
   }
 
   /// Categorías que devuelve la base; por defecto las tres de prueba.
@@ -484,6 +543,20 @@ class FakeSelectorArchivoCsv implements SelectorArchivoCsv {
     llamadas++;
     if (error != null) throw error!;
     return archivo;
+  }
+}
+
+/// Selector de fotos en memoria (HU-11): devuelve [foto] o lanza [error].
+class FakeSelectorImagen implements SelectorImagen {
+  ImagenProducto? foto;
+  Object? error;
+  int llamadas = 0;
+
+  @override
+  Future<ImagenProducto?> elegir() async {
+    llamadas++;
+    if (error != null) throw error!;
+    return foto;
   }
 }
 
@@ -601,6 +674,7 @@ class TestEnv {
   final catalogo = FakeCatalogoRepository();
   final selectorCsv = FakeSelectorArchivoCsv();
   final precios = FakePreciosRepository();
+  final selectorImagen = FakeSelectorImagen();
 
   /// "Hoy" para las promociones (HU-11): 15 de noviembre de 2026.
   DateTime ahora = DateTime(2026, 11, 15, 10);
@@ -672,6 +746,24 @@ class TestEnv {
   QuitarPromocionUseCase get quitarPromocion => QuitarPromocionUseCase(
       comercioAprobado: comercioAprobado, precios: precios);
 
+  // HU-11: catálogo con el diseño nuevo.
+  GetEncabezadoCatalogoUseCase get getEncabezado => GetEncabezadoCatalogoUseCase(
+      comercioAprobado: comercioAprobado,
+      categorias: getCategorias,
+      catalogo: catalogo);
+  GetFormularioProductoUseCase get getFormulario =>
+      GetFormularioProductoUseCase(
+          comercioAprobado: comercioAprobado, categorias: getCategorias);
+  ElegirFotoProductoUseCase get elegirFoto =>
+      ElegirFotoProductoUseCase(selector: selectorImagen);
+  GuardarProductoUseCase get guardarProducto => GuardarProductoUseCase(
+        crear: crearProducto,
+        editar: editarProducto,
+        actualizarPrecio: actualizarPrecio,
+        comercioAprobado: comercioAprobado,
+        catalogo: catalogo,
+      );
+
   /// Deja la sesión iniciada como dueño de un comercio con el [estado] dado
   /// (el comercio de prueba tiene el id `c1`).
   void iniciarSesionComoComercio(ApprovalStatus estado) {
@@ -679,23 +771,23 @@ class TestEnv {
     comercios.stored = comercioConEstado(estado);
   }
 
-  PaginatedBloc<Producto> productosBloc({int pageSize = 20}) =>
-      PaginatedBloc<Producto>(
-        fetchPage: getProductos.call,
-        pageSize: pageSize,
-        errorMessageFor: mensajeDeFallo,
+  CatalogoListaBloc productosBloc({int pageSize = 20}) =>
+      CatalogoListaBloc(getProductos: getProductos, pageSize: pageSize);
+  InventarioBloc inventarioBloc() => InventarioBloc(
+        encabezado: getEncabezado,
+        disponibilidad: cambiarDisponibilidadProducto,
+        eliminar: eliminarProducto,
       );
   ProductoFormBloc productoFormBloc({Producto? editando}) => ProductoFormBloc(
         editando: editando,
-        categorias: getCategorias,
-        crear: crearProducto,
-        editar: editarProducto,
+        formulario: getFormulario,
+        guardar: guardarProducto,
         eliminar: eliminarProducto,
+        elegirFoto: elegirFoto,
       );
   PrecioProductoBloc precioBloc(Producto producto) => PrecioProductoBloc(
         producto: producto,
         ficha: getFichaPrecio,
-        actualizar: actualizarPrecio,
         disponibilidad: cambiarDisponibilidadProducto,
         guardarPromocion: guardarPromocion,
         quitarPromocion: quitarPromocion,

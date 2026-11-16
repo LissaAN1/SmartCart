@@ -20,8 +20,8 @@ import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_csv_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/producto_form_page.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
-import 'package:smartcart/features/prices/presentation/pages/precio_producto_page.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -95,27 +95,41 @@ abstract final class AppRouter {
           create: (_) => sl<DecisionSolicitudBloc>(param1: args),
           child: const SolicitudDetallePage(),
         ),
-      AppRoutes.catalogo => BlocProvider(
-          create: (_) =>
-              sl<PaginatedBloc<Producto>>()..add(PaginatedStarted()),
+      AppRoutes.catalogo => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  sl<PaginatedBloc<Producto>>()..add(PaginatedStarted()),
+            ),
+            // HU-11: chips de categorías, resumen e interruptor de cada fila.
+            BlocProvider(
+              create: (_) => sl<InventarioBloc>()..add(InventarioStarted()),
+            ),
+          ],
           child: const CatalogoPage(),
         ),
       AppRoutes.catalogoProducto => () {
           final producto = args is Producto ? args : null;
-          return BlocProvider(
-            create: (_) => sl<ProductoFormBloc>(param1: producto)
-              ..add(ProductoFormStarted()),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => sl<ProductoFormBloc>(param1: producto)
+                  ..add(ProductoFormStarted()),
+              ),
+              // HU-11: historial, disponibilidad y promoción del producto
+              // que se edita (uno nuevo todavía no tiene).
+              if (producto != null)
+                BlocProvider(
+                  create: (_) => sl<PrecioProductoBloc>(param1: producto)
+                    ..add(PrecioProductoStarted()),
+                ),
+            ],
             child: ProductoFormPage(producto: producto),
           );
         }(),
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),
-        ),
-      AppRoutes.catalogoPrecio when args is Producto => BlocProvider(
-          create: (_) => sl<PrecioProductoBloc>(param1: args)
-            ..add(PrecioProductoStarted()),
-          child: const PrecioProductoPage(),
         ),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.

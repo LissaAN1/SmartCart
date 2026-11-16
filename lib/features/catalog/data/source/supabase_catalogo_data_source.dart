@@ -4,7 +4,10 @@ import 'package:smartcart/core/utils/json_helpers.dart';
 import 'package:smartcart/features/auth/data/source/supabase_error_mapper.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
+import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
+import 'package:smartcart/features/catalog/domain/entities/imagen_producto.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
+import 'package:smartcart/features/catalog/domain/entities/resumen_catalogo.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Único archivo que lee y escribe las tablas `producto` y `categoria`.
@@ -31,13 +34,26 @@ class SupabaseCatalogoDataSource {
 
   Future<PagedResult<Producto>> productos(
     String idComercio,
-    PageRequest request,
-  ) {
+    PageRequest request, {
+    FiltroCatalogo filtro = const FiltroCatalogo(),
+  }) {
     return _proteger(() async {
-      final rows = await _client
+      var query = _client
           .from(SupabaseTables.producto)
           .select(_seleccion)
-          .eq(SupabaseColumns.productoComercio, idComercio)
+          .eq(SupabaseColumns.productoComercio, idComercio);
+      final idCategoria = filtro.idCategoria;
+      if (idCategoria != null) {
+        query = query.eq(SupabaseColumns.productoCategoria, idCategoria);
+      }
+      final texto = textoBuscable(filtro.texto);
+      if (texto.isNotEmpty) {
+        query = query.or(
+          '${SupabaseColumns.productoNombre}.ilike.%$texto%,'
+          '${SupabaseColumns.productoMarca}.ilike.%$texto%',
+        );
+      }
+      final rows = await query
           .order(SupabaseColumns.productoCreadoEn, ascending: false)
           .order(SupabaseColumns.productoId, ascending: true)
           .range(request.from, request.to);
@@ -47,6 +63,65 @@ class SupabaseCatalogoDataSource {
       );
     });
   }
+
+  /// HU-11: lo calcula la base (`resumen_catalogo`), así incluye los
+  /// productos de todas las páginas.
+  Future<ResumenCatalogo> resumen(String idComercio) {
+    return _proteger(() async {
+      final rows = await _client.rpc(
+        SupabaseFunctions.resumenCatalogo,
+        params: {'p_id_comercio': idComercio},
+      );
+      final fila = rows is List && rows.isNotEmpty ? rows.first : rows;
+      if (fila is! Map) return const ResumenCatalogo();
+      return ResumenCatalogo(
+        totalProductos: parseInt(fila[SupabaseColumns.resumenTotal]) ?? 0,
+        valorStock: parseInt(fila[SupabaseColumns.resumenValorStock]) ?? 0,
+        bajoStock: parseInt(fila[SupabaseColumns.resumenBajoStock]) ?? 0,
+      );
+    });
+  }
+
+  /// HU-11: sube la foto a `productos/<id_comercio>/` (la política de Storage
+  /// solo deja escribir en la carpeta del comercio propio) y guarda su URL
+  /// pública en el producto. Un nombre nuevo cada vez evita que el teléfono
+  /// muestre la foto anterior guardada en caché.
+  Future<Producto> subirFoto(
+    String idComercio,
+    Producto producto,
+    ImagenProducto foto,
+  ) {
+    return _proteger(() async {
+      final ruta = '$idComercio/${producto.id}-'
+          '${DateTime.now().millisecondsSinceEpoch}.${foto.extension}';
+      final bucket = _client.storage.from(SupabaseBuckets.productos);
+      try {
+        await bucket.uploadBinary(
+          ruta,
+          foto.bytes,
+          fileOptions: FileOptions(contentType: foto.contentType),
+        );
+      } on StorageException {
+        throw const AuthFailure(
+          'No pudimos subir la foto. Revisa tu conexión e inténtalo de nuevo.',
+        );
+      }
+      final url = bucket.getPublicUrl(ruta);
+      final row = await _client
+          .from(SupabaseTables.producto)
+          .update({SupabaseColumns.productoFotoUrl: url})
+          .eq(SupabaseColumns.productoId, producto.id)
+          .select(_seleccion)
+          .maybeSingle();
+      if (row == null) throw const AuthFailure('No encontramos ese producto.');
+      return _toProducto(row);
+    });
+  }
+
+  /// Quita del texto buscado los caracteres que tienen significado en el
+  /// filtro `or` de PostgREST (coma, paréntesis) y los comodines de `ilike`.
+  static String textoBuscable(String texto) =>
+      texto.replaceAll(RegExp(r'[,()%*\\]'), ' ').trim();
 
   Future<List<Categoria>> categorias() {
     return _proteger(() async {
@@ -165,6 +240,7 @@ class SupabaseCatalogoDataSource {
         SupabaseColumns.productoMarca: datos.marca,
         SupabaseColumns.productoCodigoBarras: datos.codigoBarras,
         SupabaseColumns.productoCategoria: datos.idCategoria,
+        SupabaseColumns.productoStock: datos.stock,
       };
 
   Producto _toProducto(Map<String, dynamic> row) {
@@ -188,6 +264,8 @@ class SupabaseCatalogoDataSource {
       disponible: precio is Map
           ? parseBool(precio[SupabaseColumns.precioDisponible])
           : true,
+      stock: parseInt(row[SupabaseColumns.productoStock]) ?? 0,
+      fotoUrl: row[SupabaseColumns.productoFotoUrl] as String?,
     );
   }
 }

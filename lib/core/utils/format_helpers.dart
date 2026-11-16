@@ -23,6 +23,28 @@ String formatoMiles(int valor) {
 String formatoCop(int pesos) =>
     '${pesos < 0 ? '-' : ''}\$ ${formatoMiles(pesos)}';
 
+/// HU-11: "Jul", "Ago": el mes abreviado con mayúscula, para los ejes de las
+/// gráficas.
+String mesCorto(int mes) {
+  final m = _meses[(mes - 1) % 12];
+  return '${m[0].toUpperCase()}${m.substring(1)}';
+}
+
+/// HU-11: montos cortos para espacios pequeños: "$900", "$4.5k", "$420k",
+/// "$1.2M".
+String formatoCopCorto(int pesos) {
+  String decimal(double v) {
+    final texto = v.toStringAsFixed(1);
+    return texto.endsWith('.0') ? texto.substring(0, texto.length - 2) : texto;
+  }
+
+  final signo = pesos < 0 ? '-' : '';
+  final valor = pesos.abs();
+  if (valor >= 1000000) return '$signo\$${decimal(valor / 1000000)}M';
+  if (valor >= 1000) return '$signo\$${decimal(valor / 1000)}k';
+  return '$signo\$$valor';
+}
+
 /// HU-11: "15 nov 2026".
 String fechaCorta(DateTime fecha) =>
     '${fecha.day} ${_meses[fecha.month - 1]} ${fecha.year}';

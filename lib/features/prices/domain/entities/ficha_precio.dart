@@ -28,6 +28,38 @@ class FichaPrecio {
     return promocionVigente(ahora)?.precioPromocional ?? normal.precio;
   }
 
+  /// Porcentaje de cambio entre el precio actual y el anterior del
+  /// historial ("-5 %"). `null` si todavía no hubo un cambio de precio.
+  double? variacionUltimoCambio() {
+    final actual = precio;
+    if (actual == null) return null;
+    for (final registro in historial) {
+      if (registro.precio != actual.precio) {
+        return _porcentaje(registro.precio, actual.precio);
+      }
+    }
+    return null;
+  }
+
+  /// Porcentaje de cambio del precio en el mes de [ahora]: compara el precio
+  /// actual con el que regía al empezar el mes. `null` si no hay registro
+  /// anterior al mes.
+  double? variacionDelMes(DateTime ahora) {
+    final actual = precio;
+    if (actual == null) return null;
+    final inicioMes = DateTime(ahora.year, ahora.month);
+    // El historial viene del más reciente al más antiguo.
+    for (final registro in historial) {
+      if (registro.registradoEn.isBefore(inicioMes)) {
+        return _porcentaje(registro.precio, actual.precio);
+      }
+    }
+    return null;
+  }
+
+  static double _porcentaje(int antes, int despues) =>
+      (despues - antes) / antes * 100;
+
   FichaPrecio copyWith({
     PrecioProducto? precio,
     Promocion? promocion,
