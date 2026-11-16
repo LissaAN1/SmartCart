@@ -177,7 +177,9 @@ class _ProductoFormPageState extends State<ProductoFormPage> {
         break;
     }
 
-    final t = TemaRol.of(context);
+    // Este contexto está por encima de PantallaRol, así que el tema se toma
+    // directo (con TemaRol.of saldría el tema por defecto, verde).
+    final t = TemaRol.comercio;
     final ocupado = state.status == ProductoFormStatus.saving ||
         state.status == ProductoFormStatus.deleting;
     final error =
