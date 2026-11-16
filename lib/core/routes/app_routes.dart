@@ -46,6 +46,17 @@ abstract final class AppRoutes {
   /// HU-14: escáner de códigos de barras. Devuelve el código leído.
   static const reporteEscaner = '/colaborador/reporte/escaner';
 
+  /// HU-17: el carrito del cliente. Recibe un `ClienteBlocs`.
+  static const carrito = '/cliente/carrito';
+
+  /// HU-17: favoritos del cliente (productos y comercios). Recibe un
+  /// `ClienteBlocs`.
+  static const favoritos = '/cliente/favoritos';
+
+  /// HU-17: lista de productos y comercios para agregar al carrito o a
+  /// favoritos. Recibe un `ClienteBlocs`.
+  static const explorar = '/cliente/explorar';
+
   /// Ruta con la que arranca la app. Mientras las pantallas 1 y 2 no estén
   /// listas arrancamos en la selección de perfil; cuando existan, basta con
   /// cambiar esta constante por [onboarding].

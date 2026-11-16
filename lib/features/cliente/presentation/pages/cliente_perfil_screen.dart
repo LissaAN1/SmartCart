@@ -15,12 +15,20 @@ class ClientePerfilScreen extends StatelessWidget {
   /// Abre el onboarding del colaborador (opción "Activar modo Colaborador").
   final VoidCallback? onActivarColaborador;
 
+  /// HU-17: cuántos productos hay en el carrito (el número de la pestaña).
+  final int itemsCarrito;
+
+  /// HU-17: abre los favoritos del cliente. Sin él avisa "próximamente".
+  final VoidCallback? onAbrirFavoritos;
+
   const ClientePerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
     required this.profile,
     this.onActivarColaborador,
+    this.itemsCarrito = 0,
+    this.onAbrirFavoritos,
   });
 
   @override
@@ -34,7 +42,7 @@ class ClientePerfilScreen extends StatelessWidget {
     final desde = profile.memberSince;
     return PantallaRol(
       tema: TemaRol.cliente,
-      navItems: navCliente(),
+      navItems: navCliente(itemsCarrito: itemsCarrito),
       tabActiva: 3,
       onTab: onTab,
       barraSuperior: const BarraMarca(
@@ -53,7 +61,8 @@ class ClientePerfilScreen extends StatelessWidget {
               if (rating != null)
                 Calificacion(
                     valor: rating, detalle: '(${profile.ratingCount})'),
-              if (desde != null) EtiquetaEstado.marca('Desde ${mesYAnio(desde)}'),
+              if (desde != null)
+                EtiquetaEstado.marca('Desde ${mesYAnio(desde)}'),
             ],
           ),
           const SizedBox(height: 26),
@@ -88,6 +97,12 @@ class ClientePerfilScreen extends StatelessWidget {
           GrupoMenu(
             conTarjeta: false,
             items: [
+              ItemMenu(
+                  icono: Icons.favorite_border,
+                  titulo: 'Mis favoritos',
+                  subtitulo: 'Productos y comercios que guardaste',
+                  onTap:
+                      onAbrirFavoritos ?? () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.history,
                   titulo: 'Historial de compras',
@@ -124,8 +139,7 @@ class ClientePerfilScreen extends StatelessWidget {
                 icono: Icons.logout,
                 titulo: 'Cerrar sesión',
                 peligro: true,
-                onTap: () =>
-                    confirmarCierreSesion(context, onCerrarSesion),
+                onTap: () => confirmarCierreSesion(context, onCerrarSesion),
               ),
             ],
           ),

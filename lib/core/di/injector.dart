@@ -71,6 +71,26 @@ import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 import 'package:smartcart/features/ubicacion/domain/repository/servicio_ubicacion.dart';
 import 'package:smartcart/features/ubicacion/domain/usecases/obtener_ubicacion_usecase.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
+import 'package:smartcart/features/cart/data/repository/carrito_repository_impl.dart';
+import 'package:smartcart/features/cart/data/source/supabase_carrito_data_source.dart';
+import 'package:smartcart/features/cart/domain/repository/carrito_repository.dart';
+import 'package:smartcart/features/cart/domain/usecases/agregar_al_carrito_usecase.dart';
+import 'package:smartcart/features/cart/domain/usecases/cambiar_cantidad_carrito_usecase.dart';
+import 'package:smartcart/features/cart/domain/usecases/get_carrito_usecase.dart';
+import 'package:smartcart/features/cart/domain/usecases/quitar_del_carrito_usecase.dart';
+import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto_con_comercio.dart';
+import 'package:smartcart/features/cliente/domain/usecases/get_cliente_activo_usecase.dart';
+import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dart';
+import 'package:smartcart/features/explorar/data/repository/explorar_repository_impl.dart';
+import 'package:smartcart/features/explorar/data/source/supabase_explorar_data_source.dart';
+import 'package:smartcart/features/explorar/domain/repository/explorar_repository.dart';
+import 'package:smartcart/features/explorar/domain/usecases/explorar_usecases.dart';
+import 'package:smartcart/features/favoritos/data/repository/favoritos_repository_impl.dart';
+import 'package:smartcart/features/favoritos/data/source/supabase_favoritos_data_source.dart';
+import 'package:smartcart/features/favoritos/domain/repository/favoritos_repository.dart';
+import 'package:smartcart/features/favoritos/domain/usecases/favoritos_usecases.dart';
+import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
@@ -91,6 +111,14 @@ final GetIt sl = GetIt.instance;
 abstract final class InstanciasSl {
   /// HU-14: lista de productos de un establecimiento filtrada por consulta.
   static const busquedaProductos = 'busqueda-productos-reporte';
+
+  /// HU-17: `PaginatedBloc<ProductoConComercio>` se usa para la exploración y
+  /// para los favoritos, y `PaginatedBloc<ComercioResumen>` también: cada uso
+  /// lleva su nombre.
+  static const explorarProductos = 'explorar-productos';
+  static const explorarComercios = 'explorar-comercios';
+  static const favoritosProductos = 'favoritos-productos';
+  static const favoritosComercios = 'favoritos-comercios';
 }
 
 /// Registra todas las dependencias. Se llama una sola vez en `main`, después
@@ -124,6 +152,15 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseReportesDataSource>(
     () => SupabaseReportesDataSource(client: sl()),
   );
+  sl.registerLazySingleton<SupabaseCarritoDataSource>(
+    () => SupabaseCarritoDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<SupabaseFavoritosDataSource>(
+    () => SupabaseFavoritosDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<SupabaseExplorarDataSource>(
+    () => SupabaseExplorarDataSource(client: sl()),
+  );
   // HU-14: el GPS y la cámara se registran con el tipo del contrato; solo
   // estas líneas conocen `geolocator`, `image_picker` y `permission_handler`.
   sl.registerLazySingleton<ServicioUbicacion>(() => GeolocatorServicioUbicacion());
@@ -147,6 +184,16 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<CatalogoRepository>(
     () => CatalogoRepositoryImpl(dataSource: sl()),
+  );
+  // HU-17: carrito, favoritos y exploración del cliente.
+  sl.registerLazySingleton<CarritoRepository>(
+    () => CarritoRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<FavoritosRepository>(
+    () => FavoritosRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<ExplorarRepository>(
+    () => ExplorarRepositoryImpl(dataSource: sl()),
   );
   sl.registerLazySingleton<ReportesRepository>(
     () => ReportesRepositoryImpl(dataSource: sl()),
@@ -228,6 +275,41 @@ void setupDependencies() {
   sl.registerLazySingleton(
     () => GetMisReportesUseCase(colaborador: sl(), reportes: sl()),
   );
+
+  // HU-17: todos parten de GetClienteActivoUseCase.
+  sl.registerLazySingleton(
+    () => GetClienteActivoUseCase(auth: sl(), profiles: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetCarritoUseCase(cliente: sl(), carrito: sl()),
+  );
+  sl.registerLazySingleton(
+    () => AgregarAlCarritoUseCase(cliente: sl(), carrito: sl()),
+  );
+  sl.registerLazySingleton(
+    () => CambiarCantidadCarritoUseCase(cliente: sl(), carrito: sl()),
+  );
+  sl.registerLazySingleton(
+    () => QuitarDelCarritoUseCase(cliente: sl(), carrito: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetFavoritosIdsUseCase(cliente: sl(), favoritos: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetFavoritosProductosUseCase(cliente: sl(), favoritos: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetFavoritosComerciosUseCase(cliente: sl(), favoritos: sl()),
+  );
+  sl.registerLazySingleton(
+    () => CambiarFavoritoUseCase(cliente: sl(), favoritos: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ExplorarProductosUseCase(cliente: sl(), explorar: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ExplorarComerciosUseCase(cliente: sl(), explorar: sl()),
+  );
   sl.registerLazySingleton(() => TomarFotoUseCase(selector: sl()));
   sl.registerLazySingleton(
     () => EnviarReportePrecioUseCase(
@@ -277,6 +359,61 @@ void setupDependencies() {
   sl.registerFactory(() => UbicacionBloc(obtener: sl()));
   sl.registerFactory(() => ReporteFormBloc(tomarFoto: sl(), enviar: sl()));
   sl.registerFactory(() => SugerenciaBloc(sugerir: sl()));
+
+  // HU-17: el carrito y los favoritos los crea el RolShell del cliente (uno
+  // por sesión) y los comparten todas sus pantallas.
+  sl.registerFactory(
+    () => CarritoBloc(
+      obtener: sl(),
+      agregar: sl(),
+      cambiarCantidad: sl(),
+      quitar: sl(),
+    ),
+  );
+  sl.registerFactory(() => FavoritosBloc(obtener: sl(), cambiar: sl()));
+
+  // HU-17: listas paginadas de la exploración (con el texto buscado como
+  // `param1`) y de los favoritos. Todas llevan nombre porque comparten tipo.
+  sl.registerFactoryParam<PaginatedBloc<ProductoConComercio>, String, void>(
+    (texto, _) {
+      final explorar = sl<ExplorarProductosUseCase>();
+      return PaginatedBloc<ProductoConComercio>(
+        fetchPage: (request) => explorar(texto, request),
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+    instanceName: InstanciasSl.explorarProductos,
+  );
+  sl.registerFactoryParam<PaginatedBloc<ComercioResumen>, String, void>(
+    (texto, _) {
+      final explorar = sl<ExplorarComerciosUseCase>();
+      return PaginatedBloc<ComercioResumen>(
+        fetchPage: (request) => explorar(texto, request),
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+    instanceName: InstanciasSl.explorarComercios,
+  );
+  sl.registerFactory<PaginatedBloc<ProductoConComercio>>(
+    () {
+      final favoritos = sl<GetFavoritosProductosUseCase>();
+      return PaginatedBloc<ProductoConComercio>(
+        fetchPage: favoritos.call,
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+    instanceName: InstanciasSl.favoritosProductos,
+  );
+  sl.registerFactory<PaginatedBloc<ComercioResumen>>(
+    () {
+      final favoritos = sl<GetFavoritosComerciosUseCase>();
+      return PaginatedBloc<ComercioResumen>(
+        fetchPage: favoritos.call,
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+    instanceName: InstanciasSl.favoritosComercios,
+  );
 
   // HU-14: las listas reciben el dato de la pantalla (la ubicación, o el
   // establecimiento y la consulta). `PaginatedBloc<Producto>` ya está

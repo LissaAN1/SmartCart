@@ -12,6 +12,11 @@ class SupabaseTables {
   static const producto = 'producto';
   static const categoria = 'categoria';
   static const establecimientoSugerido = 'establecimiento_sugerido';
+
+  // HU-17. Ver docs/sql/sprint2_hu17.sql
+  static const carritoItem = 'carrito_item';
+  static const favoritoProducto = 'favorito_producto';
+  static const favoritoComercio = 'favorito_comercio';
 }
 
 /// Buckets de Supabase Storage. Ver docs/sql/sprint2_hu14.sql.
@@ -35,6 +40,21 @@ class SupabaseFunctions {
   /// HU-14: guarda un reporte de precio pendiente si el colaborador está en
   /// el establecimiento.
   static const enviarReportePrecio = 'enviar_reporte_precio';
+
+  /// HU-17: suma un producto al carrito (o su cantidad, si ya está) y
+  /// devuelve la cantidad que queda.
+  static const agregarAlCarrito = 'agregar_al_carrito';
+
+  /// HU-17: el carrito del cliente, con los datos del producto y del comercio.
+  static const miCarrito = 'mi_carrito';
+
+  /// HU-17: favoritos del cliente, del más reciente al más antiguo.
+  static const misFavoritosProductos = 'mis_favoritos_productos';
+  static const misFavoritosComercios = 'mis_favoritos_comercios';
+
+  /// HU-17: productos y comercios aprobados para que el cliente los explore.
+  static const explorarProductos = 'explorar_productos';
+  static const explorarComercios = 'explorar_comercios';
 
   /// HU-14: los reportes del colaborador con sesión iniciada, del más
   /// reciente al más antiguo y de cualquier estado.
@@ -132,6 +152,19 @@ class SupabaseColumns {
   static const misReporteAgotado = 'agotado';
   static const misReporteEstado = 'estado';
   static const misReporteCreadoEn = 'creado_en';
+
+  // carrito_item y favoritos (HU-17)
+  static const carritoUsuario = 'id_usuario';
+  static const carritoProducto = 'id_producto';
+  static const carritoCantidad = 'cantidad';
+  static const favoritoUsuario = 'id_usuario';
+  static const favoritoProductoId = 'id_producto';
+  static const favoritoComercioId = 'id_comercio';
+
+  // Columnas que devuelven las funciones de HU-17 (producto con comercio)
+  static const filaCategoria = 'categoria';
+  static const filaComercio = 'comercio';
+  static const filaCantidad = 'cantidad';
 
   // establecimiento_sugerido (HU-14)
   static const sugeridoColaborador = 'id_colaborador';

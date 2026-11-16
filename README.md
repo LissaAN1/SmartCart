@@ -18,7 +18,8 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
 | **HU-14** | **Reporte de precio por el colaborador** | **Implementada y probada con dobles (428 pruebas); el APK de depuración compila. El SQL ya se ejecutó en Supabase y sus 28 pruebas de políticas dan `OK` (incluido un hallazgo de seguridad heredado, ya corregido). Falta probar la app en un dispositivo Android.** Ver [docs/HU14_informe_implementacion.md](docs/HU14_informe_implementacion.md) y [docs/HU14_informe_pruebas.md](docs/HU14_informe_pruebas.md) |
-| HU-11, HU-12, HU-13, HU-17 | Precios, búsqueda, detalle del precio, carrito y favoritos | **Todavía no implementadas** |
+| **HU-17** | **Carrito de compras y favoritos** | **Implementada y probada con dobles (587 pruebas); `sprint2_hu17.sql` ejecutado en Supabase y sus 34 pruebas de políticas en `OK`. Falta probarla en un dispositivo Android.** El "Explorar" del cliente es una lista provisional hasta que existan la búsqueda y el detalle. Ver [docs/HU17_informe_implementacion.md](docs/HU17_informe_implementacion.md) y [docs/HU17_informe_pruebas.md](docs/HU17_informe_pruebas.md) |
+| HU-11, HU-12, HU-13 | Precios, búsqueda y detalle del precio | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
 
@@ -97,6 +98,25 @@ Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro 
 - En **Perfil**, el botón **Cerrar sesión** pide confirmación y nos devuelve a la primera pantalla de la app. Desde ahí podemos volver a entrar con otro perfil.
 - Las pantallas de bienvenida (la segunda), la selección de perfil, el login y el registro tienen flecha para volver a la anterior.
 - Si Supabase tiene una sesión guardada en el dispositivo, al abrir la app se recupera: con un solo perfil entramos directo a su Home y con varios entramos al que se toque si la cuenta lo tiene.
+
+### Probar el carrito y los favoritos (HU-17)
+
+Se prueba con una cuenta de **Cliente** (por ejemplo la de `adri@gmail.com` de las cuentas de prueba) y necesita al menos un comercio **aprobado con productos** (HU-10; sirven los CSV de `docs/ejemplos/`).
+
+1. **Dejar lista la base.** Ejecutar `docs/sql/sprint2_hu17.sql` (ver el orden en [Configuración de Supabase](#configuración-de-supabase)).
+2. **Abrir la exploración.** En el Home del cliente, tocar la lupa, escribir en el buscador y buscar, o tocar **Comenzar ahora**. Es una lista provisional con dos pestañas, **Productos** y **Comercios**, con buscador por nombre; la búsqueda completa llegará con la HU-12.
+3. **Recorrer los tres escenarios del backlog:**
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Agregar un producto | En **Productos**, tocar el ícono del carrito de un producto | "…" se agregó al carrito; en el carrito queda con cantidad **1**, y la pestaña **Carrito** muestra el número de productos. Agregarlo otra vez le suma 1 (no duplica la línea) |
+| 2. Cambiar la cantidad | Pestaña **Carrito**: botones **−** y **+**, y el bote de basura para quitar | La cantidad y el resumen ("2 productos · 5 unidades") se actualizan al instante. Con 1 unidad no se puede bajar más; a las 99 no se puede subir |
+| 3. Favoritos | Tocar el corazón de un producto o, en la pestaña **Comercios**, de un comercio | "Guardado en tus favoritos"; el corazón queda lleno. En **Perfil → Mis favoritos** aparecen en dos pestañas. Tocarlo otra vez lo quita |
+
+4. **Comprobar que se guarda.** Cerrar la app por completo y volver a abrirla con la misma cuenta: el carrito y los favoritos siguen ahí.
+5. **Ver lo guardado.** En el SQL Editor: `select * from public.carrito_item;`, `select * from public.favorito_producto;` y `select * from public.favorito_comercio;`.
+
+Todavía no hay precios (HU-11), así que el carrito muestra productos y cantidades, no totales.
 
 ### Probar el reporte de precios (HU-14)
 
@@ -250,8 +270,10 @@ order by u.correo;
 | 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
 | 5 | `sprint2_hu14.sql` | Coordenadas en `comercio`, `comercios_cercanos()`, `reporte_precio` con `enviar_reporte_precio()`, `establecimiento_sugerido` y el bucket de Storage `reportes` |
 | 6 | `pruebas_hu14_politicas.sql` | 28 pruebas de las políticas y funciones del reporte, incluido el historial (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 7 | `sprint2_hu17.sql` | `es_cliente()`, lectura de productos para clientes, `carrito_item`, `favorito_producto`, `favorito_comercio` y las funciones `agregar_al_carrito()`, `mi_carrito()`, `mis_favoritos_*()` y `explorar_*()` |
+| 8 | `pruebas_hu17_politicas.sql` | 34 pruebas de las políticas y funciones del carrito y los favoritos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
-Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5, las del reporte de precios. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
+Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5, las del reporte de precios; sin el 7, las del carrito y los favoritos. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
 ## Instalación de dependencias
 
@@ -290,7 +312,7 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **428 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-10), `flutter analyze` no reporta problemas y `flutter test` pasa las **587 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
 Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`), el selector de archivos del sistema (eso lo probamos a mano) ni el GPS, la cámara y el escáner reales de la HU-14 (las pruebas usan dobles; hay que probarlos en un dispositivo).
 
@@ -304,6 +326,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/di/` | Que el localizador de servicios registre y entregue cada dependencia |
 | `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista, errores y mensajes propios de error |
 | `test/aprobaciones/`, `test/notificaciones/`, `test/comercio/`, `test/colaborador/` | HU-06, HU-07, HU-08 y HU-24 (registro, estado y aprobación) |
+| `test/cart/`, `test/favoritos/`, `test/explorar/`, `test/cliente/` | HU-17: reglas y casos de uso del carrito, Blocs (cantidad, quitar, favoritos, recuperar lo guardado), pantallas del carrito, los favoritos y la exploración, y el carrito dentro del `RolShell` del cliente |
 | `test/reportes/` | HU-14: distancia y reglas, validadores, casos de uso (los tres escenarios del backlog), Blocs, el flujo completo en pantalla, la ubicación del comercio (HU-07) y los accesos del colaborador |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 
@@ -339,8 +362,11 @@ lib/
     ├── ubicacion/                 HU-14: ubicación (GPS) y distancia; la usan el comercio y los reportes
     ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
     ├── notificaciones/            HU-24: aviso al solicitante
+    ├── cart/                      HU-17: carrito del cliente (domain, data, presentation)
+    ├── favoritos/                 HU-17: favoritos de productos y comercios
+    ├── explorar/                  HU-17: lista provisional de productos y comercios para el cliente
     └── admin | cliente | colaborador | comercio | repartidor
-        (cart/, prices/, orders/ y notifications/ están vacías: son de HU futuras)
+        (prices/, orders/ y notifications/ están vacías: son de HU futuras)
 ```
 
 Reglas de capas (las mismas de los laboratorios 5 y 6, con la lección de Clean Architecture):
@@ -398,7 +424,7 @@ Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySi
 | `sl<` o `GetIt` fuera del inyector | Solo `app_router.dart` |
 | Data sources o repositorios construidos fuera del inyector | Ninguno |
 | Imports de `flutter`, `supabase_flutter`, `get_it` o `file_picker` en las carpetas `domain/` | Ninguno |
-| Registros en `injector.dart` | 62 |
+| Registros en `injector.dart` | 87 |
 | `test/di/injector_test.dart` | Comprueba los registros (repositorios con el tipo del contrato, Bloc de fábrica, casos de uso únicos), que `setupDependencies` no duplica, y que la cadena completa del catálogo se arma con un cliente de Supabase sin conexión |
 
 Para repetir las comprobaciones:
@@ -416,6 +442,7 @@ flutter test test/di
 - En las pruebas armamos los Blocs a mano con repositorios falsos (`TestEnv`) y no con `sl`: es a propósito, para no depender de Supabase.
 - `lib/core/pagination/paginated_bloc.dart` importa `flutter_bloc` porque es un Bloc, no una clase de dominio.
 - **Registro con nombre.** `PaginatedBloc<Producto>` existe dos veces: sin nombre (catálogo, HU-10) y con `InstanciasSl.busquedaProductos` (búsqueda del reporte, HU-14, con `param1` y `param2`). GetIt no admite el mismo tipo dos veces sin nombre. Una prueba de `test/di/` comprueba que conviven.
+- **HU-17: cuatro nombres más.** `PaginatedBloc<ProductoConComercio>` y `PaginatedBloc<ComercioResumen>` se usan dos veces cada uno (exploración y favoritos), así que las cuatro listas llevan nombre (`InstanciasSl.explorarProductos`, `explorarComercios`, `favoritosProductos` y `favoritosComercios`). `CarritoBloc` y `FavoritosBloc` son fábricas, pero el `RolShell` del cliente crea **una sola instancia de cada uno** por sesión y la comparte con todas las pantallas (las rutas la reciben como argumento y el `AppRouter` la entrega con `BlocProvider.value`).
 - Los plugins de la HU-14 (`geolocator`, `image_picker`, `permission_handler`) quedan detrás de los contratos `ServicioUbicacion` y `SelectorFoto`; `mobile_scanner` solo aparece en `EscanerCodigoPage` (presentación).
 
 ## Decisiones de diseño
@@ -444,6 +471,14 @@ flutter test test/di
   - La distancia máxima es de 150 m (constante `ReporteReglas.radioMaximoM` y en la función SQL).
   - El escáner de códigos no funciona en Windows; ahí queda la búsqueda por nombre.
   - Solo guarda el reporte como pendiente. Validarlo y dar puntos son las HU-15 y HU-16 (Sprint 3).
+- **HU-17 (carrito y favoritos):**
+  - Necesita `docs/sql/sprint2_hu17.sql` en Supabase (sin él la app no encuentra el carrito, los favoritos ni la exploración). Después, `pruebas_hu17_politicas.sql` debe dar todas las líneas en `OK`; en nuestro Supabase ya se corrieron los dos y dieron 34 `OK`.
+  - El carrito y los favoritos se probaron con dobles; falta probarlos en un dispositivo.
+  - **Todavía no hay precios** (HU-11): el carrito muestra productos y cantidades, sin totales.
+  - **"Explorar" es provisional.** Es la lista mínima que usa el cliente para agregar y marcar favoritos mientras no existan la búsqueda (HU-12) y el detalle (HU-13), que son de otras personas del equipo. Los botones son reutilizables: `AgregarCarritoBoton` y `FavoritoBoton` se pueden poner en esas pantallas.
+  - Límites que fijamos nosotros (el backlog no los define): 99 unidades por producto y 100 productos distintos. El carrito se lee completo en una sola consulta; las listas de favoritos y de exploración sí se paginan.
+  - Cada línea del carrito es un producto **de un comercio**. Cómo reconocer el mismo producto en varios comercios (para comparar el carrito, HU-18) es una decisión pendiente del equipo.
+  - Las tarjetas de "Ofertas cerca de ti" del Home siguen siendo de ejemplo y su botón de agregar todavía avisa "próximamente".
 - La app declara el permiso `INTERNET` en el manifiesto de Android: sin él, una versión *release* no se conecta a Supabase.
 - `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it`, `file_picker` en la HU-10 y `geolocator`, `image_picker`, `mobile_scanner` y `permission_handler` en la HU-14).
 

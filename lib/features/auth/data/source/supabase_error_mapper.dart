@@ -74,3 +74,19 @@ AuthFailure mapPostgrestException(PostgrestException e) {
       );
   }
 }
+
+/// Ejecuta una operación de Supabase y traduce lo que falle a [AuthFailure]:
+/// los errores de la base con [mapPostgrestException] y cualquier otro (red,
+/// tiempo de espera) a "No pudimos conectarnos". Lo usan los data sources que
+/// no necesitan tratar ningún error de forma especial.
+Future<T> traducirErroresSupabase<T>(Future<T> Function() accion) async {
+  try {
+    return await accion();
+  } on AuthFailure {
+    rethrow;
+  } on PostgrestException catch (e) {
+    throw mapPostgrestException(e);
+  } on Exception {
+    throw connectionFailure();
+  }
+}

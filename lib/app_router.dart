@@ -34,6 +34,14 @@ import 'package:smartcart/features/profile_selection/presentation/pages/profile_
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
+import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
+import 'package:smartcart/features/cart/presentation/pages/carrito_page.dart';
+import 'package:smartcart/features/catalog/domain/entities/producto_con_comercio.dart';
+import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
+import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dart';
+import 'package:smartcart/features/explorar/presentation/pages/explorar_page.dart';
+import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.dart';
+import 'package:smartcart/features/favoritos/presentation/pages/favoritos_page.dart';
 import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
@@ -102,6 +110,14 @@ abstract final class AppRouter {
               profile: args.profile,
               // HU-14: el Home del colaborador muestra sus últimos reportes
               // reales (los más recientes).
+              // HU-17: el carrito y los favoritos del cliente, compartidos por
+              // todas sus pantallas.
+              crearCliente: args.role == UserRole.cliente
+                  ? () => ClienteBlocs(
+                        carrito: sl<CarritoBloc>(),
+                        favoritos: sl<FavoritosBloc>(),
+                      )
+                  : null,
               crearMisReportes: args.role == UserRole.colaborador
                   ? () => sl<PaginatedBloc<MiReporte>>(
                         param1: ColaboradorHomeScreen.reportesEnHome,
@@ -156,6 +172,34 @@ abstract final class AppRouter {
           child: const SugerirEstablecimientoPage(),
         ),
       AppRoutes.reporteEscaner => const EscanerCodigoPage(),
+      // HU-17: pantallas del cliente. Reciben el carrito y los favoritos ya
+      // creados por el RolShell y no los cierran.
+      AppRoutes.carrito when args is ClienteBlocs =>
+        _conBlocsDelCliente(args, const CarritoPage()),
+      AppRoutes.favoritos when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          FavoritosPage(
+            crearProductos: () => sl<PaginatedBloc<ProductoConComercio>>(
+              instanceName: InstanciasSl.favoritosProductos,
+            ),
+            crearComercios: () => sl<PaginatedBloc<ComercioResumen>>(
+              instanceName: InstanciasSl.favoritosComercios,
+            ),
+          ),
+        ),
+      AppRoutes.explorar when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          ExplorarPage(
+            crearProductos: (texto) => sl<PaginatedBloc<ProductoConComercio>>(
+              instanceName: InstanciasSl.explorarProductos,
+              param1: texto,
+            ),
+            crearComercios: (texto) => sl<PaginatedBloc<ComercioResumen>>(
+              instanceName: InstanciasSl.explorarComercios,
+              param1: texto,
+            ),
+          ),
+        ),
       AppRoutes.misReportes => BlocProvider(
           create: (_) => sl<PaginatedBloc<MiReporte>>(
             param1: PageRequest.defaultPageSize,
@@ -197,5 +241,17 @@ abstract final class AppRouter {
           builder: (_) => page, settings: settings),
       _ => MaterialPageRoute<void>(builder: (_) => page, settings: settings),
     };
+  }
+
+  /// Entrega el carrito y los favoritos del cliente a una pantalla con
+  /// `BlocProvider.value`: ya los creó el `RolShell`, que es quien los cierra.
+  static Widget _conBlocsDelCliente(ClienteBlocs blocs, Widget pagina) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<CarritoBloc>.value(value: blocs.carrito),
+        BlocProvider<FavoritosBloc>.value(value: blocs.favoritos),
+      ],
+      child: pagina,
+    );
   }
 }
