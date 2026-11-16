@@ -3,23 +3,15 @@ import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/prices/domain/entities/ficha_precio.dart';
 import 'package:smartcart/features/prices/domain/entities/promocion.dart';
-import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
 
 abstract class PrecioProductoEvent {}
 
-/// Al abrir la pantalla (y al reintentar): carga precio, promoción e
+/// Al abrir Editar Producto (y al reintentar): carga precio, promoción e
 /// historial.
 class PrecioProductoStarted extends PrecioProductoEvent {}
-
-/// Escenario 2: el interruptor disponible / agotado.
-class DisponibilidadCambiada extends PrecioProductoEvent {
-  final bool disponible;
-
-  DisponibilidadCambiada(this.disponible);
-}
 
 class PromocionGuardada extends PrecioProductoEvent {
   final PromocionDatos datos;
@@ -33,12 +25,7 @@ enum PrecioProductoStatus { initial, loading, loadFailed, ready }
 
 /// Qué se está guardando; mientras no sea [ninguna] los botones se
 /// deshabilitan.
-enum AccionPrecio {
-  ninguna,
-  cambiandoDisponibilidad,
-  guardandoPromocion,
-  quitandoPromocion,
-}
+enum AccionPrecio { ninguna, guardandoPromocion, quitandoPromocion }
 
 class PrecioProductoState {
   final PrecioProductoStatus status;
@@ -79,39 +66,28 @@ class PrecioProductoState {
   }
 }
 
-/// HU-11: disponibilidad, promoción e historial de un producto, dentro de
-/// "Editar producto". El precio se guarda con el resto del formulario
-/// (`GuardarProductoUseCase`). Cada evento hace una sola llamada a un caso de uso;
-/// los que escriben devuelven la ficha ya actualizada (con la fecha y el
-/// historial que guardó la base).
+/// HU-11: historial y promoción de un producto, dentro de Editar Producto.
+/// El precio y la disponibilidad se guardan con el resto del formulario
+/// ("Guardar Cambios", `GuardarProductoUseCase`). Cada evento hace una sola
+/// llamada a un caso de uso; los que escriben devuelven la ficha ya
+/// actualizada.
 class PrecioProductoBloc
     extends Bloc<PrecioProductoEvent, PrecioProductoState> {
   final Producto producto;
   final GetFichaPrecioUseCase _ficha;
-  final CambiarDisponibilidadProductoUseCase _disponibilidad;
   final GuardarPromocionUseCase _guardarPromocion;
   final QuitarPromocionUseCase _quitarPromocion;
 
   PrecioProductoBloc({
     required this.producto,
     required GetFichaPrecioUseCase ficha,
-    required CambiarDisponibilidadProductoUseCase disponibilidad,
     required GuardarPromocionUseCase guardarPromocion,
     required QuitarPromocionUseCase quitarPromocion,
   })  : _ficha = ficha,
-        _disponibilidad = disponibilidad,
         _guardarPromocion = guardarPromocion,
         _quitarPromocion = quitarPromocion,
         super(const PrecioProductoState()) {
     on<PrecioProductoStarted>(_onStarted);
-    on<DisponibilidadCambiada>((event, emit) => _ejecutar(
-          emit,
-          AccionPrecio.cambiandoDisponibilidad,
-          () => _disponibilidad(producto.id, event.disponible),
-          event.disponible
-              ? 'El producto está disponible'
-              : 'Marcado como agotado',
-        ));
     on<PromocionGuardada>((event, emit) => _ejecutar(
           emit,
           AccionPrecio.guardandoPromocion,

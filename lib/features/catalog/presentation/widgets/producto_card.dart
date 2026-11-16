@@ -16,26 +16,13 @@ IconData iconoDeCategoria(String categoria) {
 }
 
 /// Una fila del catálogo del comercio, como en el diseño: foto, nombre,
-/// categoría, precio, stock y el interruptor ACTIVO/INACTIVO (HU-11,
-/// disponible o agotado).
+/// categoría, precio, stock y si está ACTIVO o INACTIVO (HU-11, disponible o
+/// agotado). Toda la tarjeta abre Editar Producto, donde se cambia todo.
 class ProductoCard extends StatelessWidget {
   final Producto producto;
   final VoidCallback? onTap;
 
-  /// Interruptor ACTIVO/INACTIVO. `null` lo deshabilita (por ejemplo, si el
-  /// producto aún no tiene precio).
-  final ValueChanged<bool>? onDisponible;
-
-  /// "Eliminar" del menú de tres puntos.
-  final VoidCallback? onEliminar;
-
-  const ProductoCard({
-    super.key,
-    required this.producto,
-    this.onTap,
-    this.onDisponible,
-    this.onEliminar,
-  });
+  const ProductoCard({super.key, required this.producto, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +36,6 @@ class ProductoCard extends StatelessWidget {
         onTap: onTap,
         padding: const EdgeInsets.all(12),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Foto(producto: producto),
             const SizedBox(width: 14),
@@ -57,7 +43,6 @@ class ProductoCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
                   Text(
                     producto.nombre,
                     maxLines: 2,
@@ -98,46 +83,21 @@ class ProductoCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                PopupMenuButton<_Accion>(
-                  tooltip: 'Más opciones',
-                  icon: Icon(Icons.more_vert, color: t.texto),
-                  onSelected: (accion) => switch (accion) {
-                    _Accion.editar => onTap?.call(),
-                    _Accion.eliminar => onEliminar?.call(),
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(
-                      value: _Accion.editar,
-                      child: Text('Editar'),
-                    ),
-                    if (onEliminar != null)
-                      const PopupMenuItem(
-                        value: _Accion.eliminar,
-                        child: Text(
-                          'Eliminar',
-                          style: TextStyle(color: ColoresEstado.rojo),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 6),
                 Text(
                   activo ? 'ACTIVO' : 'INACTIVO',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.6,
-                    color: t.texto,
+                    color: activo ? ColoresEstado.verde : ColoresEstado.rojo,
                   ),
                 ),
-                Switch(
-                  value: activo,
-                  onChanged: onDisponible,
-                  activeTrackColor: t.primario,
-                ),
+                const SizedBox(height: 10),
+                Icon(Icons.chevron_right, color: t.textoGris),
               ],
             ),
           ],
@@ -153,8 +113,6 @@ class ProductoCard extends StatelessWidget {
         : '$marca · ${producto.categoria}';
   }
 }
-
-enum _Accion { editar, eliminar }
 
 /// Foto del producto (o el ícono de su categoría) con la etiqueta "Agotado"
 /// encima cuando está inactivo.

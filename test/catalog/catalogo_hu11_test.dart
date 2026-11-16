@@ -137,6 +137,39 @@ void main() {
       expect(producto.precio, 4500);
     });
 
+    test('escenario 2: marcar agotado se guarda con el precio', () async {
+      final actual = _guardado(env);
+
+      final producto = await env.guardarProducto(
+        editando: actual,
+        datos: _arroz,
+        precio: 4500,
+        disponible: false,
+      );
+
+      expect(producto.disponible, isFalse);
+      expect(env.precios.precios['p1']?.disponible, isFalse);
+      expect(env.precios.historiales['p1']!.last.disponible, isFalse);
+    });
+
+    test('se puede crear un producto ya agotado si tiene precio', () async {
+      final producto = await env.guardarProducto(
+        datos: _arroz,
+        precio: 4500,
+        disponible: false,
+      );
+
+      expect(env.precios.precios[producto.id]?.disponible, isFalse);
+    });
+
+    test('sin precio no se puede marcar agotado', () async {
+      await expectLater(
+        env.guardarProducto(datos: _arroz, disponible: false),
+        _falla('Escribe el precio'),
+      );
+      expect(env.catalogo.creados, isEmpty);
+    });
+
     test('con foto la sube a la carpeta del comercio', () async {
       final producto =
           await env.guardarProducto(datos: _arroz, foto: _foto);
@@ -221,22 +254,6 @@ void main() {
       await bloc.close();
     });
 
-    test('PaginatedItemReplaced cambia una fila sin recargar', () async {
-      final producto = _guardado(env);
-      final bloc = env.productosBloc()..add(PaginatedStarted());
-      await bloc.stream.firstWhere((s) => s.status == PaginatedStatus.success);
-      final pedidos = env.catalogo.filtrosPedidos.length;
-
-      bloc.add(PaginatedItemReplaced<Producto>(
-        producto.copyWith(disponible: false),
-        donde: (p) => p.id == producto.id,
-      ));
-      final state = await bloc.stream.first;
-
-      expect(state.items.single.disponible, isFalse);
-      expect(env.catalogo.filtrosPedidos.length, pedidos);
-      await bloc.close();
-    });
   });
 
   group('InventarioBloc', () {
@@ -251,42 +268,17 @@ void main() {
       await bloc.close();
     });
 
-    test('escenario 2: el interruptor marca agotado y devuelve el producto',
-        () async {
-      final producto = _guardado(env);
-      final bloc = env.inventarioBloc();
+    test('si falla deja el encabezado anterior', () async {
+      _guardado(env);
+      final bloc = env.inventarioBloc()..add(InventarioStarted());
+      await bloc.stream.firstWhere((s) => s.status == InventarioStatus.ready);
+      env.catalogo.resumenError = const AuthFailure('Sin conexión');
 
-      bloc.add(DisponibilidadEnListaCambiada(producto, false));
-      final state = await bloc.stream.firstWhere((s) => s.actualizado != null);
-
-      expect(state.actualizado?.disponible, isFalse);
-      expect(env.precios.precios['p1']?.disponible, isFalse);
-      await bloc.close();
-    });
-
-    test('eliminar quita el producto y avisa para recargar', () async {
-      final producto = _guardado(env);
-      final bloc = env.inventarioBloc();
-
-      bloc.add(ProductoEliminadoDeLista(producto));
-      final state = await bloc.stream.firstWhere((s) => s.eliminado);
-
-      expect(state.eliminado, isTrue);
-      expect(env.catalogo.deComercio('c1'), isEmpty);
-      await bloc.close();
-    });
-
-    test('un error se muestra una vez', () async {
-      final producto = _guardado(env);
-      env.precios.guardarError = const AuthFailure('Sin conexión');
-      final bloc = env.inventarioBloc();
-
-      bloc.add(DisponibilidadEnListaCambiada(producto, false));
+      bloc.add(InventarioStarted());
       final state =
-          await bloc.stream.firstWhere((s) => s.errorMessage != null);
+          await bloc.stream.firstWhere((s) => s.status == InventarioStatus.failed);
 
-      expect(state.errorMessage, 'Sin conexión');
-      expect(state.cambiandoId, isNull);
+      expect(state.encabezado?.resumen.totalProductos, 1);
       await bloc.close();
     });
   });

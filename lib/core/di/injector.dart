@@ -52,7 +52,6 @@ import 'package:smartcart/features/prices/data/repository/precios_repository_imp
 import 'package:smartcart/features/prices/data/source/supabase_precios_data_source.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
 import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
-import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
@@ -202,10 +201,6 @@ void setupDependencies() {
     () => ActualizarPrecioUseCase(comercioAprobado: sl(), precios: sl()),
   );
   sl.registerLazySingleton(
-    () => CambiarDisponibilidadProductoUseCase(
-        comercioAprobado: sl(), precios: sl()),
-  );
-  sl.registerLazySingleton(
     () => GuardarPromocionUseCase(comercioAprobado: sl(), precios: sl()),
   );
   sl.registerLazySingleton(
@@ -247,9 +242,7 @@ void setupDependencies() {
   sl.registerFactory<PaginatedBloc<Producto>>(
     () => CatalogoListaBloc(getProductos: sl<GetProductosUseCase>()),
   );
-  sl.registerFactory(
-    () => InventarioBloc(encabezado: sl(), disponibilidad: sl(), eliminar: sl()),
-  );
+  sl.registerFactory(() => InventarioBloc(encabezado: sl()));
 
   // HU-10: el formulario recibe el producto que se edita (`null` al crear):
   // `sl<ProductoFormBloc>(param1: producto)`.
@@ -269,7 +262,6 @@ void setupDependencies() {
     (producto, _) => PrecioProductoBloc(
       producto: producto,
       ficha: sl(),
-      disponibilidad: sl(),
       guardarPromocion: sl(),
       quitarPromocion: sl(),
     ),

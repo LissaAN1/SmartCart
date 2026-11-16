@@ -154,11 +154,22 @@ Future<TestEnv> _pumpEditar(
 }
 
 Future<void> _verAbajo(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    300,
-    scrollable: find.byType(Scrollable).first,
-  );
+  // Editar Producto construye todos sus campos (SingleChildScrollView), así
+  // que basta con llevar el widget a la vista. Antes se quita el foco (como
+  // al cerrar el teclado): si no, el campo enfocado vuelve a mover la vista.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _verArribaHasta(WidgetTester tester, Finder finder) async {
+  // Editar Producto construye todos sus campos (SingleChildScrollView), así
+  // que basta con llevar el widget a la vista. Antes se quita el foco (como
+  // al cerrar el teclado): si no, el campo enfocado vuelve a mover la vista.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
 }
 
@@ -199,30 +210,18 @@ void main() {
       expect(find.text('ACTIVO'), findsNWidgets(2));
       await tester.scrollUntilVisible(find.text('INACTIVO'), 200,
           scrollable: find.byType(Scrollable).first);
+      expect(find.text('INACTIVO'), findsOneWidget);
       expect(find.text('Agotado'), findsOneWidget);
       expect(find.text('Sin precio'), findsOneWidget);
     });
 
-    testWidgets('sin precio el interruptor está deshabilitado',
+    testWidgets('la tarjeta no tiene interruptor ni menú: abre Editar Producto',
         (tester) async {
       await _pumpCatalogo(tester);
-      await tester.scrollUntilVisible(find.text('Canasta de Frutas'), 200,
-          scrollable: find.byType(Scrollable).first);
 
-      final interruptores = tester.widgetList<Switch>(find.byType(Switch));
-      expect(interruptores.last.onChanged, isNull);
-    });
-
-    testWidgets('escenario 2: el interruptor marca el producto agotado',
-        (tester) async {
-      final env = await _pumpCatalogo(tester);
-
-      await tester.tap(find.byType(Switch).first);
-      await tester.pumpAndSettle();
-
-      expect(env.precios.precios['p1']?.disponible, isFalse);
-      expect(find.text('ACTIVO'), findsOneWidget);
-      expect(find.text('Agotado'), findsWidgets);
+      expect(find.byType(Switch), findsNothing);
+      expect(find.byTooltip('Más opciones'), findsNothing);
+      expect(find.byIcon(Icons.chevron_right), findsWidgets);
     });
 
     testWidgets('buscar filtra la lista', (tester) async {
@@ -258,22 +257,6 @@ void main() {
       await tester.tap(find.text('Todos'));
       await tester.pumpAndSettle();
       expect(find.text('Arroz Premium (1kg)'), findsOneWidget);
-    });
-
-    testWidgets('el menú permite eliminar con confirmación', (tester) async {
-      final env = await _pumpCatalogo(tester);
-
-      await tester.tap(find.byTooltip('Más opciones').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Eliminar'));
-      await tester.pumpAndSettle();
-      expect(find.text('¿Eliminar Arroz Premium (1kg)?'), findsOneWidget);
-      await tester.tap(find.widgetWithText(TextButton, 'Eliminar'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Arroz Premium (1kg)'), findsNothing);
-      expect(find.text('2 productos'), findsOneWidget);
-      expect(env.catalogo.deComercio('c1'), hasLength(2));
     });
 
     testWidgets('tocar una tarjeta abre Editar Producto', (tester) async {
@@ -368,16 +351,44 @@ void main() {
       expect(env.catalogo.fotosSubidas.single.idProducto, 'p1');
     });
 
-    testWidgets('escenario 2 dentro del formulario: marcar agotado',
+    testWidgets('escenario 2: marcar agotado y Guardar Cambios',
         (tester) async {
       final env = await _pumpEditar(tester);
       await _verAbajo(tester, find.byType(Switch));
 
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
+      expect(find.text('Agotado'), findsOneWidget);
+      expect(find.text('Los clientes lo verán como no disponible'),
+          findsOneWidget);
+      // Todavía no se guarda: se guarda con el botón.
+      expect(env.precios.precios['p1']?.disponible, isTrue);
+
+      final guardar = find.widgetWithText(FilledButton, 'Guardar Cambios');
+      await _verAbajo(tester, guardar);
+      await tester.tap(guardar);
+      await tester.pumpAndSettle();
 
       expect(env.precios.precios['p1']?.disponible, isFalse);
-      expect(find.text('Los clientes lo ven como no disponible'), findsOneWidget);
+    });
+
+    testWidgets('sin precio el interruptor espera a que se escriba uno',
+        (tester) async {
+      await _pumpEditar(tester);
+      await _verAbajo(tester, _campo('campo-precio'));
+      await tester.enterText(_campo('campo-precio'), '');
+      await tester.pump();
+      await _verAbajo(tester, find.byType(Switch));
+
+      expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNull);
+      expect(find.text('Escribe el precio para poder marcarlo como agotado'),
+          findsOneWidget);
+
+      await _verArribaHasta(tester, _campo('campo-precio'));
+      await tester.enterText(_campo('campo-precio'), '5.000');
+      await tester.pump();
+      await _verAbajo(tester, find.byType(Switch));
+      expect(tester.widget<Switch>(find.byType(Switch)).onChanged, isNotNull);
     });
 
     testWidgets('escenario 3: una promoción vencida aparece como vencida',

@@ -54,24 +54,6 @@ void main() {
     await bloc.close();
   });
 
-  test('escenario 2: marcar agotado devuelve la ficha con el historial',
-      () async {
-    env.precios.precargar('p1', 2500);
-    final bloc = await listo();
-
-    bloc.add(DisponibilidadCambiada(false));
-    expect(
-      (await _hasta(bloc, (s) => s.ocupado)).accion,
-      AccionPrecio.cambiandoDisponibilidad,
-    );
-    final state = await _hasta(bloc, (s) => s.aviso != null);
-
-    expect(state.aviso, 'Marcado como agotado');
-    expect(state.ficha.precio?.disponible, isFalse);
-    expect(state.ficha.historial, hasLength(1));
-    await bloc.close();
-  });
-
   test('guardar y quitar una promoción', () async {
     env.precios.precargar('p1', 2500);
     final bloc = await listo();
@@ -91,17 +73,27 @@ void main() {
     await bloc.close();
   });
 
+  final promo = PromocionDatos(
+    precioPromocional: 2000,
+    inicio: DateTime(2026, 11, 15),
+    fin: DateTime(2026, 11, 30),
+  );
+
   test('un error al guardar se muestra y deja la ficha como estaba', () async {
     env.precios.precargar('p1', 2500);
     final bloc = await listo();
-    env.precios.guardarError = const AuthFailure('Sin conexión');
+    env.precios.promocionError = const AuthFailure('Sin conexión');
 
-    bloc.add(DisponibilidadCambiada(false));
+    bloc.add(PromocionGuardada(promo));
+    expect(
+      (await _hasta(bloc, (s) => s.ocupado)).accion,
+      AccionPrecio.guardandoPromocion,
+    );
     final state = await _hasta(bloc, (s) => s.errorMessage != null);
 
     expect(state.errorMessage, 'Sin conexión');
     expect(state.accion, AccionPrecio.ninguna);
-    expect(state.ficha.precio?.disponible, isTrue);
+    expect(state.ficha.promocion, isNull);
     await bloc.close();
   });
 
@@ -110,12 +102,13 @@ void main() {
     final bloc = await listo();
 
     bloc
-      ..add(DisponibilidadCambiada(false))
-      ..add(DisponibilidadCambiada(true));
+      ..add(PromocionGuardada(promo))
+      ..add(PromocionQuitada());
     await _hasta(bloc, (s) => s.aviso != null);
     await Future<void>.delayed(Duration.zero);
 
-    expect(env.precios.guardados, hasLength(1));
+    expect(env.precios.quitarCalls, 0);
+    expect(env.precios.promociones['p1']?.precioPromocional, 2000);
     await bloc.close();
   });
 }

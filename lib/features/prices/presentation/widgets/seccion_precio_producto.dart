@@ -8,9 +8,9 @@ import 'package:smartcart/features/prices/domain/entities/promocion.dart';
 import 'package:smartcart/features/prices/domain/validators/precio_validators.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 
-/// HU-11: disponibilidad (escenario 2) y promoción de un producto ya
-/// guardado, dentro de Editar producto. Necesita un `PrecioProductoBloc`
-/// arriba en el árbol.
+/// HU-11: promoción de un producto ya guardado, dentro de Editar Producto.
+/// Necesita un `PrecioProductoBloc` arriba en el árbol. La disponibilidad se
+/// marca en el formulario y se guarda con "Guardar Cambios".
 class SeccionPrecioProducto extends StatefulWidget {
   final DateTime Function() ahora;
 
@@ -115,7 +115,6 @@ class _SeccionPrecioProductoState extends State<SeccionPrecioProducto> {
         if (state.status != PrecioProductoStatus.ready) {
           return const SizedBox.shrink();
         }
-        final bloc = context.read<PrecioProductoBloc>();
         final precio = state.ficha.precio;
         final promocion = state.ficha.promocion;
         final ocupado = state.ocupado;
@@ -123,22 +122,6 @@ class _SeccionPrecioProductoState extends State<SeccionPrecioProducto> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TarjetaInterruptor(
-              icono: Icons.inventory_outlined,
-              titulo: precio == null || precio.disponible
-                  ? 'Disponible'
-                  : 'Agotado',
-              subtitulo: precio == null
-                  ? 'Guarda el precio para marcar la disponibilidad'
-                  : precio.disponible
-                      ? 'Los clientes lo ven disponible'
-                      : 'Los clientes lo ven como no disponible',
-              valor: precio?.disponible ?? true,
-              onCambio: precio == null || ocupado
-                  ? null
-                  : (valor) => bloc.add(DisponibilidadCambiada(valor)),
-            ),
-            const SizedBox(height: 24),
             const EtiquetaCampo('PROMOCIÓN'),
             const SizedBox(height: 8),
             if (promocion != null) ...[

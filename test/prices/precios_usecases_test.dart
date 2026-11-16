@@ -76,33 +76,6 @@ void main() {
     });
   });
 
-  group('CambiarDisponibilidadProductoUseCase · escenario 2', () {
-    test('marca agotado conservando el precio', () async {
-      env.precios.precargar('p1', 2500);
-
-      final ficha = await env.cambiarDisponibilidadProducto('p1', false);
-
-      expect(ficha.precio?.disponible, isFalse);
-      expect(ficha.precio?.precio, 2500);
-      expect(env.precios.historiales['p1']!.single.disponible, isFalse);
-    });
-
-    test('sin precio pide registrarlo primero', () async {
-      await expectLater(
-        env.cambiarDisponibilidadProducto('p1', false),
-        _falla('Registra el precio'),
-      );
-    });
-
-    test('si no cambia nada no escribe', () async {
-      env.precios.precargar('p1', 2500);
-
-      await env.cambiarDisponibilidadProducto('p1', true);
-
-      expect(env.precios.guardados, isEmpty);
-    });
-  });
-
   group('GuardarPromocionUseCase', () {
     final datos = PromocionDatos(
       precioPromocional: 2000,

@@ -15,8 +15,9 @@ import 'package:smartcart/features/catalog/presentation/widgets/producto_card.da
 
 /// HU-10 + HU-11: catálogo del comercio. Buscador, chips de categorías,
 /// resumen del inventario y la lista paginada de productos con su precio,
-/// stock e interruptor ACTIVO/INACTIVO. Da acceso al formulario (crear y
-/// editar) y a la carga por archivo.
+/// stock y si está ACTIVO o INACTIVO. Tocar un producto abre Editar Producto,
+/// donde se cambia todo (también la disponibilidad); el botón + crea uno y el
+/// de la barra abre la carga por archivo.
 ///
 /// Necesita arriba en el árbol un `PaginatedBloc<Producto>` (un
 /// `CatalogoListaBloc`) y un `InventarioBloc` (los provee `AppRouter`). Si el
@@ -88,107 +89,51 @@ class _CatalogoPageState extends State<CatalogoPage> {
     if (cambio == true || ruta == AppRoutes.catalogoCsv) _recargar();
   }
 
-  Future<void> _confirmarEliminar(Producto producto) async {
-    final bloc = context.read<InventarioBloc>();
-    final confirmado = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('¿Eliminar ${producto.nombre}?'),
-        content: const Text(
-          'Se quitará de tu catálogo con su historial de precios y no se '
-          'puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: ColoresEstado.rojo),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirmado == true) bloc.add(ProductoEliminadoDeLista(producto));
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.comercio;
-    return BlocListener<InventarioBloc, InventarioState>(
-      listener: (context, state) {
-        final actualizado = state.actualizado;
-        if (actualizado != null) {
-          context.read<PaginatedBloc<Producto>>().add(
-                PaginatedItemReplaced<Producto>(
-                  actualizado,
-                  donde: (p) => p.id == actualizado.id,
-                ),
-              );
-        }
-        if (state.eliminado) _recargar();
-        final error = state.errorMessage;
-        if (error != null) {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(error)));
-        }
-      },
-      child: PantallaRol(
-        tema: t,
-        barraSuperior: BarraTituloRol(
-          titulo: 'Catálogo',
-          mostrarAtras: true,
-          acciones: [
-            IconButton(
-              tooltip: 'Cargar por archivo',
-              icon: Icon(Icons.upload_file, color: t.texto),
-              onPressed: _abrirCsv,
+    return PantallaRol(
+      tema: t,
+      barraSuperior: BarraTituloRol(
+        titulo: 'Catálogo',
+        mostrarAtras: true,
+        acciones: [
+          IconButton(
+            tooltip: 'Cargar por archivo',
+            icon: Icon(Icons.upload_file, color: t.texto),
+            onPressed: _abrirCsv,
+          ),
+        ],
+      ),
+      fab: FloatingActionButton(
+        tooltip: 'Agregar producto',
+        backgroundColor: t.primario,
+        shape: const CircleBorder(),
+        onPressed: _abrirFormulario,
+        child: Icon(Icons.add, color: t.superficie, size: 30),
+      ),
+      cuerpo: BlocBuilder<InventarioBloc, InventarioState>(
+        builder: (context, inventario) {
+          return PaginatedListView<Producto>(
+            emptyMessage: _filtro.vacio
+                ? 'Aún no tienes productos. Toca + para agregar el primero.'
+                : 'No encontramos productos con ese filtro.',
+            // Espacio abajo para que el botón + no tape la última fila.
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            encabezado: EncabezadoInventario(
+              buscador: _buscador,
+              onBuscar: _alBuscar,
+              categorias: inventario.encabezado?.categorias ?? const [],
+              idCategoria: _idCategoria,
+              onCategoria: _alElegirCategoria,
+              resumen: inventario.encabezado?.resumen,
             ),
-          ],
-        ),
-        fab: FloatingActionButton(
-          tooltip: 'Agregar producto',
-          backgroundColor: t.primario,
-          shape: const CircleBorder(),
-          onPressed: _abrirFormulario,
-          child: Icon(Icons.add, color: t.superficie, size: 30),
-        ),
-        cuerpo: BlocBuilder<InventarioBloc, InventarioState>(
-          builder: (context, inventario) {
-            return PaginatedListView<Producto>(
-              emptyMessage: _filtro.vacio
-                  ? 'Aún no tienes productos. Toca + para agregar el primero.'
-                  : 'No encontramos productos con ese filtro.',
-              // Espacio abajo para que el botón + no tape la última fila.
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-              encabezado: EncabezadoInventario(
-                buscador: _buscador,
-                onBuscar: _alBuscar,
-                categorias: inventario.encabezado?.categorias ?? const [],
-                idCategoria: _idCategoria,
-                onCategoria: _alElegirCategoria,
-                resumen: inventario.encabezado?.resumen,
-              ),
-              itemBuilder: (context, producto) => ProductoCard(
-                producto: producto,
-                onTap: () => _abrirFormulario(producto),
-                // Sin precio no se puede marcar la disponibilidad (HU-11).
-                onDisponible: producto.precio == null ||
-                        inventario.cambiandoId == producto.id
-                    ? null
-                    : (valor) => context
-                        .read<InventarioBloc>()
-                        .add(DisponibilidadEnListaCambiada(producto, valor)),
-                onEliminar: () => _confirmarEliminar(producto),
-              ),
-            );
-          },
-        ),
+            itemBuilder: (context, producto) => ProductoCard(
+              producto: producto,
+              onTap: () => _abrirFormulario(producto),
+            ),
+          );
+        },
       ),
     );
   }

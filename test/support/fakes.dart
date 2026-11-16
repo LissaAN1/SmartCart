@@ -55,7 +55,6 @@ import 'package:smartcart/features/prices/domain/entities/precio.dart';
 import 'package:smartcart/features/prices/domain/entities/promocion.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
 import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
-import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
@@ -736,9 +735,6 @@ class TestEnv {
       GetFichaPrecioUseCase(comercioAprobado: comercioAprobado, precios: precios);
   ActualizarPrecioUseCase get actualizarPrecio => ActualizarPrecioUseCase(
       comercioAprobado: comercioAprobado, precios: precios);
-  CambiarDisponibilidadProductoUseCase get cambiarDisponibilidadProducto =>
-      CambiarDisponibilidadProductoUseCase(
-          comercioAprobado: comercioAprobado, precios: precios);
   GuardarPromocionUseCase get guardarPromocion => GuardarPromocionUseCase(
       comercioAprobado: comercioAprobado,
       precios: precios,
@@ -773,11 +769,7 @@ class TestEnv {
 
   CatalogoListaBloc productosBloc({int pageSize = 20}) =>
       CatalogoListaBloc(getProductos: getProductos, pageSize: pageSize);
-  InventarioBloc inventarioBloc() => InventarioBloc(
-        encabezado: getEncabezado,
-        disponibilidad: cambiarDisponibilidadProducto,
-        eliminar: eliminarProducto,
-      );
+  InventarioBloc inventarioBloc() => InventarioBloc(encabezado: getEncabezado);
   ProductoFormBloc productoFormBloc({Producto? editando}) => ProductoFormBloc(
         editando: editando,
         formulario: getFormulario,
@@ -788,7 +780,6 @@ class TestEnv {
   PrecioProductoBloc precioBloc(Producto producto) => PrecioProductoBloc(
         producto: producto,
         ficha: getFichaPrecio,
-        disponibilidad: cambiarDisponibilidadProducto,
         guardarPromocion: guardarPromocion,
         quitarPromocion: quitarPromocion,
       );

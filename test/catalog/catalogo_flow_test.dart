@@ -85,22 +85,24 @@ Future<TestEnv> _pumpCatalogo(
 /// Editar producto es una lista larga y `ListView` solo construye lo que se
 /// ve: baja hasta que [finder] aparezca.
 Future<void> _verAbajo(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    300,
-    scrollable: find.byType(Scrollable).first,
-  );
+  // Editar Producto construye todos sus campos (SingleChildScrollView), así
+  // que basta con llevar el widget a la vista. Antes se quita el foco (como
+  // al cerrar el teclado): si no, el campo enfocado vuelve a mover la vista.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
 }
 
 /// Lo mismo hacia arriba (por ejemplo, para ver el error del nombre después
 /// de tocar "Guardar Cambios").
 Future<void> _verArriba(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    -300,
-    scrollable: find.byType(Scrollable).first,
-  );
+  // Editar Producto construye todos sus campos (SingleChildScrollView), así
+  // que basta con llevar el widget a la vista. Antes se quita el foco (como
+  // al cerrar el teclado): si no, el campo enfocado vuelve a mover la vista.
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pump();
+  await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
 }
 

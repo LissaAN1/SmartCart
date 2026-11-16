@@ -12,7 +12,8 @@ import 'package:smartcart/features/prices/domain/validators/precio_validators.da
 
 /// HU-10 + HU-11: "Guardar cambios" de la pantalla Editar producto. En un
 /// solo paso crea o edita el producto (HU-10), sube la foto si se eligió una
-/// y guarda el precio si cambió (HU-11).
+/// y guarda el precio y la disponibilidad si cambiaron (HU-11, escenarios 1
+/// y 2).
 ///
 /// Valida todo antes de escribir, así un precio inválido no deja el producto
 /// guardado a medias.
@@ -36,14 +37,20 @@ class GuardarProductoUseCase {
         _catalogo = catalogo;
 
   /// [editando] es `null` al crear. [precio] es `null` si se dejó vacío.
+  /// La disponibilidad vive junto al precio, así que marcar "Agotado" exige
+  /// tener precio.
   Future<Producto> call({
     Producto? editando,
     required ProductoDatos datos,
     int? precio,
+    bool disponible = true,
     ImagenProducto? foto,
   }) async {
     final error = ProductoValidators.datos(datos) ??
-        (precio == null ? null : PrecioValidators.valor(precio));
+        (precio == null ? null : PrecioValidators.valor(precio)) ??
+        (precio == null && !disponible
+            ? 'Escribe el precio para poder marcar el producto como agotado.'
+            : null);
     if (error != null) throw AuthFailure(error);
 
     var producto = editando == null
@@ -57,8 +64,10 @@ class GuardarProductoUseCase {
       producto = producto.copyWith(fotoUrl: editando!.fotoUrl);
     }
 
-    final disponible = editando?.disponible ?? true;
-    if (precio != null && precio != editando?.precio) {
+    final cambioPrecio = precio != null && precio != editando?.precio;
+    final cambioDisponible =
+        editando != null && disponible != editando.disponible;
+    if (precio != null && (cambioPrecio || cambioDisponible)) {
       await _actualizarPrecio(
         producto.id,
         PrecioDatos(precio: precio, disponible: disponible),
@@ -68,6 +77,7 @@ class GuardarProductoUseCase {
     final anterior = editando?.precio;
     return anterior == null
         ? producto
-        : producto.copyWith(precio: anterior, disponible: disponible);
+        : producto.copyWith(
+            precio: anterior, disponible: editando!.disponible);
   }
 }

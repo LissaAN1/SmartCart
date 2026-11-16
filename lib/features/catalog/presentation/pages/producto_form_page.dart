@@ -56,6 +56,10 @@ class _ProductoFormPageState extends State<ProductoFormPage> {
   );
   late String? _idCategoria = widget.producto?.idCategoria;
 
+  /// HU-11 · escenario 2: Disponible o Agotado. Se guarda con "Guardar
+  /// Cambios", junto con el precio.
+  late bool _disponible = widget.producto?.disponible ?? true;
+
   bool get _editando => widget.producto != null;
 
   @override
@@ -84,6 +88,9 @@ class _ProductoFormPageState extends State<ProductoFormPage> {
             precio: textoPrecio.isEmpty
                 ? null
                 : PrecioValidators.leerPesos(textoPrecio),
+            // Sin precio no se puede marcar agotado: el interruptor está
+            // apagado y el producto queda disponible.
+            disponible: textoPrecio.isEmpty || _disponible,
           ),
         );
   }
@@ -165,8 +172,9 @@ class _ProductoFormPageState extends State<ProductoFormPage> {
                 ),
                 const SizedBox(height: 8),
                 TextButton(
-                  onPressed: () =>
-                      context.read<ProductoFormBloc>().add(ProductoFormStarted()),
+                  onPressed: () => context
+                      .read<ProductoFormBloc>()
+                      .add(ProductoFormStarted()),
                   child: const Text('Reintentar'),
                 ),
               ],
@@ -182,191 +190,221 @@ class _ProductoFormPageState extends State<ProductoFormPage> {
     final t = TemaRol.comercio;
     final ocupado = state.status == ProductoFormStatus.saving ||
         state.status == ProductoFormStatus.deleting;
-    final error =
-        state.status == ProductoFormStatus.saveFailed ? state.errorMessage : null;
+    final error = state.status == ProductoFormStatus.saveFailed
+        ? state.errorMessage
+        : null;
     final comercio = state.comercio;
     return Form(
       key: _formKey,
-      child: ListView(
+      // SingleChildScrollView y no ListView: ListView destruye los campos que
+      // salen de la pantalla y `validate()` no los revisaría (un nombre vacío
+      // pasaría sin aviso si el campo quedó arriba).
+      child: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-        children: [
-          _Cabecera(
-            producto: widget.producto,
-            state: state,
-            nombre: _nombreController,
-            onCamara: ocupado
-                ? null
-                : () => context
-                    .read<ProductoFormBloc>()
-                    .add(ProductoFormFotoPedida()),
-          ),
-          if (_editando) ...[
-            const SizedBox(height: 20),
-            BlocBuilder<PrecioProductoBloc, PrecioProductoState>(
-              builder: (context, precios) => switch (precios.status) {
-                PrecioProductoStatus.ready => HistorialPreciosCard(
-                    ficha: precios.ficha,
-                    ahora: widget.ahora(),
-                  ),
-                PrecioProductoStatus.loadFailed => Column(
-                    children: [
-                      ErrorMessage(
-                        message: precios.errorMessage ??
-                            'No pudimos cargar el historial de precios.',
-                      ),
-                      TextButton(
-                        onPressed: () => context
-                            .read<PrecioProductoBloc>()
-                            .add(PrecioProductoStarted()),
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
-                _ => const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Cabecera(
+              producto: widget.producto,
+              state: state,
+              nombre: _nombreController,
+              onCamara: ocupado
+                  ? null
+                  : () => context
+                      .read<ProductoFormBloc>()
+                      .add(ProductoFormFotoPedida()),
+            ),
+            if (_editando) ...[
+              const SizedBox(height: 20),
+              BlocBuilder<PrecioProductoBloc, PrecioProductoState>(
+                builder: (context, precios) => switch (precios.status) {
+                  PrecioProductoStatus.ready => HistorialPreciosCard(
+                      ficha: precios.ficha,
+                      ahora: widget.ahora(),
+                    ),
+                  PrecioProductoStatus.loadFailed => Column(
+                      children: [
+                        ErrorMessage(
+                          message: precios.errorMessage ??
+                              'No pudimos cargar el historial de precios.',
+                        ),
+                        TextButton(
+                          onPressed: () => context
+                              .read<PrecioProductoBloc>()
+                              .add(PrecioProductoStarted()),
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  _ => const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                },
+              ),
+            ],
+            const SizedBox(height: 24),
+            CampoFormulario(
+              key: const Key('campo-nombre'),
+              controller: _nombreController,
+              etiqueta: 'Nombre del producto',
+              hint: 'Ej. Arroz Diana Premium 5 kg',
+              icono: Icons.inventory_2_outlined,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.next,
+              validator: ProductoValidators.nombre,
+              enabled: !ocupado,
+            ),
+            const SizedBox(height: 18),
+            CampoFormulario(
+              key: const Key('campo-precio'),
+              controller: _precioController,
+              etiqueta: 'Precio actual (COP)',
+              hint: 'Ej. 4.900',
+              icono: Icons.attach_money,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              // Opcional: un producto puede guardarse sin precio todavía.
+              validator: (texto) => (texto ?? '').trim().isEmpty
+                  ? null
+                  : PrecioValidators.precio(texto),
+              enabled: !ocupado,
+              estilo: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: t.primario,
+              ),
+              sufijo: _editando ? const _VariacionPrecio() : null,
+            ),
+            const SizedBox(height: 18),
+            CampoFormulario(
+              key: const Key('campo-marca'),
+              controller: _marcaController,
+              etiqueta: 'Marca (opcional)',
+              hint: 'Ej. Diana',
+              icono: Icons.sell_outlined,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              validator: ProductoValidators.marca,
+              enabled: !ocupado,
+            ),
+            const SizedBox(height: 18),
+            CampoFormulario(
+              key: const Key('campo-codigo'),
+              controller: _codigoController,
+              etiqueta: 'Código de barras (opcional)',
+              hint: '7701234567890',
+              icono: Icons.qr_code_2,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.next,
+              validator: ProductoValidators.codigoBarras,
+              enabled: !ocupado,
+            ),
+            const SizedBox(height: 18),
+            CampoFormulario(
+              key: const Key('campo-stock'),
+              controller: _stockController,
+              etiqueta: 'Stock (unidades)',
+              hint: '0',
+              icono: Icons.warehouse_outlined,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              validator: ProductoValidators.stock,
+              enabled: !ocupado,
+            ),
+            const SizedBox(height: 18),
+            _SelectorCategoria(
+              categorias: state.categorias,
+              seleccionada: _idCategoria,
+              enabled: !ocupado,
+              onChanged: (id) => setState(() => _idCategoria = id),
+            ),
+            const SizedBox(height: 18),
+            const EtiquetaCampo('Tienda / Sucursal'),
+            const SizedBox(height: 8),
+            _CampoSoloLectura(
+              icono: Icons.storefront_outlined,
+              texto: comercio == null
+                  ? '—'
+                  : '${comercio.nombre} · ${comercio.ciudad}',
+            ),
+            const SizedBox(height: 18),
+            const _AvisoPrecio(),
+            const SizedBox(height: 18),
+            // El interruptor se habilita en cuanto hay un precio escrito, así
+            // también funciona al crear un producto o al poner el primer precio.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _precioController,
+              builder: (context, precio, _) {
+                final hayPrecio = precio.text.trim().isNotEmpty;
+                final disponible = !hayPrecio || _disponible;
+                return TarjetaInterruptor(
+                  key: const Key('interruptor-disponible'),
+                  icono: Icons.inventory_outlined,
+                  titulo: disponible ? 'Disponible' : 'Agotado',
+                  subtitulo: !hayPrecio
+                      ? 'Escribe el precio para poder marcarlo como agotado'
+                      : disponible
+                          ? 'Los clientes lo ven disponible'
+                          : 'Los clientes lo verán como no disponible',
+                  valor: disponible,
+                  onCambio: !hayPrecio || ocupado
+                      ? null
+                      : (valor) => setState(() => _disponible = valor),
+                );
               },
             ),
-          ],
-          const SizedBox(height: 24),
-          CampoFormulario(
-            key: const Key('campo-nombre'),
-            controller: _nombreController,
-            etiqueta: 'Nombre del producto',
-            hint: 'Ej. Arroz Diana Premium 5 kg',
-            icono: Icons.inventory_2_outlined,
-            textCapitalization: TextCapitalization.sentences,
-            textInputAction: TextInputAction.next,
-            validator: ProductoValidators.nombre,
-            enabled: !ocupado,
-          ),
-          const SizedBox(height: 18),
-          CampoFormulario(
-            key: const Key('campo-precio'),
-            controller: _precioController,
-            etiqueta: 'Precio actual (COP)',
-            hint: 'Ej. 4.900',
-            icono: Icons.attach_money,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.next,
-            // Opcional: un producto puede guardarse sin precio todavía.
-            validator: (texto) => (texto ?? '').trim().isEmpty
-                ? null
-                : PrecioValidators.precio(texto),
-            enabled: !ocupado,
-            estilo: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: t.primario,
-            ),
-            sufijo: _editando ? const _VariacionPrecio() : null,
-          ),
-          const SizedBox(height: 18),
-          CampoFormulario(
-            key: const Key('campo-marca'),
-            controller: _marcaController,
-            etiqueta: 'Marca (opcional)',
-            hint: 'Ej. Diana',
-            icono: Icons.sell_outlined,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.next,
-            validator: ProductoValidators.marca,
-            enabled: !ocupado,
-          ),
-          const SizedBox(height: 18),
-          CampoFormulario(
-            key: const Key('campo-codigo'),
-            controller: _codigoController,
-            etiqueta: 'Código de barras (opcional)',
-            hint: '7701234567890',
-            icono: Icons.qr_code_2,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.next,
-            validator: ProductoValidators.codigoBarras,
-            enabled: !ocupado,
-          ),
-          const SizedBox(height: 18),
-          CampoFormulario(
-            key: const Key('campo-stock'),
-            controller: _stockController,
-            etiqueta: 'Stock (unidades)',
-            hint: '0',
-            icono: Icons.warehouse_outlined,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            validator: ProductoValidators.stock,
-            enabled: !ocupado,
-          ),
-          const SizedBox(height: 18),
-          _SelectorCategoria(
-            categorias: state.categorias,
-            seleccionada: _idCategoria,
-            enabled: !ocupado,
-            onChanged: (id) => setState(() => _idCategoria = id),
-          ),
-          const SizedBox(height: 18),
-          const EtiquetaCampo('Tienda / Sucursal'),
-          const SizedBox(height: 8),
-          _CampoSoloLectura(
-            icono: Icons.storefront_outlined,
-            texto: comercio == null
-                ? '—'
-                : '${comercio.nombre} · ${comercio.ciudad}',
-          ),
-          const SizedBox(height: 18),
-          const _AvisoPrecio(),
-          const SizedBox(height: 24),
-          if (_editando)
-            SeccionPrecioProducto(ahora: widget.ahora)
-          else
-            Text(
-              'Después de guardar el producto podrás marcarlo como agotado y '
-              'crearle promociones.',
-              style: TextStyle(fontSize: 13, color: t.textoGris),
-            ),
-          const SizedBox(height: 24),
-          if (error != null) ...[
-            ErrorMessage(message: error),
-            const SizedBox(height: 16),
-          ],
-          if (_editando) ...[
-            OutlinedButton.icon(
-              onPressed: ocupado ? null : _eliminar,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: t.texto,
-                side: BorderSide(color: t.borde),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            const SizedBox(height: 24),
+            if (_editando)
+              SeccionPrecioProducto(ahora: widget.ahora)
+            else
+              Text(
+                'Después de guardar el producto podrás crearle promociones.',
+                style: TextStyle(fontSize: 13, color: t.textoGris),
+              ),
+            const SizedBox(height: 24),
+            if (error != null) ...[
+              ErrorMessage(message: error),
+              const SizedBox(height: 16),
+            ],
+            if (_editando) ...[
+              OutlinedButton.icon(
+                onPressed: ocupado ? null : _eliminar,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: t.texto,
+                  side: BorderSide(color: t.borde),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text(
+                  'Eliminar producto',
+                  style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              icon: const Icon(Icons.delete_outline),
-              label: const Text(
-                'Eliminar producto',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              const SizedBox(height: 8),
+              Text(
+                'ESTA ACCIÓN NO SE PUEDE DESHACER Y BORRARÁ EL HISTORIAL',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                  color: t.textoGris,
+                ),
               ),
+              const SizedBox(height: 24),
+            ],
+            BotonPrimario(
+              texto: 'Guardar Cambios',
+              cargando: state.status == ProductoFormStatus.saving,
+              onTap: ocupado ? null : _guardar,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'ESTA ACCIÓN NO SE PUEDE DESHACER Y BORRARÁ EL HISTORIAL',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.6,
-                color: t.textoGris,
-              ),
-            ),
-            const SizedBox(height: 24),
           ],
-          BotonPrimario(
-            texto: 'Guardar Cambios',
-            cargando: state.status == ProductoFormStatus.saving,
-            onTap: ocupado ? null : _guardar,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -429,8 +467,8 @@ class _Cabecera extends StatelessWidget {
                   child: IconButton(
                     tooltip: 'Cambiar foto',
                     onPressed: onCamara,
-                    icon: Icon(Icons.photo_camera_outlined,
-                        color: t.superficie),
+                    icon:
+                        Icon(Icons.photo_camera_outlined, color: t.superficie),
                   ),
                 ),
               ),
@@ -479,8 +517,7 @@ class _Cabecera extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.storefront_outlined,
-                      size: 16, color: t.textoGris),
+                  Icon(Icons.storefront_outlined, size: 16, color: t.textoGris),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -613,7 +650,8 @@ class _SelectorCategoria extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.of(context);
-    final valor = categorias.any((c) => c.id == seleccionada) ? seleccionada : null;
+    final valor =
+        categorias.any((c) => c.id == seleccionada) ? seleccionada : null;
     OutlineInputBorder borde(Color color) => OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: color),

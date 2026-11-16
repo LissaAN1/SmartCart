@@ -24,7 +24,6 @@ import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.
 import 'package:smartcart/features/prices/data/repository/precios_repository_impl.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
 import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
-import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
@@ -141,7 +140,6 @@ void main() {
     expect(sl.isRegistered<PreciosRepository>(), isTrue);
     expect(sl.isRegistered<GetFichaPrecioUseCase>(), isTrue);
     expect(sl.isRegistered<ActualizarPrecioUseCase>(), isTrue);
-    expect(sl.isRegistered<CambiarDisponibilidadProductoUseCase>(), isTrue);
     expect(sl.isRegistered<GuardarPromocionUseCase>(), isTrue);
     expect(sl.isRegistered<QuitarPromocionUseCase>(), isTrue);
     expect(sl.isRegistered<PrecioProductoBloc>(), isTrue);

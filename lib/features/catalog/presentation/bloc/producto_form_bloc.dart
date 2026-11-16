@@ -18,12 +18,13 @@ class ProductoFormStarted extends ProductoFormEvent {}
 class ProductoFormFotoPedida extends ProductoFormEvent {}
 
 /// La persona presionó "Guardar cambios". [precio] es `null` si dejó el
-/// campo vacío.
+/// campo vacío; [disponible] es el interruptor Disponible/Agotado (HU-11).
 class ProductoFormGuardado extends ProductoFormEvent {
   final ProductoDatos datos;
   final int? precio;
+  final bool disponible;
 
-  ProductoFormGuardado(this.datos, {this.precio});
+  ProductoFormGuardado(this.datos, {this.precio, this.disponible = true});
 }
 
 /// La persona confirmó que quiere eliminar el producto que está editando.
@@ -164,6 +165,7 @@ class ProductoFormBloc extends Bloc<ProductoFormEvent, ProductoFormState> {
         editando: editando,
         datos: event.datos,
         precio: event.precio,
+        disponible: event.disponible,
         foto: state.foto,
       );
       emit(state.copyWith(status: ProductoFormStatus.saved));

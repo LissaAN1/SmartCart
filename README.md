@@ -17,7 +17,7 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
-| **HU-11** | **Precios, disponibilidad y promociones** | **Implementada (rama `feat/hu11-precios`). Con el diseño del equipo para el catálogo y Editar Producto (stock, fotos, buscador, gráfica del historial). Probada con repositorios falsos (378 pruebas en total). Falta ejecutar sus pruebas de políticas en Supabase.** Ver [docs/HU11_informe_implementacion.md](docs/HU11_informe_implementacion.md) |
+| **HU-11** | **Precios, disponibilidad y promociones** | **Implementada (rama `feat/hu11-precios`). Con el diseño del equipo para el catálogo y Editar Producto (stock, fotos, buscador, gráfica del historial). Probada con repositorios falsos (373 pruebas en total). Falta ejecutar sus pruebas de políticas en Supabase.** Ver [docs/HU11_informe_implementacion.md](docs/HU11_informe_implementacion.md) |
 | HU-12, HU-13, HU-14, HU-17 | Búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
@@ -114,8 +114,9 @@ Para repetir la prueba desde cero hay que eliminar antes los productos cargados:
 ### Probar precios, disponibilidad y promociones (HU-11)
 
 1. Ejecutamos `docs/sql/sprint2_hu11.sql` en Supabase (pasos 5 y 6 de la tabla de scripts). Crea también el bucket `productos` de Storage para las fotos.
-2. Con un **Comercio aprobado** abrimos el **Catálogo**: buscador, chips de categorías, resumen (total de productos, valor del stock y productos con stock bajo) y cada producto con su foto, precio, stock e interruptor **ACTIVO/INACTIVO** (disponible o agotado).
-3. Al tocar un producto se abre **Editar Producto**: foto (botón de cámara), código, tienda, gráfica del historial de los últimos 4 meses, precio actual con su variación, stock, disponibilidad y promoción. **Guardar Cambios** guarda el producto, la foto y el precio en un solo paso; el precio queda con la fecha, la hora y la fuente "Comercio". Si la promoción ya terminó, aparece como "Vencida" y rige el precio normal.
+2. Con un **Comercio aprobado** abrimos el **Catálogo**: buscador, chips de categorías, resumen (total de productos, valor del stock y productos con stock bajo) y cada producto con su foto, precio, stock y si está **ACTIVO** o **INACTIVO** (disponible o agotado). Al tocar un producto se abre Editar Producto.
+   - Si al guardar aparece "La base de datos no está actualizada", falta ejecutar la versión más reciente de `sprint2_hu11.sql` (por ejemplo, la columna `producto.stock`).
+3. Al tocar un producto se abre **Editar Producto**: foto (botón de cámara), código, tienda, gráfica del historial de los últimos 4 meses, precio actual con su variación, stock, interruptor **Disponible/Agotado** y promoción. **Guardar Cambios** guarda el producto, la foto, el precio y la disponibilidad en un solo paso (para marcar agotado hace falta escribir el precio); el precio queda con la fecha, la hora y la fuente "Comercio". Si la promoción ya terminó, aparece como "Vencida" y rige el precio normal.
 
 ## Tecnologías
 
@@ -267,7 +268,7 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-11), `flutter analyze` no reporta problemas y `flutter test` pasa las **378 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-11), `flutter analyze` no reporta problemas y `flutter test` pasa las **373 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
 Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`) ni el selector de archivos del sistema (eso lo probamos a mano).
 
@@ -348,7 +349,7 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Diseño | Los colores y estilos salen de `TemaRol`, sin colores escritos a mano en las pantallas; corregimos la selección de perfil, que los tenía fijos. Arreglamos los desbordes de texto en pantallas angostas y la imagen de la segunda pantalla de bienvenida se ajusta completa (`BoxFit.contain`). | `lib/core/ui/roles/`, `lib/features/onboarding/` |
 | Navegación | Agregamos la flecha de regreso en la segunda pantalla de bienvenida y en la selección de perfil. Arreglamos que la app abría la selección de perfil como si fuera la primera pantalla; ahora arranca en la bienvenida. Al cerrar sesión volvemos a la primera pantalla y borramos el historial, así que no se puede regresar al Home con el botón atrás. | `lib/app.dart`, `lib/core/routes/`, `lib/features/home/` |
 | Manejo de errores y experiencia de usuario | Los errores de Supabase se traducen a mensajes en español y se muestran al usuario. Los formularios validan antes de enviar, muestran carga y no dejan enviar dos veces. Los botones que todavía no tienen función muestran "Esta función estará disponible próximamente." en vez de quedar sin respuesta. | `lib/features/auth/domain/failures/`, `lib/core/ui/roles/widgets/varios.dart` |
-| Calidad y pruebas | Con la última versión (rama de la HU-11), `flutter analyze` no reporta problemas y `flutter test` pasa las 378 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
+| Calidad y pruebas | Con la última versión (rama de la HU-11), `flutter analyze` no reporta problemas y `flutter test` pasa las 373 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
 | Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a dos listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24) y el catálogo del comercio (HU-10). `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
 
 ## Auditoría del Service Locator (GetIt)

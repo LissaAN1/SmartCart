@@ -63,6 +63,14 @@ AuthFailure mapPostgrestException(PostgrestException e) {
       );
     case '22023':
       return const AuthFailure('Revisa los datos e inténtalo de nuevo.');
+    // Falta una tabla, columna o función: la base no tiene los últimos
+    // scripts de docs/sql (por ejemplo, sprint2_hu11.sql).
+    case '42703' || '42P01' || '42883' || 'PGRST200' || 'PGRST202' ||
+          'PGRST204' || 'PGRST205':
+      return const AuthFailure(
+        'La base de datos no está actualizada. Pide que ejecuten los '
+        'scripts más recientes de docs/sql en Supabase.',
+      );
     default:
       return const AuthFailure(
         'No pudimos guardar o leer tus datos. Inténtalo de nuevo.',
