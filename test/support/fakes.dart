@@ -49,6 +49,9 @@ import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
 import 'package:smartcart/features/busqueda/domain/entities/detalle_producto.dart';
 import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
 import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/cliente/domain/usecases/get_cliente_activo_usecase.dart';
+import 'package:smartcart/features/confianza/domain/repository/reporte_incorrecto_repository.dart';
+import 'package:smartcart/features/confianza/domain/usecases/reportar_precio_incorrecto_usecase.dart';
 import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
 import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
 import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
@@ -927,6 +930,29 @@ class FakeBusquedaRepository implements BusquedaRepository {
   }
 }
 
+/// Reportes de precio incorrecto en memoria (HU-13). Imita a la base: un
+/// reporte pendiente por producto, y quien ya reportó recibe `yaReportado`.
+class FakeReporteIncorrectoRepository implements ReporteIncorrectoRepository {
+  final reportes = <({String idProducto, String? motivo})>[];
+  Object? error;
+
+  /// Si se asigna, `reportar` espera a que se complete (para probar el envío
+  /// en curso).
+  Completer<void>? pausa;
+
+  @override
+  Future<ResultadoReporte> reportar(String idProducto, {String? motivo}) async {
+    final espera = pausa;
+    if (espera != null) await espera.future;
+    if (error != null) throw error!;
+    if (reportes.any((r) => r.idProducto == idProducto)) {
+      return ResultadoReporte.yaReportado;
+    }
+    reportes.add((idProducto: idProducto, motivo: motivo));
+    return ResultadoReporte.registrado;
+  }
+}
+
 /// Agrupa los dobles y construye los Blocs con ellos.
 class TestEnv {
   final auth = FakeAuthRepository();
@@ -942,6 +968,7 @@ class TestEnv {
   final precios = FakePreciosRepository();
   final selectorImagen = FakeSelectorImagen();
   final busqueda = FakeBusquedaRepository();
+  final reporteIncorrecto = FakeReporteIncorrectoRepository();
 
   /// "Hoy" para las promociones (HU-11): 15 de noviembre de 2026.
   DateTime ahora = DateTime(2026, 11, 15, 10);
@@ -1039,8 +1066,17 @@ class TestEnv {
         textoInicial: texto,
         pageSize: pageSize,
       );
+  GetClienteActivoUseCase get clienteActivoUseCase =>
+      GetClienteActivoUseCase(auth: auth, profiles: profiles);
+  ReportarPrecioIncorrectoUseCase get reportarPrecioIncorrecto =>
+      ReportarPrecioIncorrectoUseCase(
+          cliente: clienteActivoUseCase, reportes: reporteIncorrecto);
   DetalleProductoBloc detalleBloc(ConsultaProducto consulta) =>
-      DetalleProductoBloc(consulta: consulta, detalle: getDetalleProducto);
+      DetalleProductoBloc(
+        consulta: consulta,
+        detalle: getDetalleProducto,
+        reportar: reportarPrecioIncorrecto,
+      );
 
   /// Deja la sesión iniciada como dueño de un comercio con el [estado] dado
   /// (el comercio de prueba tiene el id `c1`).

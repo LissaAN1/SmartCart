@@ -17,11 +17,13 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
-| **HU-11** | **Precios, disponibilidad y promociones** | **Implementada (rama `feat/hu11-precios`). Con el diseño del equipo para el catálogo y Editar Producto (stock, fotos, buscador, gráfica del historial). Probada con repositorios falsos (373 pruebas en total). Falta ejecutar sus pruebas de políticas en Supabase.** Ver [docs/HU11_informe_implementacion.md](docs/HU11_informe_implementacion.md) |
-| **HU-12** | **Búsqueda de productos** | **Implementada (rama `feat/hu12-busqueda`). Búsqueda por nombre o marca y por código de barras con la cámara, rango de precios y establecimientos, paginada. Probada con repositorios falsos (413 pruebas en total). Falta ejecutar sus pruebas en Supabase.** Ver [docs/HU12_informe_implementacion.md](docs/HU12_informe_implementacion.md) |
-| **HU-14** | **Reporte de precio por el colaborador** | **Implementada y probada con dobles (428 pruebas); el APK de depuración compila. El SQL ya se ejecutó en Supabase y sus 28 pruebas de políticas dan `OK` (incluido un hallazgo de seguridad heredado, ya corregido). Falta probar la app en un dispositivo Android.** Ver [docs/HU14_informe_implementacion.md](docs/HU14_informe_implementacion.md) y [docs/HU14_informe_pruebas.md](docs/HU14_informe_pruebas.md) |
-| **HU-17** | **Carrito de compras y favoritos** | **Implementada, probada con dobles (722 pruebas con `main` integrado), con el SQL ejecutado en Supabase (pruebas de políticas en `OK`, también tras integrar `main`) y probada en un dispositivo Android.** El "Explorar" del cliente es provisional: la búsqueda de la HU-12 ya existe, pero aún no trae los botones de carrito y favoritos. Ver [docs/HU17_informe_implementacion.md](docs/HU17_informe_implementacion.md) y [docs/HU17_informe_pruebas.md](docs/HU17_informe_pruebas.md) |
-| HU-13 | Detalle del precio | **Todavía no implementada** |
+| **HU-11** | **Precios, disponibilidad y promociones** | **Implementada (rama `feat/hu11-precios`). Con el diseño del equipo para el catálogo y Editar Producto (stock, fotos, buscador, gráfica del historial). Probada con repositorios falsos (373 pruebas en total). Sus 16 pruebas de políticas en Supabase dan `OK` y el equipo la verificó en Android.** Ver [docs/HU11_informe_implementacion.md](docs/HU11_informe_implementacion.md) |
+| **HU-12** | **Búsqueda de productos** | **Implementada (rama `feat/hu12-busqueda`). Búsqueda por nombre o marca y por código de barras con la cámara, rango de precios y establecimientos, paginada. Probada con repositorios falsos (413 pruebas en total). Sus 10 pruebas en Supabase dan `OK` y el equipo la verificó en Android.** Ver [docs/HU12_informe_implementacion.md](docs/HU12_informe_implementacion.md) |
+| **HU-14** | **Reporte de precio por el colaborador** | **Implementada y probada con dobles (428 pruebas); el APK de depuración compila. El SQL ya se ejecutó en Supabase y sus 28 pruebas de políticas dan `OK` (incluido un hallazgo de seguridad heredado, ya corregido). El equipo la verificó en Android.** Ver [docs/HU14_informe_implementacion.md](docs/HU14_informe_implementacion.md) y [docs/HU14_informe_pruebas.md](docs/HU14_informe_pruebas.md) |
+| **HU-17** | **Carrito de compras y favoritos** | **Implementada, probada con dobles (722 pruebas con `main` integrado), con el SQL ejecutado en Supabase (pruebas de políticas en `OK`, también tras integrar `main`) y probada en un dispositivo Android.** El "Explorar" del cliente es provisional: la búsqueda de la HU-12 ya existe y, desde la HU-13, su detalle del producto tiene los botones de carrito y favoritos. Ver [docs/HU17_informe_implementacion.md](docs/HU17_informe_implementacion.md) y [docs/HU17_informe_pruebas.md](docs/HU17_informe_pruebas.md) |
+| **HU-13** | **Detalle del precio con fuente, fecha y confianza** | **Implementada (rama `feat/hu13-detalle-precio`) y probada con dobles (806 pruebas en total). El SQL ya se ejecutó en Supabase y sus 18 pruebas de políticas dan `OK` . El equipo la verificó en Android.** Con ella queda completo el Sprint 2. Ver [docs/HU13_informe_implementacion.md](docs/HU13_informe_implementacion.md) y [docs/HU13_informe_pruebas.md](docs/HU13_informe_pruebas.md) |
+
+**Para probar las diez historias en orden**, seguir el [recorrido para probar el Sprint 2](#recorrido-para-probar-el-sprint-2).
 
 ## ¿Qué es SmartCart?
 
@@ -70,7 +72,7 @@ Un mismo usuario puede ser Cliente y Colaborador con una sola cuenta.
 
 ### Cuentas de prueba
 
-Estas son las cuentas que tenemos creadas en nuestro proyecto de Supabase, una por perfil que se puede probar de inmediato:
+Estas son las cuentas que tenemos creadas en nuestro proyecto de Supabase, una por perfil, para probar de inmediato:
 
 | Correo | Nombre | Perfil | Contraseña |
 |---|---|---|---|
@@ -79,8 +81,9 @@ Estas son las cuentas que tenemos creadas en nuestro proyecto de Supabase, una p
 | loira@gmail.com | Loira | Cliente | Loira123 |
 | lina@gmail.com | Lina | Repartidor | Adri7979 |
 | paila@gmail.com | La Paila | Comercio | Adri7979 |
+| catalina@gmail.com | Catalina | Colaborador | Adri7979 |
 
-Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro (ver el paso a paso de abajo). Como un mismo correo puede ser Cliente y Colaborador, también sirve registrar una cuenta nueva con los dos perfiles.
+El perfil **Colaborador** se prueba con `catalina@gmail.com`. Como un mismo correo puede ser Cliente y Colaborador, también sirve registrar una cuenta nueva y activarle el modo (ver [HU-06](#probar-el-modo-colaborador-hu-06)).
 
 ### Iniciar sesión
 
@@ -101,50 +104,54 @@ Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro 
 - Las pantallas de bienvenida (la segunda), la selección de perfil, el login y el registro tienen flecha para volver a la anterior.
 - Si Supabase tiene una sesión guardada en el dispositivo, al abrir la app se recupera: con un solo perfil entramos directo a su Home y con varios entramos al que se toque si la cuenta lo tiene.
 
-### Probar el carrito y los favoritos (HU-17)
+### Recorrido para probar el Sprint 2
 
-Se prueba con una cuenta de **Cliente** (por ejemplo la de `adri@gmail.com` de las cuentas de prueba) y necesita al menos un comercio **aprobado con productos** (HU-10; sirven los CSV de `docs/ejemplos/`).
+Las diez historias del sprint se pueden probar **en este orden**, porque cada una deja listos los datos de la siguiente: primero se registran y se aprueban los negocios, el comercio publica su catálogo y sus precios, el cliente los busca y arma su carrito, y por último la comunidad reporta precios. Cada historia tiene abajo su sección con los pasos y el resultado esperado. Todo se prueba en **Android** (teléfono o emulador) con las [cuentas de prueba](#cuentas-de-prueba).
 
-1. **Dejar lista la base.** Ejecutar `docs/sql/sprint2_hu17.sql` (ver el orden en [Configuración de Supabase](#configuración-de-supabase)).
-2. **Abrir la exploración.** En el Home del cliente, tocar **Comenzar ahora**. Es una lista provisional con dos pestañas, **Productos** y **Comercios**, con buscador por nombre. La lupa y el buscador del Home abren la búsqueda de la HU-12, que todavía no trae los botones de carrito y favoritos.
-3. **Recorrer los tres escenarios del backlog:**
+| Orden | Historia | Con qué cuenta | Sección |
+|---|---|---|---|
+| 1 | HU-07 · Registro del comercio | Una cuenta nueva con perfil Comercio | [Probar el registro del comercio](#probar-el-registro-del-comercio-hu-07) |
+| 2 | HU-08 · Registro del repartidor | Una cuenta nueva con perfil Repartidor | [Probar el registro del repartidor](#probar-el-registro-del-repartidor-hu-08) |
+| 3 | HU-24 · Aprobación de comercios y repartidores | `admin@gmail.com` | [Probar la aprobación](#probar-la-aprobación-de-comercios-y-repartidores-hu-24) |
+| 4 | HU-10 · Catálogo del comercio | `paila@gmail.com` (o el comercio recién aprobado) | [Probar el catálogo](#probar-el-catálogo-del-comercio-hu-10) |
+| 5 | HU-11 · Precios, disponibilidad y promociones | El mismo comercio | [Probar precios](#probar-precios-disponibilidad-y-promociones-hu-11) |
+| 6 | HU-12 · Búsqueda de productos | `adri@gmail.com` (Cliente) | [Probar la búsqueda](#probar-la-búsqueda-de-productos-hu-12) |
+| 7 | HU-13 · Detalle del precio con fuente, fecha y confianza | `adri@gmail.com` | [Probar el detalle del precio](#probar-el-detalle-del-precio-hu-13) |
+| 8 | HU-17 · Carrito de compras y favoritos | `adri@gmail.com` | [Probar el carrito y los favoritos](#probar-el-carrito-y-los-favoritos-hu-17) |
+| 9 | HU-06 · Modo Colaborador | Una cuenta Cliente que aún no lo tenga | [Probar el modo Colaborador](#probar-el-modo-colaborador-hu-06) |
+| 10 | HU-14 · Reporte de precio por el colaborador | `catalina@gmail.com` (Colaborador) | [Probar el reporte de precios](#probar-el-reporte-de-precios-hu-14) |
+
+**Antes de empezar:**
+
+1. Ejecutar en Supabase los scripts de la [tabla de scripts](#configuración-de-supabase) en orden: 1, 2, 3, 5, 7, 9, 11 y 13 (los `pruebas_*` son opcionales: comprueban las políticas de seguridad y terminan en `ROLLBACK`).
+2. Completar el `.env`, correr `flutter pub get` y lanzar la app en Android: `flutter run -d <id del dispositivo>`. Dar los permisos de cámara y ubicación cuando los pida (el escáner y la ubicación no funcionan en Windows).
+3. Para que la búsqueda (HU-12) y el detalle (HU-13) tengan qué mostrar hace falta al menos un comercio **aprobado** con productos **con precio** (secciones HU-10 y HU-11). Si dos comercios tienen el mismo producto (mismo código de barras) se ve la comparación entre tiendas.
+
+### Probar el registro del comercio (HU-07)
+
+1. En **Selecciona tu perfil** tocamos **Comercio** → **Regístrate aquí**, llenamos nombre, correo (uno nuevo), teléfono y contraseña, y creamos la cuenta.
+2. Se abre el formulario **Registra tu comercio**: nombre del establecimiento, teléfono, dirección, ciudad y barrio, **Apertura**, **Cierre** y tipo de servicio. Opcionalmente **Usar mi ubicación actual** (la necesita la HU-14; también se puede guardar después desde el Home). Los campos se validan antes de enviar.
+3. Tocamos **Registrar**.
+
+**Resultado esperado:** la pantalla **Mi comercio** dice "Tu registro está en revisión", muestra los datos enviados y tiene el botón **Actualizar estado**. Mientras esté pendiente no se puede abrir el catálogo. En el SQL Editor: `select nombre, estado from public.comercio;` muestra el comercio como `pendiente`.
+
+### Probar el registro del repartidor (HU-08)
+
+1. En **Selecciona tu perfil** tocamos **Repartidor** → **Regístrate aquí**, llenamos los datos (correo nuevo) y creamos la cuenta.
+
+**Resultado esperado:** entramos a **Mi registro**: "Tu registro será revisado por el administrador", con nuestro nombre, correo y teléfono, y el botón **Actualizar estado**. Hasta que lo aprueben no puede activar su disponibilidad. En la base: `select * from public.perfil_repartidor;` lo muestra como `pendiente`.
+
+### Probar la aprobación de comercios y repartidores (HU-24)
+
+Necesita las dos solicitudes de las secciones anteriores. Entramos con `admin@gmail.com`.
 
 | Escenario | Cómo probarlo | Resultado esperado |
 |---|---|---|
-| 1. Agregar un producto | En **Productos**, tocar el ícono del carrito de un producto | "…" se agregó al carrito; en el carrito queda con cantidad **1**, y la pestaña **Carrito** muestra el número de productos. Agregarlo otra vez le suma 1 (no duplica la línea) |
-| 2. Cambiar la cantidad | Pestaña **Carrito**: botones **−** y **+**, y el bote de basura para quitar | La cantidad y el resumen ("2 productos · 5 unidades") se actualizan al instante. Con 1 unidad no se puede bajar más; a las 99 no se puede subir |
-| 3. Favoritos | Tocar el corazón de un producto o, en la pestaña **Comercios**, de un comercio | "Guardado en tus favoritos"; el corazón queda lleno. En **Perfil → Mis favoritos** aparecen en dos pestañas. Tocarlo otra vez lo quita |
+| 1. Ver las solicitudes pendientes | En el **Panel de control** tocar la pestaña **Aprobar** (o el acceso **Aprobaciones**) | **Solicitudes pendientes** con las pestañas **Comercios** y **Repartidores**, cargadas por páginas de 20 |
+| 2. Aprobar | En **Comercios**, abrir el comercio → **Aprobar** → confirmar | "… fue aprobado. Se le notificó la decisión." y el comercio sale de la lista. Al entrar con esa cuenta aparece **"Tu comercio fue aprobado"** y su panel |
+| 3. Rechazar con motivo | En **Repartidores**, abrir el repartidor → **Rechazar**. Probar sin escribir el motivo y luego con uno (de 10 a 300 caracteres) | Sin motivo no deja continuar. Con motivo: "… fue rechazado. Se le notificó el motivo." Al entrar con esa cuenta aparece **"Tu registro no fue aprobado"** con el **motivo** |
 
-4. **Comprobar que se guarda.** Cerrar la app por completo y volver a abrirla con la misma cuenta: el carrito y los favoritos siguen ahí.
-5. **Ver lo guardado.** En el SQL Editor: `select * from public.carrito_item;`, `select * from public.favorito_producto;` y `select * from public.favorito_comercio;`.
-
-El carrito muestra productos y cantidades, sin precios ni totales: la HU-11 ya guarda los precios, pero esta historia no los lee (el total y la comparación son de la HU-18).
-
-### Probar el reporte de precios (HU-14)
-
-El reporte exige estar a menos de **150 m** del establecimiento, así que hay que preparar un comercio con ubicación. Se prueba en Android (teléfono o emulador); el escáner no funciona en Windows.
-
-1. **Dejar lista la base.** Ejecutar `docs/sql/sprint2_hu14.sql` (ver el orden en [Configuración de Supabase](#configuración-de-supabase)).
-2. **Ubicar el comercio.** Entrar con una cuenta de **Comercio aprobada** estando en el lugar donde se va a probar. En el Home aparece el aviso "Falta la ubicación de tu comercio"; tocar **Guardar ubicación** y aceptar el permiso. Un comercio nuevo también puede tomarla en el formulario de registro. Sin coordenadas el comercio no sale como lugar de reporte.
-3. **Tener productos.** El comercio necesita productos en su catálogo (HU-10; sirven los CSV de `docs/ejemplos/`).
-4. **Entrar como colaborador.** Con una cuenta que tenga el modo **Colaborador** activo, tocar **Reportar precio**, **Escanear** o la pestaña **Reportar Precio**.
-5. **Recorrer el flujo:** elegir el establecimiento (aparece con su distancia) → **la cámara del escáner se abre sola**: apuntar al código de barras del producto y, si está en el establecimiento, se pasa directo al formulario → precio, promoción opcional, agotado y **foto de la etiqueta** → **Enviar reporte**. Resultado esperado: "Reporte enviado", queda **pendiente**. Si se cancela el escáner o el código no está, se queda en la lista para buscar por nombre o marca (en Windows no hay escáner y empieza ahí).
-6. **Ver el historial.** En el Home del colaborador, "Mis últimos reportes" muestra los 3 más recientes y **Historial** abre la lista completa. Un reporte recién enviado aparece como **Pendiente** aunque nadie lo haya revisado; al validarlo (HU-15) cambiará a Verificado o Rechazado.
-
-Para ver los **tres escenarios del backlog**:
-
-| Escenario | Cómo provocarlo | Resultado esperado |
-|---|---|---|
-| 1. Reporte exitoso | Los pasos de arriba, en el lugar donde se guardó la ubicación | "Reporte enviado" |
-| 2. Fuera del establecimiento | Mover la ubicación del comercio con la consulta de abajo (o cambiar la ubicación del emulador en *Extended controls → Location*) y enviar | "Debes estar en el establecimiento para reportar el precio. Estás a N m." |
-| 3. Sin foto | Llenar el precio y enviar sin tomar la foto | "La foto de la etiqueta es obligatoria." |
-
-```sql
--- Mueve el comercio a otro lugar (para provocar el escenario 2). Cambiar el nombre.
-update public.comercio set latitud = latitud + 0.01 where nombre = 'La Paila';
-```
-
-Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio order by creado_en desc;` (estado `pendiente`) y, en **Storage → reportes**, la foto en la carpeta del colaborador.
+Solo el administrador puede decidir: una cuenta con otro perfil no ve estas pantallas (y la base rechaza el cambio de estado aunque se intente por fuera de la app). La decisión le llega a la persona cuando vuelve a entrar al Home.
 
 ### Probar el catálogo del comercio (HU-10)
 
@@ -171,6 +178,78 @@ Para repetir la prueba desde cero hay que eliminar antes los productos cargados:
 1. Ejecutamos `docs/sql/sprint2_hu12.sql` en Supabase (pasos 7 y 8 de la tabla de scripts) y corremos `flutter pub get` (se agregó `mobile_scanner`).
 2. Entramos como **Cliente** y tocamos la lupa o escribimos en el buscador del Home. Cada resultado muestra el rango de precios ("$ 4.200 – $ 5.000") y en cuántos establecimientos está; si no hay coincidencias aparece "No encontramos productos".
 3. Al tocar un resultado vemos el precio en cada tienda (el más barato primero, con promoción y fuente). Con **Escanear código de barras** abrimos la cámara; en el emulador, "Escribir el código" hace lo mismo.
+
+### Probar el detalle del precio (HU-13)
+
+1. Ejecutamos `docs/sql/sprint2_hu13.sql` en Supabase (paso 13 de la tabla de scripts; necesita los de HU-12 y HU-17) y `docs/sql/pruebas_hu13_politicas.sql` (paso 14: todas las filas deben decir `OK`).
+2. Entramos como **Cliente**, buscamos un producto (lupa del Home) y tocamos un resultado. Cada establecimiento muestra:
+   - **Fuente:** "Comercio" o "Comunidad" (lo que reportan los colaboradores).
+   - **Fecha y hora** de la última actualización, con "hoy", "ayer" o "hace N días".
+   - **Nivel de confianza** (alta, media o baja) y, si el precio tiene más de 7 días, la etiqueta **Desactualizado**.
+3. Para ver los **tres escenarios** del backlog:
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Precio reciente de un comercio | Con un Comercio aprobado, guardamos o cambiamos el precio de un producto y lo abrimos como Cliente | "Fuente: Comercio", la fecha de hoy y **Confianza alta** |
+| 2. Precio desactualizado | En Supabase → SQL Editor: `update public.precio_producto set actualizado_en = now() - interval '10 days' where id_producto = '<id del producto>';` (el trigger de la tabla fija la fecha en cada cambio, así que primero hay que apagarlo: `alter table public.precio_producto disable trigger precio_producto_fecha;`, y volver a encenderlo con `enable trigger` al terminar). Volver a abrir el detalle | **Desactualizado** y **Confianza baja** |
+| 3. Reportar un precio incorrecto | Tocar **Reportar precio incorrecto** en un establecimiento, escribir (o no) el motivo y **Enviar reporte** | "Gracias, enviamos tu reporte para revisarlo", el botón pasa a "Reporte enviado" y en Supabase queda una fila `pendiente` en `reporte_precio_incorrecto` |
+
+4. Si el detalle se abrió desde la búsqueda del Home, cada establecimiento tiene también el corazón de favoritos y el botón de agregar al carrito (HU-17).
+
+### Probar el carrito y los favoritos (HU-17)
+
+Se prueba con una cuenta de **Cliente** (por ejemplo `adri@gmail.com`) y necesita al menos un comercio **aprobado con productos con precio** (HU-10 y HU-11; sirven los CSV de `docs/ejemplos/`).
+
+1. **Dejar lista la base.** Ejecutar `docs/sql/sprint2_hu17.sql` (ver el orden en [Configuración de Supabase](#configuración-de-supabase)).
+2. **Abrir la exploración.** En el Home del cliente, tocar **Comenzar ahora**. Es una lista provisional con dos pestañas, **Productos** y **Comercios**, con buscador por nombre. La lupa y el buscador del Home abren la búsqueda de la HU-12, que todavía no trae los botones de carrito y favoritos.
+3. **Recorrer los tres escenarios del backlog:**
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Agregar un producto | En **Productos**, tocar el ícono del carrito de un producto | "…" se agregó al carrito; en el carrito queda con cantidad **1**, y la pestaña **Carrito** muestra el número de productos. Agregarlo otra vez le suma 1 (no duplica la línea) |
+| 2. Cambiar la cantidad | Pestaña **Carrito**: botones **−** y **+**, y el bote de basura para quitar | La cantidad y el resumen ("2 productos · 5 unidades") se actualizan al instante. Con 1 unidad no se puede bajar más; a las 99 no se puede subir |
+| 3. Favoritos | Tocar el corazón de un producto o, en la pestaña **Comercios**, de un comercio | "Guardado en tus favoritos"; el corazón queda lleno. En **Perfil → Mis favoritos** aparecen en dos pestañas. Tocarlo otra vez lo quita |
+
+4. **Comprobar que se guarda.** Cerrar la app por completo y volver a abrirla con la misma cuenta: el carrito y los favoritos siguen ahí.
+5. **Ver lo guardado.** En el SQL Editor: `select * from public.carrito_item;`, `select * from public.favorito_producto;` y `select * from public.favorito_comercio;`.
+
+El carrito muestra productos y cantidades, sin precios ni totales: la HU-11 ya guarda los precios, pero esta historia no los lee (el total y la comparación son de la HU-18).
+
+### Probar el modo Colaborador (HU-06)
+
+Se prueba con una cuenta **Cliente que todavía no tenga el modo activo** (si su **Perfil** muestra puntos, nivel y reputación en vez de "Activar modo Colaborador", ya lo tiene: registrar otra cuenta Cliente). `catalina@gmail.com` ya lo tiene activado.
+
+1. Entramos como **Cliente** → pestaña **Perfil** → **Activar modo Colaborador**.
+2. Se abre el onboarding **Modo Colaborador** con "Así funciona reportar un precio" (tres pasos). Tocamos **Continuar**.
+3. En **Condiciones de uso** intentamos **Activar** sin marcar la casilla: pide aceptarlas. Marcamos "Acepto las condiciones de uso del modo Colaborador" y tocamos **Activar**.
+
+**Resultado esperado:** volvemos al **Perfil**, que ahora muestra los **puntos, el nivel y la reputación** en vez del botón de activar. Para usar el modo: **Cerrar sesión** → **Selecciona tu perfil** → **Colaborador** → entrar con la misma cuenta; se abre el Home del colaborador. Es una sola cuenta con los dos perfiles.
+
+### Probar el reporte de precios (HU-14)
+
+El reporte exige estar a menos de **150 m** del establecimiento, así que hay que preparar un comercio con ubicación. Se prueba en Android (teléfono o emulador); el escáner no funciona en Windows.
+
+1. **Dejar lista la base.** Ejecutar `docs/sql/sprint2_hu14.sql` (ver el orden en [Configuración de Supabase](#configuración-de-supabase)).
+2. **Ubicar el comercio.** Entrar con una cuenta de **Comercio aprobada** estando en el lugar donde se va a probar. En el Home aparece el aviso "Falta la ubicación de tu comercio"; tocar **Guardar ubicación** y aceptar el permiso. Un comercio nuevo también puede tomarla en el formulario de registro. Sin coordenadas el comercio no sale como lugar de reporte.
+3. **Tener productos.** El comercio necesita productos en su catálogo (HU-10; sirven los CSV de `docs/ejemplos/`).
+4. **Entrar como colaborador.** Con `catalina@gmail.com` (o cualquier cuenta con el modo **Colaborador** activo; ver [HU-06](#probar-el-modo-colaborador-hu-06)), tocar **Reportar precio**, **Escanear** o la pestaña **Reportar Precio**.
+5. **Recorrer el flujo:** elegir el establecimiento (aparece con su distancia) → **la cámara del escáner se abre sola**: apuntar al código de barras del producto y, si está en el establecimiento, se pasa directo al formulario → precio, promoción opcional, agotado y **foto de la etiqueta** → **Enviar reporte**. Resultado esperado: "Reporte enviado", queda **pendiente**. Si se cancela el escáner o el código no está, se queda en la lista para buscar por nombre o marca (en Windows no hay escáner y empieza ahí).
+6. **Ver el historial.** En el Home del colaborador, "Mis últimos reportes" muestra los 3 más recientes y **Historial** abre la lista completa. Un reporte recién enviado aparece como **Pendiente** aunque nadie lo haya revisado; al validarlo (HU-15) cambiará a Verificado o Rechazado.
+
+Para ver los **tres escenarios del backlog**:
+
+| Escenario | Cómo provocarlo | Resultado esperado |
+|---|---|---|
+| 1. Reporte exitoso | Los pasos de arriba, en el lugar donde se guardó la ubicación | "Reporte enviado" |
+| 2. Fuera del establecimiento | Mover la ubicación del comercio con la consulta de abajo (o cambiar la ubicación del emulador en *Extended controls → Location*) y enviar | "Debes estar en el establecimiento para reportar el precio. Estás a N m." |
+| 3. Sin foto | Llenar el precio y enviar sin tomar la foto | "La foto de la etiqueta es obligatoria." |
+
+```sql
+-- Mueve el comercio a otro lugar (para provocar el escenario 2). Cambiar el nombre.
+update public.comercio set latitud = latitud + 0.01 where nombre = 'La Paila';
+```
+
+Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio order by creado_en desc;` (estado `pendiente`) y, en **Storage → reportes**, la foto en la carpeta del colaborador.
 
 ## Tecnologías
 
@@ -282,17 +361,19 @@ order by u.correo;
 | 1 | `sprint2_hu06_07_08.sql` | `perfil_repartidor` y `comercio` con sus políticas |
 | 2 | `sprint2_hu24.sql` | `es_administrador()`, `notificacion` y `decidir_solicitud()` |
 | 3 | `sprint2_hu10.sql` | `categoria` (con seis categorías), `producto`, `es_comercio_aprobado_propio()` y las políticas de producto |
-| 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
+| 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`). Se corrió de nuevo con HU-14 y HU-17 aplicadas: todo `OK` |
 | 5 | `sprint2_hu11.sql` | `precio_producto`, `historial_precio` y `promocion`, sus triggers, `es_producto_propio()` y sus políticas; `producto.stock` y `producto.foto_url`, `resumen_catalogo()` y el bucket `productos` de Storage para las fotos |
-| 6 | `pruebas_hu11_politicas.sql` | Prueba de las políticas y los triggers de precios (termina en `ROLLBACK`) |
+| 6 | `pruebas_hu11_politicas.sql` | Prueba de las políticas y los triggers de precios (termina en `ROLLBACK`). Se corrió con HU-14 y HU-17 aplicadas: las 16 líneas en `OK` |
 | 7 | `sprint2_hu12.sql` | Funciones de la búsqueda del cliente: `buscar_productos()` y `precios_de_producto()` |
 | 8 | `pruebas_hu12_busqueda.sql` | Prueba de la búsqueda (termina en `ROLLBACK`) |
 | 9 | `sprint2_hu14.sql` | Coordenadas en `comercio`, `comercios_cercanos()`, `reporte_precio` con `enviar_reporte_precio()`, `establecimiento_sugerido` y el bucket de Storage `reportes` |
 | 10 | `pruebas_hu14_politicas.sql` | 28 pruebas de las políticas y funciones del reporte, incluido el historial (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 | 11 | `sprint2_hu17.sql` | `es_cliente()`, `carrito_item`, `favorito_producto`, `favorito_comercio` y las funciones `agregar_al_carrito()`, `mi_carrito()`, `mis_favoritos_*()` y `explorar_*()` |
 | 12 | `pruebas_hu17_politicas.sql` | 34 pruebas de las políticas y funciones del carrito y los favoritos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 13 | `sprint2_hu13.sql` | `reporte_precio_incorrecto` (con su política de lectura propia) y la función `reportar_precio_incorrecto()` |
+| 14 | `pruebas_hu13_politicas.sql` | 18 pruebas de la fuente y la fecha que llegan con cada precio y de los reportes de precio incorrecto (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
-Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, y sin el 11, las del carrito y los favoritos. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
+Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, sin el 11, las del carrito y los favoritos, y sin el 13, el reporte de precio incorrecto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
 ## Instalación de dependencias
 
@@ -331,7 +412,7 @@ flutter analyze
 flutter test
 ```
 
-Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-17, con `main` integrado), `flutter analyze` no reporta problemas y `flutter test` pasa las **722 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
+Los mismos comandos sirven en Linux. Con la última versión (rama de la HU-13), `flutter analyze` no reporta problemas y `flutter test` pasa las **806 pruebas**. Las pruebas no usan Supabase: inyectan repositorios falsos (`test/support/fakes.dart`). Si el equipo tiene poca memoria libre y el compilador de las pruebas se queda sin memoria, `flutter test --concurrency=1` las corre una a la vez.
 
 Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (para eso están los scripts `pruebas_*_politicas.sql`), el selector de archivos del sistema (eso lo probamos a mano) ni el GPS, la cámara y el escáner reales de la HU-14 (las pruebas usan dobles; hay que probarlos en un dispositivo).
 
@@ -346,6 +427,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista, errores y mensajes propios de error |
 | `test/aprobaciones/`, `test/notificaciones/`, `test/comercio/`, `test/colaborador/` | HU-06, HU-07, HU-08 y HU-24 (registro, estado y aprobación) |
 | `test/cart/`, `test/favoritos/`, `test/explorar/`, `test/cliente/` | HU-17: reglas y casos de uso del carrito, Blocs (cantidad, quitar, favoritos, recuperar lo guardado), pantallas del carrito, los favoritos y la exploración, y el carrito dentro del `RolShell` del cliente |
+| `test/confianza/` | HU-13: cálculo de la confianza (tabla de días por fuente y los límites), el caso de uso y el Bloc del reporte, el componente de precio y el detalle completo con los tres escenarios, y los botones de agregar y favoritos desde el detalle |
 | `test/reportes/` | HU-14: distancia y reglas, validadores, casos de uso (los tres escenarios del backlog), Blocs, el flujo completo en pantalla, la ubicación del comercio (HU-07) y los accesos del colaborador |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 | `test/busqueda/` | HU-12: búsqueda por nombre y marca, código escaneado, paginado, detalle por establecimiento y accesos desde el Home del cliente |
@@ -381,6 +463,7 @@ lib/
     ├── catalog/                   HU-10: catálogo del comercio (domain, data, presentation)
     ├── prices/                    HU-11: precios, disponibilidad, promociones e historial (domain, data, presentation)
     ├── busqueda/                  HU-12: búsqueda del cliente, detalle por establecimiento y escáner
+    ├── confianza/                 HU-13: confianza del precio (fuente, fecha, desactualizado) y reporte de precio incorrecto
     ├── reportes/                  HU-14: reporte de precio del colaborador (domain, data, presentation)
     ├── ubicacion/                 HU-14: ubicación (GPS) y distancia; la usan el comercio y los reportes
     ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
@@ -421,7 +504,7 @@ El profesor nos pidió revisar el Sprint 1 con una lista de criterios de calidad
 | Diseño | Los colores y estilos salen de `TemaRol`, sin colores escritos a mano en las pantallas; corregimos la selección de perfil, que los tenía fijos. Arreglamos los desbordes de texto en pantallas angostas y la imagen de la segunda pantalla de bienvenida se ajusta completa (`BoxFit.contain`). | `lib/core/ui/roles/`, `lib/features/onboarding/` |
 | Navegación | Agregamos la flecha de regreso en la segunda pantalla de bienvenida y en la selección de perfil. Arreglamos que la app abría la selección de perfil como si fuera la primera pantalla; ahora arranca en la bienvenida. Al cerrar sesión volvemos a la primera pantalla y borramos el historial, así que no se puede regresar al Home con el botón atrás. | `lib/app.dart`, `lib/core/routes/`, `lib/features/home/` |
 | Manejo de errores y experiencia de usuario | Los errores de Supabase se traducen a mensajes en español y se muestran al usuario. Los formularios validan antes de enviar, muestran carga y no dejan enviar dos veces. Los botones que todavía no tienen función muestran "Esta función estará disponible próximamente." en vez de quedar sin respuesta. | `lib/features/auth/domain/failures/`, `lib/core/ui/roles/widgets/varios.dart` |
-| Calidad y pruebas | Con la última versión (rama de la HU-17, con `main` integrado), `flutter analyze` no reporta problemas y `flutter test` pasa las 722 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
+| Calidad y pruebas | Con la última versión (rama de la HU-13), `flutter analyze` no reporta problemas y `flutter test` pasa las 806 pruebas (casos de uso, Blocs, pantallas, navegación, inyección de dependencias y paginado). Las pruebas usan repositorios falsos, no dependen de Supabase. | `test/` |
 | Paginado | Base reutilizable: `PageRequest` y `PagedResult` para pedir páginas, `PaginatedBloc<T>` para cargar la siguiente página, detectar el final y reintentar, y `PaginatedListView<T>` como lista con carga al llegar al final. Ya está conectada a las listas con datos de Supabase: las solicitudes pendientes del administrador (HU-24), el catálogo del comercio (HU-10 y HU-11), la búsqueda de productos del cliente (HU-12), en la HU-14 los establecimientos cercanos, la búsqueda de productos del reporte y el historial de reportes, y en la HU-17 la exploración y los favoritos. `PaginatedBloc` acepta un `errorMessageFor` opcional para mostrar el mensaje propio de un error esperado en vez del genérico. | `lib/core/pagination/`, `lib/core/ui/pagination/`, `test/pagination/` |
 
 ## Auditoría del Service Locator (GetIt)
@@ -435,11 +518,11 @@ Revisamos que la app implemente el patrón Service Locator y dónde se aplica. *
 | Contenedor | `lib/core/di/injector.dart` (`final GetIt sl`) | Es el único contenedor. No hay otro. |
 | Registro | `setupDependencies()`, llamada una vez desde `lib/main.dart` | Registra, de adentro hacia afuera: `SupabaseClient` → data sources → repositorios (con el tipo del contrato) → casos de uso → Blocs. Es idempotente: llamarla de nuevo no duplica registros. |
 | Consulta | `lib/app_router.dart` | Es el único lugar que pide dependencias con `sl<...>()`, para dárselas a cada pantalla con `BlocProvider`. Las pantallas y los Blocs no conocen el localizador. |
-| Parámetros | `registerFactoryParam` | Los Blocs que necesitan un dato de la pantalla: `DecisionSolicitudBloc` y `PaginatedBloc<Solicitud>` (HU-24) `ProductoFormBloc` (HU-10, con `null` para crear), `PrecioProductoBloc` (HU-11, con el producto), y `PaginatedBloc<ResultadoBusqueda>` (con el texto del Home) y `DetalleProductoBloc` (con la consulta) de la HU-12. La lista del catálogo se registra como `PaginatedBloc<Producto>` pero es un `CatalogoListaBloc` (agrega búsqueda y filtro). |
+| Parámetros | `registerFactoryParam` | Los Blocs que necesitan un dato de la pantalla: `DecisionSolicitudBloc` y `PaginatedBloc<Solicitud>` (HU-24) `ProductoFormBloc` (HU-10, con `null` para crear), `PrecioProductoBloc` (HU-11, con el producto), y `PaginatedBloc<ResultadoBusqueda>` (con el texto del Home) y `DetalleProductoBloc` (con la consulta) de la HU-12, y `DisponibilidadBloc` (HU-08, con la disponibilidad guardada del repartidor). La lista del catálogo se registra como `PaginatedBloc<Producto>` pero es un `CatalogoListaBloc` (agrega búsqueda y filtro). |
 
 Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySingleton` (sin estado); los Blocs son `registerFactory`, porque guardan estado y cada pantalla debe tener el suyo.
 
-### Evidencia (revisión del 14 de noviembre de 2026, repetida el 15 con la HU-11)
+### Evidencia (revisión del 14 de noviembre de 2026, repetida el 15 con la HU-11 y el 16 con la HU-13)
 
 | Comprobación | Resultado |
 |---|---|
@@ -447,7 +530,7 @@ Ciclo de vida: los data sources, repositorios y casos de uso son `registerLazySi
 | `sl<` o `GetIt` fuera del inyector | Solo `app_router.dart` |
 | Data sources o repositorios construidos fuera del inyector | Ninguno |
 | Imports de `flutter`, `supabase_flutter`, `get_it` o `file_picker` en las carpetas `domain/` | Ninguno |
-| Registros en `injector.dart` | 106 (64 de `main` hasta la HU-12 y 42 de HU-14 y HU-17) |
+| Registros en `injector.dart` | 110 (64 de `main` hasta la HU-12, 42 de HU-14 y HU-17, 3 de la HU-13 y 1 que pasó del router al inyector: `DisponibilidadBloc`) |
 | `test/di/injector_test.dart` | Comprueba los registros (repositorios con el tipo del contrato, Bloc de fábrica, casos de uso únicos), que `setupDependencies` no duplica, y que la cadena completa del catálogo se arma con un cliente de Supabase sin conexión |
 
 Para repetir las comprobaciones:
@@ -457,16 +540,20 @@ grep -rn "Supabase.instance" lib
 grep -rn -E "\bsl<|GetIt\." lib | grep -v "lib/core/di/injector.dart"
 grep -rln -E "package:(flutter|supabase_flutter|get_it|flutter_bloc|file_picker)/" lib/features/*/domain
 flutter test test/di
+# Ningún Bloc, caso de uso, repositorio ni data source se construye fuera del inyector (debe no mostrar nada):
+grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|RepositoryImpl|DataSource)\(" lib --include=*.dart | grep -v "lib/core/di/injector.dart" | grep -v -E ":[0-9]+:\s*//"
 ```
 
 ### Observaciones
 
-- `app_router.dart` arma `DisponibilidadBloc` a mano con `sl<CambiarDisponibilidadUseCase>()` y el valor inicial del perfil, en vez de registrarlo con `registerFactoryParam`. Usa el localizador, pero es la única excepción al patrón. No la cambiamos porque está fuera de la HU-10.
 - En las pruebas armamos los Blocs a mano con repositorios falsos (`TestEnv`) y no con `sl`: es a propósito, para no depender de Supabase.
 - `lib/core/pagination/paginated_bloc.dart` importa `flutter_bloc` porque es un Bloc, no una clase de dominio.
 - **Registro con nombre.** `PaginatedBloc<Producto>` existe dos veces: sin nombre (catálogo, HU-10) y con `InstanciasSl.busquedaProductos` (búsqueda del reporte, HU-14, con `param1` y `param2`). GetIt no admite el mismo tipo dos veces sin nombre. Una prueba de `test/di/` comprueba que conviven.
 - **HU-17: cuatro nombres más.** `PaginatedBloc<ProductoConComercio>` y `PaginatedBloc<ComercioResumen>` se usan dos veces cada uno (exploración y favoritos), así que las cuatro listas llevan nombre (`InstanciasSl.explorarProductos`, `explorarComercios`, `favoritosProductos` y `favoritosComercios`). `CarritoBloc` y `FavoritosBloc` son fábricas, pero el `RolShell` del cliente crea **una sola instancia de cada uno** por sesión y la comparte con todas las pantallas (las rutas la reciben como argumento y el `AppRouter` la entrega con `BlocProvider.value`).
-- Los plugins de la HU-14 (`geolocator`, `image_picker`, `permission_handler`) quedan detrás de los contratos `ServicioUbicacion` y `SelectorFoto`; `mobile_scanner` solo aparece en `EscanerCodigoPage` (presentación).
+- **HU-13.** El reporte de precio incorrecto sigue el mismo camino que las demás historias: `SupabaseReporteIncorrectoDataSource` → `ReporteIncorrectoRepository` (registrado con el tipo del contrato) → `ReportarPrecioIncorrectoUseCase`, y `DetalleProductoBloc` lo recibe por constructor desde `registerFactoryParam`. El cálculo de la confianza (`ConfianzaReglas`) es una función pura de dominio y no necesita registro.
+- **Nombres repetidos entre HU-12 y HU-14.** Al integrar `main` las dos historias tenían `BuscarProductosUseCase` y `ConsultaProducto`. Los de la HU-14 (reporte de precio) pasaron a llamarse `BuscarProductosReporteUseCase` y `ConsultaProductoReporte`; los de la HU-12 no cambiaron.
+- Los plugins de la HU-14 (`geolocator`, `image_picker`, `permission_handler`) quedan detrás de los contratos `ServicioUbicacion` y `SelectorFoto`; `mobile_scanner` solo aparece en las dos pantallas del escáner, `EscanerPage` (HU-12) y `EscanerCodigoPage` (HU-14), porque es un widget de cámara y no lógica de datos.
+- **Sin excepciones al patrón.** Todos los Blocs que usa la app se piden al localizador con `sl<...>()` desde `app_router.dart`; ya no se arma ninguno a mano (el último, `DisponibilidadBloc`, ahora es un `registerFactoryParam` con el valor guardado como `param1`). La comprobación 5 de abajo lo verifica.
 
 ## Decisiones de diseño
 
@@ -481,35 +568,49 @@ flutter test test/di
 ## Limitaciones conocidas y pasos pendientes
 
 - **Continuar con Google** y **¿Olvidaste tu contraseña?** están en el diseño pero no están implementados: muestran un aviso. Google requiere configurar el proveedor y los enlaces de retorno en Supabase.
-- Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes. El Home del comercio todavía muestra ventas y órdenes de ejemplo; el catálogo, en cambio, es real.
+- Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes. Siguen siendo **datos de ejemplo**: las ventas y órdenes del Home del comercio, los pedidos disponibles del repartidor, las "Misiones" del colaborador, las estadísticas del panel del administrador y las tarjetas "Ofertas cerca de ti" del cliente. Lo que sí es real en el Sprint 2: el registro y la aprobación de comercios y repartidores, el catálogo y los precios, la búsqueda y el detalle del precio, el carrito y los favoritos, y los reportes del colaborador.
+- **HU-07, HU-08 y HU-24 (registro y aprobación):**
+  - Un comercio o un repartidor rechazado no puede volver a enviar su registro desde la app.
+  - La decisión del administrador le llega a la persona cuando vuelve a entrar al Home: no hay notificaciones push ni en tiempo real.
+  - El administrador se asigna a mano en la base (ver [Configuración de Supabase](#configuración-de-supabase)); nadie se registra como administrador desde la app.
+  - El repartidor aprobado solo tiene su disponibilidad real; los pedidos que ve son de ejemplo (órdenes: Sprint 3).
+- **HU-06 (modo Colaborador):** se activa desde el Perfil del cliente y se usa volviendo a entrar con el perfil Colaborador y la misma cuenta. Los puntos, el nivel y la reputación se muestran, pero solo empezarán a cambiar cuando se validen los reportes (HU-15 y HU-16, Sprint 3).
 - **HU-10 (catálogo del comercio):**
   - Las categorías son una lista fija (Super, Frutas, Lácteos, Aseo, Café, Panadería); el comercio no crea las suyas.
   - Eliminar un producto es definitivo.
   - El CSV lleva `nombre` y `categoria` (obligatorias) y `marca` y `codigo_barras` (opcionales), con un máximo de 500 filas. El selector de archivos lo probamos a mano con los CSV de `docs/ejemplos/`.
-  - Los clientes todavía no pueden ver los productos: la lectura y la búsqueda llegan con la HU-12.
+  - Los clientes ven los productos solo a través de la búsqueda (HU-12), que usa funciones de la base que devuelven únicamente lo publicado por comercios aprobados; no leen la tabla `producto`.
 - **HU-11 (precios, disponibilidad y promociones):**
   - Una promoción por producto; guardar otra la reemplaza. Para marcar un producto como agotado, primero debe tener precio.
   - Precios en pesos enteros, sin centavos. La gráfica usa los últimos 60 cambios del historial (4 meses).
   - Stock y fotos se agregaron para seguir el diseño del equipo; no los pide la HU-11. "Stock bajo" es 10 unidades o menos. Las fotos (JPG, PNG o WEBP, hasta 5 MB) quedan públicas en el bucket `productos`; las fotos reemplazadas no se borran del bucket.
   - El aviso del diseño ("los cambios serán validados por colaboradores") se cambió por el comportamiento real de la HU-11: el precio del comercio se publica de inmediato con fuente "Comercio".
   - La vigencia de la promoción se compara con la fecha del teléfono.
-  - Los clientes todavía no ven los precios: la lectura llega con la HU-12.
+  - Los clientes ven los precios con la HU-12 (búsqueda) y la HU-13 (detalle con fuente, fecha y confianza); tampoco leen las tablas de precios directamente.
 - **HU-12 (búsqueda):**
   - "El mismo producto" en varias tiendas se reconoce por el código de barras o, si no tiene, por el nombre y la marca exactos.
-  - Solo aparecen productos con precio de comercios aprobados. El nivel de confianza del precio llega con la HU-13.
+  - Solo aparecen productos con precio de comercios aprobados. El nivel de confianza de cada precio lo calcula la HU-13 en el detalle.
   - En el emulador no hay cámara: el escáner ofrece "Escribir el código".
+  - La lupa, el buscador y el botón **Comparar** del Home abren esta misma búsqueda; comparar el carrito completo entre comercios es de la HU-18.
+  - Las tarjetas de resultado muestran el rango de precios; la fuente, la fecha y la confianza se ven en el detalle (HU-13).
+- **HU-13 (detalle del precio):**
+  - Necesita `docs/sql/sprint2_hu13.sql` en Supabase (después de los de HU-12 y HU-17); `pruebas_hu13_politicas.sql` debe dar todas las líneas en `OK`; en nuestro Supabase ya se corrieron los dos y dieron las 18 líneas en `OK`. La primera ejecución reveló que `btrim` no quitaba los saltos de línea de un motivo en blanco; el script ya los quita. El equipo la verificó en Android.
+  - **Las reglas de confianza las fijamos nosotros** (el backlog dice "depende de la fuente y de qué tan reciente es" y deja el límite al equipo): el comercio parte de *alta* y la comunidad de *media* (nunca llega a alta hasta que exista la validación de reportes, HU-15); hasta 3 días no baja; de 4 a 7 días baja un nivel; **más de 7 días** el precio se marca **Desactualizado** y baja dos niveles. Las constantes están en `ConfianzaReglas` (`diasReciente` y `diasLimite`) y la tabla completa en el informe de la HU.
+  - La confianza se calcula en la app con la **fecha del teléfono**; si el reloj está mal puesto, los días se calculan mal (una fecha futura cuenta como "hoy").
+  - Los reportes de precio incorrecto solo **quedan pendientes** (con el precio, la fuente y la fecha que el cliente veía, y un motivo opcional de hasta 300 caracteres). Revisarlos, corregir el precio o sancionar es de la moderación (HU-27, Sprint 3). Un cliente no puede tener dos reportes pendientes del mismo precio.
+  - La fuente `colaborador` de la base se muestra como **Comunidad**, como pide el backlog. Hoy el único que escribe `precio_producto` es el comercio; los precios de la comunidad llegarán cuando se validen los reportes de colaborador (HU-15).
 - **HU-14 (reporte de precio):**
   - Necesita `docs/sql/sprint2_hu14.sql` en Supabase (en nuestro proyecto ya se ejecutó y `pruebas_hu14_politicas.sql` dio las 28 líneas en `OK`, incluidas las del historial `mis_reportes()`). La primera ejecución de la prueba reveló una política antigua, `comercio_update_own`, que dejaba al dueño cambiar su propio estado de aprobación; el script la elimina (sección 8) y quien use otra base debe ejecutarlo también.
-  - El GPS, la cámara, el permiso y el escáner reales **no se han probado en un dispositivo**: las pruebas usan dobles. Se prueba en Android.
+  - El GPS, la cámara, el permiso y el escáner reales los verificó el equipo en Android; las pruebas automáticas usan dobles.
   - Un comercio solo aparece como lugar de reporte si guardó su ubicación (registro o aviso del Home). Los comercios anteriores a esta historia no la tienen.
   - La distancia máxima es de 150 m (constante `ReporteReglas.radioMaximoM` y en la función SQL).
   - El escáner de códigos no funciona en Windows; ahí queda la búsqueda por nombre.
-  - Solo guarda el reporte como pendiente. Validarlo y dar puntos son las HU-15 y HU-16 (Sprint 3).
+  - Solo guarda el reporte como pendiente: no cambia ningún precio. Validarlo y dar puntos son las HU-15 y HU-16 (Sprint 3).
+  - Para elegir qué reportar, los colaboradores leen los productos de comercios aprobados (política `producto_select_colaborador`). Por eso `pruebas_hu10_politicas.sql` y `pruebas_hu11_politicas.sql` quitan el rol colaborador al "otro usuario" dentro de su transacción: prueban a alguien sin ese permiso.
 - **HU-17 (carrito y favoritos):**
-  - Necesita `docs/sql/sprint2_hu17.sql` en Supabase (sin él la app no encuentra el carrito, los favoritos ni la exploración). Después, `pruebas_hu17_politicas.sql` debe dar todas las líneas en `OK`. Con `main` integrado se volvieron a correr `sprint2_hu17.sql` y sus pruebas en nuestro Supabase y dieron todo `OK`; la app se probó en un dispositivo Android y funcionó (carrito, favoritos y exploración).
-  - El carrito y los favoritos se probaron con dobles; falta probarlos en un dispositivo.
+  - Necesita `docs/sql/sprint2_hu17.sql` en Supabase (sin él la app no encuentra el carrito, los favoritos ni la exploración). Después, `pruebas_hu17_politicas.sql` debe dar todas las líneas en `OK`; en nuestro Supabase, con `main` integrado, dieron todo `OK`. El carrito y los favoritos también los verificó el equipo en un dispositivo Android (las pruebas automáticas usan dobles).
   - **El carrito no muestra precios ni totales.** La HU-11 ya guarda los precios, pero la HU-17 no los lee; el total y la comparación son de la HU-18.
-  - **"Explorar" es provisional.** Es la lista mínima desde la que el cliente agrega y marca favoritos (se abre con **Comenzar ahora**). La búsqueda de la HU-12 ya existe y es la que abren la lupa y el buscador del Home, pero sus resultados y su detalle todavía no tienen los botones de carrito y favorito. Cuando el equipo los ponga con `AgregarCarritoBoton` y `FavoritoBoton`, Explorar se puede retirar.
+  - **"Explorar" es provisional.** Es la lista mínima desde la que el cliente agrega y marca favoritos (se abre con **Comenzar ahora**). La búsqueda de la HU-12 ya existe y es la que abren la lupa y el buscador del Home; desde la HU-13 su detalle del producto tiene los botones de carrito y favorito (con `AgregarCarritoBoton` y `FavoritoBoton`), pero sus tarjetas de resultado todavía no. Cuando el equipo decida retirar Explorar, esos dos botones se pueden poner también en las tarjetas.
   - Límites que fijamos nosotros (el backlog no los define): 99 unidades por producto y 100 productos distintos. El carrito se lee completo en una sola consulta; las listas de favoritos y de exploración sí se paginan.
   - Cada línea del carrito es un producto **de un comercio**. Cómo reconocer el mismo producto en varios comercios (para comparar el carrito, HU-18) es una decisión pendiente del equipo.
   - Las tarjetas de "Ofertas cerca de ti" del Home siguen siendo de ejemplo y su botón de agregar todavía avisa "próximamente".

@@ -11,6 +11,7 @@ import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_use
 import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
 import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
 import 'package:smartcart/features/busqueda/presentation/widgets/resultado_card.dart';
+import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
 
 /// Abre el escáner y devuelve el código leído, o `null` si se canceló.
 typedef Escanear = Future<String?> Function(BuildContext context);
@@ -72,8 +73,13 @@ class _BusquedaPageState extends State<BusquedaPage> {
   }
 
   void _abrir(ConsultaProducto consulta) {
-    Navigator.of(context)
-        .pushNamed(AppRoutes.busquedaDetalle, arguments: consulta);
+    // HU-13: si esta pantalla tiene el carrito y los favoritos del cliente,
+    // el detalle los recibe para poder agregar y guardar desde él.
+    final cliente = clienteBlocsOrNull(context);
+    Navigator.of(context).pushNamed(
+      AppRoutes.busquedaDetalle,
+      arguments: cliente == null ? consulta : ConBlocsDelCliente(consulta, cliente),
+    );
   }
 
   Future<void> _escanear() async {

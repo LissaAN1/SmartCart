@@ -18,7 +18,7 @@ Con la concurrencia por defecto, `flutter test` se queda sin memoria en este equ
 
 - Ejecutadas y aprobadas: las 722 pruebas (con `main` integrado; 587 antes del merge) de Dart/Flutter y `flutter analyze`.
 - Ejecutadas y aprobadas en Supabase: `sprint2_hu17.sql` y sus 34 pruebas de políticas, con la versión final del script (informado por el equipo).
-- Probada en un dispositivo Android: funcionó (informado por el equipo; no se guardaron capturas en el repositorio).
+- Probada en un dispositivo Android: funcionó (informado por el equipo).
 
 ## 2. Criterios de aceptación y su verificación
 
@@ -32,7 +32,7 @@ Con la concurrencia por defecto, `flutter test` se queda sin memoria en este equ
 | Se pueden guardar productos **y comercios** | Pestañas Productos y Comercios en la exploración y en favoritos | `explorar_page_test`, `favoritos_page_test` |
 | El carrito muestra la cantidad de productos | `ResumenCarrito` (productos y unidades), resumen de la pantalla (singular y plural), número de la pestaña (cambia al agregar y quitar; agregar el mismo producto no lo cambia) y de la barra de la exploración | `carrito_dominio_test`, `carrito_page_test`, `cliente_integracion_test`, `explorar_page_test` |
 | Agregar desde los resultados | Lista de exploración con buscador, y desde los favoritos | `explorar_page_test`, `favoritos_page_test` |
-| Agregar desde el detalle del producto | **No verificable: el detalle es la HU-13.** El botón `AgregarCarritoBoton` es reutilizable | — |
+| Agregar desde el detalle del producto | Con la HU-13: el detalle recibe el carrito y los favoritos del cliente; agregar guarda en el carrito y avisa, y favorito guarda y avisa | `test/confianza/detalle_confianza_test.dart` |
 | Solo un cliente | Todos los casos de uso fallan sin sesión o sin perfil de cliente | `carrito_dominio_test`, `favoritos_test`, `explorar_test` |
 | Las listas se cargan por páginas | Favoritos y exploración (casos de uso y Bloc) | `favoritos_test`, `explorar_test` |
 | Integración con el Home y el Perfil del cliente | Pestaña "Carrito", "Comenzar ahora" (exploración) y "Mis favoritos"; la lupa, el buscador y "Comparar" abren la búsqueda de la HU-12; sin `crearCliente` todo se comporta como antes | `cliente_integracion_test` |
@@ -90,6 +90,5 @@ El criterio de referencia es la tabla "Informe de criterios de calidad" del `REA
 
 1. **Hecho:** `sprint2_hu17.sql` y `pruebas_hu17_politicas.sql` corridos en Supabase con la versión final (sin la política `producto_select_cliente`, que contradecía a HU-10 y HU-12). Quien despliegue en otra base debe correr los dos, en ese orden, después de los de HU-11, HU-12 y HU-14.
 2. **Hecho:** prueba manual en Android (agregar, cambiar la cantidad, quitar, favoritos, cerrar y volver a abrir). Pasos en el README, sección "Probar el carrito y los favoritos (HU-17)".
-3. Dejar evidencia para la sustentación: capturas del carrito con el número en la pestaña, de los favoritos, y de las tablas `carrito_item` y `favorito_*`.
-4. "Agregar desde el detalle" depende de la HU-13.
-5. Las dos advertencias de `tap()` de `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes y no vienen de este cambio.
+3. "Agregar desde el detalle" lo cubre la HU-13 (ver su informe de pruebas).
+4. Las dos advertencias de `tap()` de `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes y no vienen de este cambio.

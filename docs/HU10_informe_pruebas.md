@@ -13,7 +13,7 @@ Resultados reales de las verificaciones hechas el 14 de noviembre de 2026 sobre 
 | `flutter analyze` (final) | **No issues found** |
 | `flutter test --concurrency=1` (final) | **278 pruebas, todas pasan** (94 nuevas) |
 | `docs/sql/sprint2_hu10.sql` en el SQL Editor de nuestro proyecto de Supabase | Ejecutado por el equipo; creó las tablas (las pruebas de abajo las usan) |
-| `docs/sql/pruebas_hu10_politicas.sql` en el SQL Editor (14 de noviembre de 2026) | **10 pruebas OK, 0 saltadas, 0 fallos** (A1 a A4, B1, C1 a C3, D1 y E1) |
+| `docs/sql/pruebas_hu10_politicas.sql` en el SQL Editor (14 de noviembre de 2026; repetido el 16 con HU-14 y HU-17 aplicadas, con el "otro usuario" sin rol colaborador: 10 `OK`) | **10 pruebas OK, 0 saltadas, 0 fallos** (A1 a A4, B1, C1 a C3, D1 y E1) |
 
 Nota: el equipo tenía menos de 1 GB de memoria libre. Con la concurrencia por defecto, el compilador de `flutter test` se quedó sin memoria; con `--concurrency=1` corre completo. No cambia lo que se prueba.
 
@@ -22,7 +22,7 @@ Nota: el equipo tenía menos de 1 GB de memoria libre. Con la concurrencia por d
 - Ejecutadas y aprobadas: las 278 pruebas de Dart/Flutter.
 - Ejecutadas con fallos que se corrigieron durante el desarrollo: 9 pruebas de pantalla del catálogo fallaron en la primera corrida. Dos fallos reales del código explicaban 7 de ellas (el aviso del comercio pendiente no llegaba a la pantalla, y un `TypeError` al abrir la carga por CSV) y se corrigieron en el código. Las otras 2 eran detalles de las pruebas (texto de ejemplo del campo repetido en pantalla).
 - Ejecutadas por el equipo contra Supabase: el SQL de la HU-10 y el script de pruebas de las políticas (ver sección 2). Yo no tengo acceso a Supabase; los resultados son los que el equipo copió del SQL Editor.
-- Verificada a mano por el equipo: la app corriendo contra la base de Supabase de nuestro proyecto funciona. Fue una prueba manual, sin script ni captura que la acompañe; yo no la ejecuté (el `.env` del repositorio está vacío en este entorno).
+- Verificada a mano por el equipo: la app corriendo contra la base de Supabase de nuestro proyecto funciona. Fue una prueba manual, sin script que la acompañe; yo no la ejecuté (el `.env` del repositorio está vacío en este entorno).
 - La carga por CSV con el selector de archivos real también la probó el equipo a mano, con los dos archivos de `docs/ejemplos/`, y funcionó. No quedó registrado en qué plataforma (Android, Windows o web), y no se probó en todas.
 
 ## 2. Criterios de aceptación y su verificación
@@ -89,6 +89,6 @@ El criterio de calidad de referencia es la tabla "Informe de criterios de calida
 ## 5. Pendientes y limitaciones
 
 1. ~~Ejecutar el SQL y las pruebas de las políticas~~: hecho, 10 pruebas OK (sección 2). Si cambia el SQL, hay que volver a correrlas.
-2. ~~Probar la carga por CSV con el selector real~~: hecho a mano por el equipo. Si se quiere dejar evidencia, anotar en qué plataforma se probó y guardar capturas.
-3. ~~Probar el flujo completo contra Supabase con una cuenta de comercio aprobada~~: hecho a mano por el equipo. Para la sustentación conviene guardar capturas del catálogo y del reporte de la carga por CSV como evidencia.
+2. ~~Probar la carga por CSV con el selector real~~: hecho a mano por el equipo.
+3. ~~Probar el flujo completo contra Supabase con una cuenta de comercio aprobada~~: hecho a mano por el equipo.
 4. Dos advertencias de `tap()` en `test/navigation/hu06_07_08_flows_test.dart` (líneas 263 y 270) existían antes de la HU-10 y no vienen de este cambio.

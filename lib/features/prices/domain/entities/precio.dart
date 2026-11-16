@@ -1,8 +1,10 @@
 /// De dónde viene un precio. En la HU-11 solo escribe el comercio; la HU-13
-/// mostrará la fuente junto a cada precio.
+/// muestra la fuente junto a cada precio. Lo que reporta un colaborador se
+/// guarda como `colaborador`, pero el backlog lo llama "Comunidad" y así se
+/// muestra.
 enum FuentePrecio {
   comercio('comercio', 'Comercio'),
-  colaborador('colaborador', 'Colaborador');
+  colaborador('colaborador', 'Comunidad');
 
   /// Valor guardado en la columna `fuente`.
   final String codigo;

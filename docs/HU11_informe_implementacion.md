@@ -73,6 +73,6 @@ Diferencias con la maqueta: el aviso dice "El nuevo precio se publica de inmedia
 ## 5. Cómo probarla
 
 1. En Supabase → SQL Editor, ejecutar `docs/sql/sprint2_hu11.sql` (después de `sprint2_hu10.sql`). **Sin este script la lista del catálogo falla**, porque ahora pide también el precio de cada producto.
-2. Ejecutar `docs/sql/pruebas_hu11_politicas.sql`: todas las filas deben decir "OK".
+2. Ejecutar `docs/sql/pruebas_hu11_politicas.sql`: todas las filas deben decir "OK". Con la HU-14, los colaboradores leen los productos de comercios aprobados (`producto_select_colaborador`); el script quita el rol colaborador al "otro usuario" dentro de la transacción (el `ROLLBACK` lo devuelve) para probar a alguien sin ese permiso. (Con HU-14 y HU-17 aplicadas dio las 16 líneas en `OK` el 16 de noviembre de 2026.)
 3. En la app, entrar con un comercio aprobado → **Catálogo** → tocar un producto. En **Editar Producto** cambiar el precio, el stock y la foto y tocar **Guardar Cambios**; marcarlo agotado con el interruptor y guardar; crear y quitar una promoción. Si aparece "La base de datos no está actualizada", falta ejecutar la versión más reciente de `sprint2_hu11.sql`.
 4. `flutter analyze` sin problemas y `flutter test` con 373 pruebas en verde.

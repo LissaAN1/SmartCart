@@ -14,7 +14,6 @@ import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/profile.dart';
-import 'package:smartcart/features/auth/domain/usecases/cambiar_disponibilidad_usecase.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
@@ -96,9 +95,8 @@ abstract final class AppRouter {
             // La disponibilidad del repartidor es real: arranca con lo guardado.
             if (args.role == UserRole.repartidor)
               BlocProvider(
-                create: (_) => DisponibilidadBloc(
-                  cambiar: sl<CambiarDisponibilidadUseCase>(),
-                  inicial: args.profile.courierAvailable,
+                create: (_) => sl<DisponibilidadBloc>(
+                  param1: args.profile.courierAvailable,
                 ),
               ),
             if (args.role == UserRole.comercio)
@@ -237,20 +235,31 @@ abstract final class AppRouter {
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),
         ),
-      // HU-12: búsqueda del cliente, detalle del producto y escáner.
+      // HU-12: búsqueda del cliente, detalle del producto y escáner. Desde el
+      // Home del cliente llegan con su carrito y sus favoritos (HU-13), para
+      // poder agregar y guardar desde el detalle; sin ellos funcionan igual.
       AppRoutes.busqueda => () {
-          final texto = args is String ? args : '';
-          return BlocProvider(
+          final (propio, blocs) = desempacarArgumentos(args);
+          final texto = propio is String ? propio : '';
+          final pagina = BlocProvider(
             create: (_) => sl<PaginatedBloc<ResultadoBusqueda>>(param1: texto)
               ..add(PaginatedStarted()),
             child: BusquedaPage(textoInicial: texto),
           );
+          return blocs == null ? pagina : _conBlocsDelCliente(blocs, pagina);
         }(),
-      AppRoutes.busquedaDetalle when args is ConsultaProducto => BlocProvider(
-          create: (_) => sl<DetalleProductoBloc>(param1: args)
-            ..add(DetalleProductoStarted()),
-          child: const DetalleProductoPage(),
-        ),
+      AppRoutes.busquedaDetalle
+          when desempacarArgumentos(args).$1 is ConsultaProducto =>
+        () {
+          final (propio, blocs) = desempacarArgumentos(args);
+          final pagina = BlocProvider(
+            create: (_) => sl<DetalleProductoBloc>(
+                param1: propio as ConsultaProducto)
+              ..add(DetalleProductoStarted()),
+            child: const DetalleProductoPage(),
+          );
+          return blocs == null ? pagina : _conBlocsDelCliente(blocs, pagina);
+        }(),
       AppRoutes.escaner => const EscanerPage(),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.
