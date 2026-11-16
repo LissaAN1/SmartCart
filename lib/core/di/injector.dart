@@ -42,6 +42,15 @@ import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado
 import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
+import 'package:smartcart/features/prices/data/repository/precios_repository_impl.dart';
+import 'package:smartcart/features/prices/data/source/supabase_precios_data_source.dart';
+import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/data/repository/comercio_repository_impl.dart';
 import 'package:smartcart/features/comercio/data/source/supabase_comercio_data_source.dart';
@@ -92,6 +101,9 @@ void setupDependencies() {
   // HU-10: se registra con el tipo del contrato; solo esta línea conoce
   // `file_picker`.
   sl.registerLazySingleton<SelectorArchivoCsv>(() => FilePickerSelectorCsv());
+  sl.registerLazySingleton<SupabasePreciosDataSource>(
+    () => SupabasePreciosDataSource(client: sl()),
+  );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -111,6 +123,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<CatalogoRepository>(
     () => CatalogoRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<PreciosRepository>(
+    () => PreciosRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -168,6 +183,25 @@ void setupDependencies() {
     () => CargarProductosCsvUseCase(comercioAprobado: sl(), catalogo: sl()),
   );
 
+  // HU-11: precios, disponibilidad y promociones. También parten del
+  // comercio aprobado.
+  sl.registerLazySingleton(
+    () => GetFichaPrecioUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ActualizarPrecioUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => CambiarDisponibilidadProductoUseCase(
+        comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GuardarPromocionUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+  sl.registerLazySingleton(
+    () => QuitarPromocionUseCase(comercioAprobado: sl(), precios: sl()),
+  );
+
   // ── Blocs: uno nuevo por pantalla (factory), porque guardan estado ──
   sl.registerFactory(() => LoginBloc(signIn: sl()));
   sl.registerFactory(() => RegisterBloc(signUp: sl()));
@@ -199,6 +233,19 @@ void setupDependencies() {
       crear: sl(),
       editar: sl(),
       eliminar: sl(),
+    ),
+  );
+
+  // HU-11: la edición rápida recibe el producto:
+  // `sl<PrecioProductoBloc>(param1: producto)`.
+  sl.registerFactoryParam<PrecioProductoBloc, Producto, void>(
+    (producto, _) => PrecioProductoBloc(
+      producto: producto,
+      ficha: sl(),
+      actualizar: sl(),
+      disponibilidad: sl(),
+      guardarPromocion: sl(),
+      quitarPromocion: sl(),
     ),
   );
 

@@ -23,6 +23,12 @@ class Producto {
   final String idCategoria;
   final String categoria;
 
+  /// HU-11: precio actual en pesos, o `null` si todavía no tiene.
+  final int? precio;
+
+  /// HU-11: `false` si el comercio lo marcó como agotado.
+  final bool disponible;
+
   const Producto({
     required this.id,
     required this.nombre,
@@ -30,5 +36,7 @@ class Producto {
     required this.categoria,
     this.marca,
     this.codigoBarras,
+    this.precio,
+    this.disponible = true,
   });
 }

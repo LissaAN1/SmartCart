@@ -25,6 +25,11 @@ class CatalogoPage extends StatelessWidget {
     return _abrir(context, AppRoutes.catalogoCsv, null);
   }
 
+  /// HU-11: edición rápida de precio, disponibilidad y promoción.
+  Future<void> _abrirPrecio(BuildContext context, Producto producto) {
+    return _abrir(context, AppRoutes.catalogoPrecio, producto);
+  }
+
   Future<void> _abrir(
     BuildContext context,
     String ruta,
@@ -35,9 +40,11 @@ class CatalogoPage extends StatelessWidget {
     // nada), por eso el resultado se pide como `Object?`.
     final cambio = await Navigator.of(context)
         .pushNamed<Object?>(ruta, arguments: argumentos);
-    // Del CSV se puede volver con el gesto "atrás" sin devolver nada, así
-    // que ahí siempre recargamos.
-    if (cambio == true || ruta == AppRoutes.catalogoCsv) {
+    // Del CSV y de los precios se puede volver con el gesto "atrás" sin
+    // devolver nada, así que ahí siempre recargamos.
+    if (cambio == true ||
+        ruta == AppRoutes.catalogoCsv ||
+        ruta == AppRoutes.catalogoPrecio) {
       bloc.add(PaginatedStarted());
     }
   }
@@ -73,6 +80,7 @@ class CatalogoPage extends StatelessWidget {
         itemBuilder: (context, producto) => ProductoCard(
           producto: producto,
           onTap: () => _abrirFormulario(context, producto),
+          onPrecio: () => _abrirPrecio(context, producto),
         ),
       ),
     );

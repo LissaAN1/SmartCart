@@ -20,6 +20,8 @@ import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_csv_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
 import 'package:smartcart/features/catalog/presentation/pages/producto_form_page.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
+import 'package:smartcart/features/prices/presentation/pages/precio_producto_page.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_onboarding_page.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -109,6 +111,11 @@ abstract final class AppRouter {
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),
           child: const CatalogoCsvPage(),
+        ),
+      AppRoutes.catalogoPrecio when args is Producto => BlocProvider(
+          create: (_) => sl<PrecioProductoBloc>(param1: args)
+            ..add(PrecioProductoStarted()),
+          child: const PrecioProductoPage(),
         ),
       // La selección de perfil también es el destino por defecto: una ruta
       // desconocida o sin los argumentos que necesita no debe romper la app.

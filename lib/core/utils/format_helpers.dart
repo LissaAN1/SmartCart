@@ -6,17 +6,22 @@ const _meses = [
 /// "nov 2026": mes y año en que la persona se registró.
 String mesYAnio(DateTime fecha) => '${_meses[fecha.month - 1]} ${fecha.year}';
 
-/// HU-11: "$ 2.500". Pesos colombianos enteros, con punto de miles como se
-/// escriben en Colombia. Los negativos llevan el signo antes del símbolo.
-String formatoCop(int pesos) {
-  final digitos = pesos.abs().toString();
+/// HU-11: "2.500". El valor absoluto con punto de miles, como se escribe en
+/// Colombia; sirve para llenar un campo de precio.
+String formatoMiles(int valor) {
+  final digitos = valor.abs().toString();
   final grupos = StringBuffer();
   for (var i = 0; i < digitos.length; i++) {
     if (i > 0 && (digitos.length - i) % 3 == 0) grupos.write('.');
     grupos.write(digitos[i]);
   }
-  return '${pesos < 0 ? '-' : ''}\$ $grupos';
+  return grupos.toString();
 }
+
+/// HU-11: "$ 2.500". Pesos colombianos enteros. Los negativos llevan el
+/// signo antes del símbolo.
+String formatoCop(int pesos) =>
+    '${pesos < 0 ? '-' : ''}\$ ${formatoMiles(pesos)}';
 
 /// HU-11: "15 nov 2026".
 String fechaCorta(DateTime fecha) =>

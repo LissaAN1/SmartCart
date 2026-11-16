@@ -1,5 +1,6 @@
 import 'package:smartcart/core/constants/supabase_tables.dart';
 import 'package:smartcart/core/pagination/paged_result.dart';
+import 'package:smartcart/core/utils/json_helpers.dart';
 import 'package:smartcart/features/auth/data/source/supabase_error_mapper.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
@@ -11,10 +12,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// comercio (políticas RLS de docs/sql/sprint2_hu10.sql); aquí además se
 /// filtra siempre por el id del comercio.
 class SupabaseCatalogoDataSource {
-  /// Trae la categoría junto con el producto en una sola consulta.
+  /// Trae la categoría y el precio actual (HU-11) junto con el producto en
+  /// una sola consulta.
   static const _seleccion =
       '*, ${SupabaseTables.categoria}(${SupabaseColumns.categoriaId}, '
-      '${SupabaseColumns.categoriaNombre})';
+      '${SupabaseColumns.categoriaNombre}), '
+      '${SupabaseTables.precioProducto}(${SupabaseColumns.precioValor}, '
+      '${SupabaseColumns.precioDisponible})';
 
   /// Tamaño de cada lote al enviar varios productos o consultar varios
   /// códigos: evita pedidos demasiado grandes.
@@ -165,6 +169,12 @@ class SupabaseCatalogoDataSource {
 
   Producto _toProducto(Map<String, dynamic> row) {
     final categoria = row[SupabaseTables.categoria];
+    // precio_producto es 1 a 1 con producto: llega como objeto, o como
+    // lista según cómo PostgREST lea la relación.
+    final embebido = row[SupabaseTables.precioProducto];
+    final precio = embebido is List
+        ? (embebido.isEmpty ? null : embebido.first)
+        : embebido;
     return Producto(
       id: row[SupabaseColumns.productoId].toString(),
       nombre: row[SupabaseColumns.productoNombre] as String? ?? '',
@@ -174,6 +184,10 @@ class SupabaseCatalogoDataSource {
       categoria: categoria is Map
           ? categoria[SupabaseColumns.categoriaNombre] as String? ?? ''
           : '',
+      precio: precio is Map ? parseInt(precio[SupabaseColumns.precioValor]) : null,
+      disponible: precio is Map
+          ? parseBool(precio[SupabaseColumns.precioDisponible])
+          : true,
     );
   }
 }

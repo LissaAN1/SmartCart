@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
+import 'package:smartcart/core/utils/format_helpers.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 
-/// Una fila de la lista del catálogo del comercio (HU-10).
+/// Una fila de la lista del catálogo del comercio (HU-10). Con la HU-11
+/// muestra el precio y si está agotado, y [onPrecio] abre la edición rápida.
 class ProductoCard extends StatelessWidget {
   final Producto producto;
   final VoidCallback? onTap;
+  final VoidCallback? onPrecio;
 
-  const ProductoCard({super.key, required this.producto, this.onTap});
+  const ProductoCard({
+    super.key,
+    required this.producto,
+    this.onTap,
+    this.onPrecio,
+  });
 
   String get _detalle {
     final marca = producto.marca;
@@ -63,13 +71,55 @@ class ProductoCard extends StatelessWidget {
                       style: TextStyle(fontSize: 12, color: t.textoGris),
                     ),
                   ],
+                  const SizedBox(height: 6),
+                  _ResumenPrecio(producto: producto),
                 ],
               ),
             ),
+            if (onPrecio != null)
+              IconButton(
+                tooltip: 'Precio y disponibilidad',
+                onPressed: onPrecio,
+                icon: Icon(Icons.price_change_outlined, color: t.primarioOscuro),
+              ),
             Icon(Icons.edit_outlined, size: 20, color: t.textoGris),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "$ 2.500", "$ 2.500 · Agotado" o "Sin precio".
+class _ResumenPrecio extends StatelessWidget {
+  final Producto producto;
+
+  const _ResumenPrecio({required this.producto});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    final precio = producto.precio;
+    if (precio == null) {
+      return Text(
+        'Sin precio',
+        style: TextStyle(fontSize: 12.5, color: t.textoGris),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          formatoCop(precio),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: t.primarioOscuro,
+          ),
+        ),
+        if (!producto.disponible) const EtiquetaEstado.error('Agotado'),
+      ],
     );
   }
 }
