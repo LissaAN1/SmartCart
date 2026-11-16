@@ -554,6 +554,17 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
 - **Datos de ejemplo**: el nombre, el correo y el teléfono que se ven en el Perfil son los de la sesión. Quitamos la ciudad "Bogotá" y las etiquetas "Premium / Nivel Plata / aprobado" porque no existen en la base de datos. El resto de tarjetas (ofertas, misiones, estadísticas) sigue siendo contenido de ejemplo de la maqueta.
 - **Imágenes**: ilustraciones propias en `assets/images/` (avatar de muestra por perfil, logo, imagen de la segunda bienvenida y banner del registro); si no cargan, se muestran las iniciales.
 
+### Observaciones
+
+- En las pruebas armamos los Blocs a mano con repositorios falsos (`TestEnv`) y no con `sl`: es a propósito, para no depender de Supabase.
+- `lib/core/pagination/paginated_bloc.dart` importa `flutter_bloc` porque es un Bloc, no una clase de dominio.
+- **Registro con nombre.** `PaginatedBloc<Producto>` existe dos veces: sin nombre (catálogo, HU-10) y con `InstanciasSl.busquedaProductos` (búsqueda del reporte, HU-14, con `param1` y `param2`). GetIt no admite el mismo tipo dos veces sin nombre. Una prueba de `test/di/` comprueba que conviven.
+- **HU-17: cuatro nombres más.** `PaginatedBloc<ProductoConComercio>` y `PaginatedBloc<ComercioResumen>` se usan dos veces cada uno (exploración y favoritos), así que las cuatro listas llevan nombre (`InstanciasSl.explorarProductos`, `explorarComercios`, `favoritosProductos` y `favoritosComercios`). `CarritoBloc` y `FavoritosBloc` son fábricas, pero el `RolShell` del cliente crea **una sola instancia de cada uno** por sesión y la comparte con todas las pantallas (las rutas la reciben como argumento y el `AppRouter` la entrega con `BlocProvider.value`).
+- **HU-13.** El reporte de precio incorrecto sigue el mismo camino que las demás historias: `SupabaseReporteIncorrectoDataSource` → `ReporteIncorrectoRepository` (registrado con el tipo del contrato) → `ReportarPrecioIncorrectoUseCase`, y `DetalleProductoBloc` lo recibe por constructor desde `registerFactoryParam`. El cálculo de la confianza (`ConfianzaReglas`) es una función pura de dominio y no necesita registro.
+- **Nombres repetidos entre HU-12 y HU-14.** Al integrar `main` las dos historias tenían `BuscarProductosUseCase` y `ConsultaProducto`. Los de la HU-14 (reporte de precio) pasaron a llamarse `BuscarProductosReporteUseCase` y `ConsultaProductoReporte`; los de la HU-12 no cambiaron.
+- Los plugins de la HU-14 (`geolocator`, `image_picker`, `permission_handler`) quedan detrás de los contratos `ServicioUbicacion` y `SelectorFoto`; `mobile_scanner` solo aparece en las dos pantallas del escáner, `EscanerPage` (HU-12) y `EscanerCodigoPage` (HU-14), porque es un widget de cámara y no lógica de datos.
+- **Sin excepciones al patrón.** Todos los Blocs que usa la app se piden al localizador con `sl<...>()` desde `app_router.dart`; ya no se arma ninguno a mano (el último, `DisponibilidadBloc`, ahora es un `registerFactoryParam` con el valor guardado como `param1`). La comprobación 5 de abajo lo verifica.
+
 ## Limitaciones conocidas y pasos pendientes
 
 - **Continuar con Google** y **¿Olvidaste tu contraseña?** están en el diseño pero no están implementados: muestran un aviso. Google requiere configurar el proveedor y los enlaces de retorno en Supabase.
