@@ -49,6 +49,9 @@ class _CatalogoPageState extends State<CatalogoPage> {
       FiltroCatalogo(texto: _buscador.text, idCategoria: _idCategoria);
 
   void _aplicarFiltro() {
+    if (!mounted) return;
+    // Redibuja para que el mensaje de lista vacía corresponda al filtro.
+    setState(() {});
     context.read<PaginatedBloc<Producto>>().add(FiltroCatalogoCambiado(_filtro));
   }
 
@@ -59,7 +62,7 @@ class _CatalogoPageState extends State<CatalogoPage> {
 
   void _alElegirCategoria(String? idCategoria) {
     if (idCategoria == _idCategoria) return;
-    setState(() => _idCategoria = idCategoria);
+    _idCategoria = idCategoria;
     _aplicarFiltro();
   }
 

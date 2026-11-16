@@ -29,6 +29,11 @@ import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_useca
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_producto_usecase.dart';
+import 'package:smartcart/features/catalog/data/source/file_picker_selector_imagen.dart';
+import 'package:smartcart/features/catalog/domain/repository/selector_imagen.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
+import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -140,6 +145,9 @@ void main() {
     expect(sl.isRegistered<GuardarPromocionUseCase>(), isTrue);
     expect(sl.isRegistered<QuitarPromocionUseCase>(), isTrue);
     expect(sl.isRegistered<PrecioProductoBloc>(), isTrue);
+    expect(sl.isRegistered<GuardarProductoUseCase>(), isTrue);
+    expect(sl.isRegistered<SelectorImagen>(), isTrue);
+    expect(sl.isRegistered<InventarioBloc>(), isTrue);
   });
 
   test('HU-11: el Bloc de precios recibe el producto y usa el repositorio real',
@@ -161,6 +169,11 @@ void main() {
     expect(bloc.producto, producto);
     expect(identical(bloc, sl<PrecioProductoBloc>(param1: producto)), isFalse);
     expect(sl<PreciosRepository>(), isA<PreciosRepositoryImpl>());
+    expect(sl<SelectorImagen>(), isA<FilePickerSelectorImagen>());
+    // La lista del catálogo agrega búsqueda y filtro por categoría.
+    expect(sl<PaginatedBloc<Producto>>(), isA<CatalogoListaBloc>());
+    expect(sl<InventarioBloc>(), isNot(same(sl<InventarioBloc>())));
+    expect(sl<GuardarProductoUseCase>(), same(sl<GuardarProductoUseCase>()));
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {
