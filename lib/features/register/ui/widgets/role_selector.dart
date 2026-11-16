@@ -72,7 +72,7 @@ class _RoleCard extends StatelessWidget {
       label: perfil.nombre,
       child: ExcludeSemantics(
         child: Material(
-          color: selected ? t.suave : const Color(0xFFF6F7F9),
+          color: selected ? t.suave : ColoresUi.campo,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),

@@ -118,7 +118,7 @@ class SupabaseProfileDataSource {
     try {
       // La función verifica en la base de datos que el repartidor esté
       // aprobado (docs/sql/perfiles_reales.sql).
-      await _client.rpc('cambiar_disponibilidad', params: {
+      await _client.rpc(SupabaseFunctions.cambiarDisponibilidad, params: {
         'p_disponible': available,
       });
     } on PostgrestException catch (e) {

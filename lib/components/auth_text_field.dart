@@ -92,7 +92,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
             hintText: widget.hint,
             hintStyle: TextStyle(color: t.textoGris.withValues(alpha: 0.8)),
             filled: true,
-            fillColor: const Color(0xFFF6F7F9),
+            fillColor: ColoresUi.campo,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             prefixIcon: Icon(widget.icon, color: t.texto, size: 22),
