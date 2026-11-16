@@ -11,6 +11,9 @@ class SupabaseTables {
   static const notificacion = 'notificacion';
   static const producto = 'producto';
   static const categoria = 'categoria';
+  static const precioProducto = 'precio_producto';
+  static const historialPrecio = 'historial_precio';
+  static const promocion = 'promocion';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
@@ -92,4 +95,27 @@ class SupabaseColumns {
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
   static const categoriaNombre = 'nombre';
+
+  // precio_producto (HU-11). Ver docs/sql/sprint2_hu11.sql
+  static const precioProducto = 'id_producto';
+  static const precioValor = 'precio';
+  static const precioDisponible = 'disponible';
+  static const precioFuente = 'fuente';
+  static const precioActualizadoEn = 'actualizado_en';
+
+  // historial_precio (HU-11): lo escribe un trigger, la app solo lo lee
+  static const historialId = 'id_historial';
+  static const historialProducto = 'id_producto';
+  static const historialPrecio = 'precio';
+  static const historialDisponible = 'disponible';
+  static const historialFuente = 'fuente';
+  static const historialRegistradoEn = 'registrado_en';
+
+  // promocion (HU-11): una por producto
+  static const promocionId = 'id_promocion';
+  static const promocionProducto = 'id_producto';
+  static const promocionPrecio = 'precio_promocional';
+  static const promocionInicio = 'fecha_inicio';
+  static const promocionFin = 'fecha_fin';
+  static const promocionActualizadoEn = 'actualizado_en';
 }
