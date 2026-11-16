@@ -42,6 +42,14 @@ import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
+import 'package:smartcart/features/prices/domain/entities/precio.dart';
+import 'package:smartcart/features/prices/domain/entities/promocion.dart';
+import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/domain/usecases/get_mi_comercio_usecase.dart';
@@ -478,6 +486,110 @@ class FakeSelectorArchivoCsv implements SelectorArchivoCsv {
   }
 }
 
+/// Precios, promociones e historial en memoria (HU-11). Imita a la base:
+/// fija la fecha y la fuente "comercio" y escribe el historial solo cuando
+/// cambia el precio o la disponibilidad.
+class FakePreciosRepository implements PreciosRepository {
+  final precios = <String, PrecioProducto>{};
+  final promociones = <String, Promocion>{};
+  final historiales = <String, List<RegistroPrecio>>{};
+  final guardados = <({String idProducto, PrecioDatos datos})>[];
+  Object? leerError;
+  Object? guardarError;
+  Object? promocionError;
+  DateTime fecha = DateTime(2026, 11, 15, 14, 5);
+  int quitarCalls = 0;
+
+  /// Deja un precio guardado sin pasar por los casos de uso.
+  void precargar(String idProducto, int precio, {bool disponible = true}) {
+    precios[idProducto] = PrecioProducto(
+      idProducto: idProducto,
+      precio: precio,
+      disponible: disponible,
+      fuente: FuentePrecio.comercio,
+      actualizadoEn: fecha,
+    );
+  }
+
+  @override
+  Future<PrecioProducto?> precio(String idProducto) async {
+    final error = leerError;
+    if (error != null) throw error;
+    return precios[idProducto];
+  }
+
+  @override
+  Future<Promocion?> promocion(String idProducto) async {
+    final error = leerError;
+    if (error != null) throw error;
+    return promociones[idProducto];
+  }
+
+  @override
+  Future<List<RegistroPrecio>> historial(
+    String idProducto, {
+    int limite = 10,
+  }) async {
+    final error = leerError;
+    if (error != null) throw error;
+    final lista = historiales[idProducto] ?? const [];
+    return lista.reversed.take(limite).toList();
+  }
+
+  @override
+  Future<PrecioProducto> guardarPrecio(
+    String idProducto,
+    PrecioDatos datos,
+  ) async {
+    final error = guardarError;
+    if (error != null) throw error;
+    guardados.add((idProducto: idProducto, datos: datos));
+    final anterior = precios[idProducto];
+    final guardado = PrecioProducto(
+      idProducto: idProducto,
+      precio: datos.precio,
+      disponible: datos.disponible,
+      fuente: FuentePrecio.comercio,
+      actualizadoEn: fecha,
+    );
+    precios[idProducto] = guardado;
+    if (anterior == null ||
+        anterior.precio != datos.precio ||
+        anterior.disponible != datos.disponible) {
+      historiales.putIfAbsent(idProducto, () => []).add(RegistroPrecio(
+            precio: datos.precio,
+            disponible: datos.disponible,
+            fuente: FuentePrecio.comercio,
+            registradoEn: fecha,
+          ));
+    }
+    return guardado;
+  }
+
+  @override
+  Future<Promocion> guardarPromocion(
+    String idProducto,
+    PromocionDatos datos,
+  ) async {
+    final error = promocionError;
+    if (error != null) throw error;
+    return promociones[idProducto] = Promocion(
+      idProducto: idProducto,
+      precioPromocional: datos.precioPromocional,
+      inicio: datos.inicio,
+      fin: datos.fin,
+    );
+  }
+
+  @override
+  Future<void> quitarPromocion(String idProducto) async {
+    final error = promocionError;
+    if (error != null) throw error;
+    quitarCalls++;
+    promociones.remove(idProducto);
+  }
+}
+
 /// Agrupa los dobles y construye los Blocs con ellos.
 class TestEnv {
   final auth = FakeAuthRepository();
@@ -487,6 +599,10 @@ class TestEnv {
   final notificaciones = FakeNotificacionRepository();
   final catalogo = FakeCatalogoRepository();
   final selectorCsv = FakeSelectorArchivoCsv();
+  final precios = FakePreciosRepository();
+
+  /// "Hoy" para las promociones (HU-11): 15 de noviembre de 2026.
+  DateTime ahora = DateTime(2026, 11, 15, 10);
 
   DecidirSolicitudUseCase get decidirSolicitud => DecidirSolicitudUseCase(
       auth: auth, profiles: profiles, solicitudes: solicitudes);
@@ -539,6 +655,21 @@ class TestEnv {
       ElegirArchivoCsvUseCase(selector: selectorCsv);
   CargarProductosCsvUseCase get cargarProductosCsv => CargarProductosCsvUseCase(
       comercioAprobado: comercioAprobado, catalogo: catalogo);
+
+  // HU-11: precios, disponibilidad y promociones.
+  GetFichaPrecioUseCase get getFichaPrecio =>
+      GetFichaPrecioUseCase(comercioAprobado: comercioAprobado, precios: precios);
+  ActualizarPrecioUseCase get actualizarPrecio => ActualizarPrecioUseCase(
+      comercioAprobado: comercioAprobado, precios: precios);
+  CambiarDisponibilidadProductoUseCase get cambiarDisponibilidadProducto =>
+      CambiarDisponibilidadProductoUseCase(
+          comercioAprobado: comercioAprobado, precios: precios);
+  GuardarPromocionUseCase get guardarPromocion => GuardarPromocionUseCase(
+      comercioAprobado: comercioAprobado,
+      precios: precios,
+      ahora: () => ahora);
+  QuitarPromocionUseCase get quitarPromocion => QuitarPromocionUseCase(
+      comercioAprobado: comercioAprobado, precios: precios);
 
   /// Deja la sesión iniciada como dueño de un comercio con el [estado] dado
   /// (el comercio de prueba tiene el id `c1`).

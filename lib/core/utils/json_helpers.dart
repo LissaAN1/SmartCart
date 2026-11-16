@@ -21,3 +21,19 @@ int? parseInt(dynamic v) {
   if (v == null) return null;
   return v is num ? v.toInt() : int.parse(v.toString());
 }
+
+/// HU-11: una fecha sin hora como la guarda Postgres en una columna `date`
+/// ("2026-11-15").
+String toSqlDate(DateTime fecha) {
+  String dos(int n) => n.toString().padLeft(2, '0');
+  return '${fecha.year.toString().padLeft(4, '0')}-${dos(fecha.month)}-'
+      '${dos(fecha.day)}';
+}
+
+/// HU-11: lee una columna `date` ("2026-11-15") como medianoche local, sin
+/// que la zona horaria la mueva al día anterior.
+DateTime? parseSqlDate(dynamic v) {
+  if (v == null) return null;
+  final fecha = DateTime.parse(v.toString());
+  return DateTime(fecha.year, fecha.month, fecha.day);
+}
