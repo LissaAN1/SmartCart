@@ -17,7 +17,8 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU-08 | Registro de repartidor | Implementada (pantalla de estado hasta que lo aprueben) |
 | HU-24 | Aprobación de comercios y repartidores | Implementada. Ver [docs/CAMBIOS_SPRINT2_HU24.md](docs/CAMBIOS_SPRINT2_HU24.md) |
 | **HU-10** | **Gestión del catálogo del comercio** | **Implementada y verificada. Probada con repositorios falsos (278 pruebas), con sus políticas RLS en Supabase (10 pruebas OK) y con la app corriendo contra esa base (prueba manual del equipo).** Ver [docs/HU10_informe_implementacion.md](docs/HU10_informe_implementacion.md) y [docs/HU10_informe_pruebas.md](docs/HU10_informe_pruebas.md) |
-| HU-11, HU-12, HU-13, HU-14, HU-17 | Precios, búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
+| **HU-11** | **Precios, disponibilidad y promociones** | **Implementada (rama `feat/hu11-precios`). Probada con repositorios falsos (344 pruebas en total). Falta ejecutar sus pruebas de políticas en Supabase.** Ver [docs/HU11_informe_implementacion.md](docs/HU11_informe_implementacion.md) |
+| HU-12, HU-13, HU-14, HU-17 | Búsqueda, detalle del precio, reporte del colaborador, carrito y favoritos | **Todavía no implementadas** |
 
 ## ¿Qué es SmartCart?
 
@@ -109,6 +110,12 @@ Para probar el perfil **Colaborador** hay que crear la cuenta desde el registro 
 | `productos_con_errores.csv` | 11 filas con filas válidas y con errores (nombre corto, categoría inexistente, código inválido, código repetido, sin nombre, sin categoría, marca muy larga) | Cargado solo: 4 productos y 7 filas fallidas (3, 4, 5, 6, 8, 9 y 11). Cargado después del anterior: 3 productos y 8 filas fallidas, porque la fila 2 ya existe |
 
 Para repetir la prueba desde cero hay que eliminar antes los productos cargados: un código de barras no se repite dentro del mismo comercio. El formato del CSV es `nombre;marca;codigo_barras;categoria` (`nombre` y `categoria` obligatorias; coma o punto y coma; máximo 500 filas). La prueba automática `test/catalog/csv_ejemplos_test.dart` comprueba que estos dos archivos den esos resultados.
+
+### Probar precios, disponibilidad y promociones (HU-11)
+
+1. Ejecutamos `docs/sql/sprint2_hu11.sql` en Supabase (pasos 5 y 6 de la tabla de scripts).
+2. Con un **Comercio aprobado**, en **Mi catálogo** cada producto muestra su precio, "Agotado" o "Sin precio". El ícono de precio abre la edición rápida.
+3. Ahí guardamos el precio (se ve la fecha, la hora y la fuente "Comercio"), marcamos el producto como agotado y creamos una promoción con su precio y fechas. Si la promoción ya terminó, se muestra el precio normal. Abajo aparecen los últimos cambios del historial.
 
 ## Tecnologías
 
@@ -218,8 +225,10 @@ order by u.correo;
 | 2 | `sprint2_hu24.sql` | `es_administrador()`, `notificacion` y `decidir_solicitud()` |
 | 3 | `sprint2_hu10.sql` | `categoria` (con seis categorías), `producto`, `es_comercio_aprobado_propio()` y las políticas de producto |
 | 4 | `pruebas_hu10_politicas.sql` | Prueba de las políticas de producto (termina en `ROLLBACK`) |
+| 5 | `sprint2_hu11.sql` | `precio_producto`, `historial_precio` y `promocion`, sus triggers, `es_producto_propio()` y sus políticas |
+| 6 | `pruebas_hu11_politicas.sql` | Prueba de las políticas y los triggers de precios (termina en `ROLLBACK`) |
 
-Sin el paso 3 la app no encuentra las tablas del catálogo. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
+Sin el paso 3 la app no encuentra las tablas del catálogo, y sin el paso 5 la lista del catálogo falla porque también pide el precio de cada producto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
 ## Instalación de dependencias
 
@@ -273,6 +282,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/pagination/` | La base de paginado: primera página, siguiente página, fin de la lista, errores y mensajes propios de error |
 | `test/aprobaciones/`, `test/notificaciones/`, `test/comercio/`, `test/colaborador/` | HU-06, HU-07, HU-08 y HU-24 (registro, estado y aprobación) |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
+| `test/prices/` | HU-11: formato COP y de fechas, validaciones, vigencia de promociones, casos de uso, Bloc y pantalla de edición rápida |
 
 ## Estructura
 
