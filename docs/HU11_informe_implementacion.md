@@ -40,7 +40,7 @@ Escenarios: 1 (actualizar un precio con fecha, hora y fuente), 2 (marcar agotado
 |---|---|
 | `docs/sql/sprint2_hu11.sql` | Tablas `precio_producto`, `historial_precio` y `promocion` con sus `check`, triggers de fecha e historial, función `es_producto_propio()` y políticas RLS. Idempotente. |
 | `docs/sql/pruebas_hu11_politicas.sql` | Prueba de las políticas y los triggers en una transacción con `rollback` (13 pruebas). |
-| `lib/features/prices/domain/` | Entidades (`PrecioProducto`, `Promocion`, `FichaPrecio`), contrato `PreciosRepository`, `PrecioValidators` y cinco casos de uso. |
+| `lib/features/prices/domain/` | Entidades (`PrecioProducto`, `Promocion`, `FichaPrecio`), contrato `PreciosRepository`, `PrecioValidators` y cinco casos de uso. Los que escriben devuelven la ficha ya actualizada, así el Bloc hace una sola llamada por evento (regla de capas del README). |
 | `lib/features/prices/data/` | `SupabasePreciosDataSource` y `PreciosRepositoryImpl`. |
 | `lib/features/prices/presentation/` | `PrecioProductoBloc` y `PrecioProductoPage` (edición rápida). |
 | `test/prices/` | Pruebas de formato, validaciones, vigencia, casos de uso, Bloc y pantalla. |
@@ -50,6 +50,7 @@ Escenarios: 1 (actualizar un precio con fecha, hora y fuente), 2 (marcar agotado
 | Archivo | Cambio |
 |---|---|
 | `lib/core/utils/format_helpers.dart` | `formatoCop`, `formatoMiles`, `fechaCorta`, `fechaHora`, `soloFecha`. |
+| `lib/core/ui/roles/widgets/botones.dart` | `BotonPrimario` deja pasar el texto a dos líneas en pantallas angostas (antes se desbordaba a 320 px). |
 | `lib/core/utils/json_helpers.dart` | `toSqlDate` y `parseSqlDate` para columnas `date`. |
 | `lib/core/constants/supabase_tables.dart` | Tablas y columnas de la HU-11. |
 | `lib/features/catalog/...` | `Producto` trae `precio` y `disponible`; la consulta del catálogo incluye `precio_producto`; la tarjeta muestra el precio, "Agotado" o "Sin precio", y un botón que abre la edición rápida. |
@@ -61,4 +62,4 @@ Escenarios: 1 (actualizar un precio con fecha, hora y fuente), 2 (marcar agotado
 1. En Supabase → SQL Editor, ejecutar `docs/sql/sprint2_hu11.sql` (después de `sprint2_hu10.sql`). **Sin este script la lista del catálogo falla**, porque ahora pide también el precio de cada producto.
 2. Ejecutar `docs/sql/pruebas_hu11_politicas.sql`: todas las filas deben decir "OK".
 3. En la app, entrar con un comercio aprobado → **Mi catálogo** → ícono de precio de un producto. Guardar un precio, marcarlo agotado, crear una promoción y quitarla. Al volver, la lista muestra el precio actualizado.
-4. `flutter analyze` sin problemas y `flutter test` con 344 pruebas en verde.
+4. `flutter analyze` sin problemas y `flutter test` con 347 pruebas en verde.
