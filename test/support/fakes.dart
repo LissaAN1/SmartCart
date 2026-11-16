@@ -26,6 +26,13 @@ import 'package:smartcart/features/auth/domain/usecases/get_my_profile_usecase.d
 import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_up_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/entities/detalle_producto.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/catalog/domain/entities/categoria.dart';
 import 'package:smartcart/features/catalog/domain/entities/filtro_catalogo.dart';
 import 'package:smartcart/features/catalog/domain/entities/imagen_producto.dart';
@@ -663,6 +670,48 @@ class FakePreciosRepository implements PreciosRepository {
   }
 }
 
+/// Búsqueda del cliente en memoria (HU-12). Imita a `buscar_productos`: busca
+/// en el nombre o la marca sin distinguir mayúsculas y pagina.
+class FakeBusquedaRepository implements BusquedaRepository {
+  final resultados = <ResultadoBusqueda>[];
+  final detalles = <String, DetalleProducto>{};
+  final textosBuscados = <String>[];
+  final clavesPedidas = <String>[];
+  Object? buscarError;
+  Object? detalleError;
+
+  /// Si se asigna, `buscar` espera a que se complete (para probar cargas en
+  /// curso).
+  Completer<void>? pausa;
+
+  @override
+  Future<PagedResult<ResultadoBusqueda>> buscar(
+    String texto,
+    PageRequest request,
+  ) async {
+    textosBuscados.add(texto);
+    final espera = pausa;
+    if (espera != null) await espera.future;
+    if (buscarError != null) throw buscarError!;
+    final t = texto.toLowerCase();
+    final filas = resultados
+        .where((r) =>
+            r.nombre.toLowerCase().contains(t) ||
+            (r.marca ?? '').toLowerCase().contains(t))
+        .skip(request.from)
+        .take(request.pageSize + 1)
+        .toList();
+    return PagedResult.fromRows(filas, request);
+  }
+
+  @override
+  Future<DetalleProducto?> detalle(String clave) async {
+    clavesPedidas.add(clave);
+    if (detalleError != null) throw detalleError!;
+    return detalles[clave];
+  }
+}
+
 /// Agrupa los dobles y construye los Blocs con ellos.
 class TestEnv {
   final auth = FakeAuthRepository();
@@ -674,6 +723,7 @@ class TestEnv {
   final selectorCsv = FakeSelectorArchivoCsv();
   final precios = FakePreciosRepository();
   final selectorImagen = FakeSelectorImagen();
+  final busqueda = FakeBusquedaRepository();
 
   /// "Hoy" para las promociones (HU-11): 15 de noviembre de 2026.
   DateTime ahora = DateTime(2026, 11, 15, 10);
@@ -759,6 +809,20 @@ class TestEnv {
         comercioAprobado: comercioAprobado,
         catalogo: catalogo,
       );
+
+  // HU-12: búsqueda del cliente.
+  BuscarProductosUseCase get buscarProductos =>
+      BuscarProductosUseCase(auth: auth, busqueda: busqueda);
+  GetDetalleProductoUseCase get getDetalleProducto =>
+      GetDetalleProductoUseCase(auth: auth, busqueda: busqueda);
+  BusquedaBloc busquedaBloc({String texto = '', int pageSize = 20}) =>
+      BusquedaBloc(
+        buscar: buscarProductos,
+        textoInicial: texto,
+        pageSize: pageSize,
+      );
+  DetalleProductoBloc detalleBloc(ConsultaProducto consulta) =>
+      DetalleProductoBloc(consulta: consulta, detalle: getDetalleProducto);
 
   /// Deja la sesión iniciada como dueño de un comercio con el [estado] dado
   /// (el comercio de prueba tiene el id `c1`).

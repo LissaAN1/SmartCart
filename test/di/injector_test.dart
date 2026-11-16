@@ -33,6 +33,13 @@ import 'package:smartcart/features/catalog/data/source/file_picker_selector_imag
 import 'package:smartcart/features/catalog/domain/repository/selector_imagen.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/catalogo_lista_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
+import 'package:smartcart/features/busqueda/data/repository/busqueda_repository_impl.dart';
+import 'package:smartcart/features/busqueda/domain/entities/resultado_busqueda.dart';
+import 'package:smartcart/features/busqueda/domain/repository/busqueda_repository.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/buscar_productos_usecase.dart';
+import 'package:smartcart/features/busqueda/domain/usecases/get_detalle_producto_usecase.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/busqueda_bloc.dart';
+import 'package:smartcart/features/busqueda/presentation/bloc/detalle_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -172,6 +179,25 @@ void main() {
     expect(sl<PaginatedBloc<Producto>>(), isA<CatalogoListaBloc>());
     expect(sl<InventarioBloc>(), isNot(same(sl<InventarioBloc>())));
     expect(sl<GuardarProductoUseCase>(), same(sl<GuardarProductoUseCase>()));
+  });
+
+  test('HU-12: la búsqueda se registra con los tipos del contrato', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<BusquedaRepository>(), isA<BusquedaRepositoryImpl>());
+    expect(sl<BuscarProductosUseCase>(), same(sl<BuscarProductosUseCase>()));
+    expect(sl.isRegistered<GetDetalleProductoUseCase>(), isTrue);
+
+    final busqueda = sl<PaginatedBloc<ResultadoBusqueda>>(param1: 'arroz');
+    expect(busqueda, isA<BusquedaBloc>());
+    expect((busqueda as BusquedaBloc).texto, 'arroz');
+
+    const consulta = ConsultaPorCodigo('7701234567890');
+    expect(sl<DetalleProductoBloc>(param1: consulta).consulta, consulta);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {
