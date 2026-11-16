@@ -27,6 +27,13 @@ class SupabaseFunctions {
   /// HU-11: total de productos, valor del stock y productos con stock bajo
   /// de un comercio. Ver docs/sql/sprint2_hu11.sql.
   static const resumenCatalogo = 'resumen_catalogo';
+
+  /// HU-12: búsqueda del cliente con rango de precios y establecimientos.
+  /// Ver docs/sql/sprint2_hu12.sql.
+  static const buscarProductos = 'buscar_productos';
+
+  /// HU-12: un producto con el precio de cada establecimiento.
+  static const preciosDeProducto = 'precios_de_producto';
 }
 
 /// Buckets de Supabase Storage.
@@ -110,6 +117,27 @@ class SupabaseColumns {
   static const resumenTotal = 'total_productos';
   static const resumenValorStock = 'valor_stock';
   static const resumenBajoStock = 'bajo_stock';
+
+  // buscar_productos() y precios_de_producto() (HU-12)
+  static const busquedaClave = 'clave';
+  static const busquedaNombre = 'nombre';
+  static const busquedaMarca = 'marca';
+  static const busquedaCodigo = 'codigo_barras';
+  static const busquedaCategoria = 'categoria';
+  static const busquedaFoto = 'foto_url';
+  static const busquedaPrecioMin = 'precio_min';
+  static const busquedaPrecioMax = 'precio_max';
+  static const busquedaEstablecimientos = 'establecimientos';
+  static const ofertaProducto = 'id_producto';
+  static const ofertaComercio = 'comercio';
+  static const ofertaDireccion = 'direccion';
+  static const ofertaCiudad = 'ciudad';
+  static const ofertaPrecio = 'precio';
+  static const ofertaPrecioNormal = 'precio_normal';
+  static const ofertaEnPromocion = 'en_promocion';
+  static const ofertaDisponible = 'disponible';
+  static const ofertaFuente = 'fuente';
+  static const ofertaActualizadoEn = 'actualizado_en';
 
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
