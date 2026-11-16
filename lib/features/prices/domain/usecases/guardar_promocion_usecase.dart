@@ -1,12 +1,15 @@
 import 'package:smartcart/core/utils/format_helpers.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/prices/domain/entities/ficha_precio.dart';
 import 'package:smartcart/features/prices/domain/entities/promocion.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/validators/precio_validators.dart';
 
 /// HU-11: crea la promoción de un producto o reemplaza la que tenía. El
-/// precio promocional debe ser menor que el precio normal actual.
+/// precio promocional debe ser menor que el precio normal actual. Devuelve la
+/// ficha ya actualizada.
 class GuardarPromocionUseCase {
   final GetComercioAprobadoUseCase _comercioAprobado;
   final PreciosRepository _precios;
@@ -20,7 +23,7 @@ class GuardarPromocionUseCase {
         _precios = precios,
         _ahora = ahora ?? DateTime.now;
 
-  Future<Promocion> call(String idProducto, PromocionDatos datos) async {
+  Future<FichaPrecio> call(String idProducto, PromocionDatos datos) async {
     final errorFechas =
         PrecioValidators.fechas(datos.inicio, datos.fin, _ahora());
     if (errorFechas != null) throw AuthFailure(errorFechas);
@@ -36,7 +39,7 @@ class GuardarPromocionUseCase {
       normal.precio,
     );
     if (errorPrecio != null) throw AuthFailure(errorPrecio);
-    return _precios.guardarPromocion(
+    await _precios.guardarPromocion(
       idProducto,
       PromocionDatos(
         precioPromocional: datos.precioPromocional,
@@ -44,5 +47,6 @@ class GuardarPromocionUseCase {
         fin: soloFecha(datos.fin),
       ),
     );
+    return leerFichaPrecio(_precios, idProducto);
   }
 }

@@ -46,7 +46,9 @@ class BotonPrimario extends StatelessWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(texto),
+                // Flexible: en pantallas angostas o con letra grande el
+                // texto pasa a dos líneas en vez de desbordar el botón.
+                Flexible(child: Text(texto, textAlign: TextAlign.center)),
                 if (iconoFinal != null) ...[
                   const SizedBox(width: 8),
                   Icon(iconoFinal, size: 18),

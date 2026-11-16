@@ -1,11 +1,14 @@
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado_usecase.dart';
+import 'package:smartcart/features/prices/domain/entities/ficha_precio.dart';
 import 'package:smartcart/features/prices/domain/entities/precio.dart';
 import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/validators/precio_validators.dart';
 
 /// HU-11 · escenario 1: el comercio cambia el precio de un producto. La base
 /// guarda la fecha, la hora y la fuente "Comercio", y conserva el historial.
+/// Devuelve la ficha ya actualizada.
 class ActualizarPrecioUseCase {
   final GetComercioAprobadoUseCase _comercioAprobado;
   final PreciosRepository _precios;
@@ -16,10 +19,11 @@ class ActualizarPrecioUseCase {
   })  : _comercioAprobado = comercioAprobado,
         _precios = precios;
 
-  Future<PrecioProducto> call(String idProducto, PrecioDatos datos) async {
+  Future<FichaPrecio> call(String idProducto, PrecioDatos datos) async {
     final error = PrecioValidators.valor(datos.precio);
     if (error != null) throw AuthFailure(error);
     await _comercioAprobado();
-    return _precios.guardarPrecio(idProducto, datos);
+    await _precios.guardarPrecio(idProducto, datos);
+    return leerFichaPrecio(_precios, idProducto);
   }
 }

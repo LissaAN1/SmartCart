@@ -6,6 +6,7 @@ import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/catalog/presentation/pages/catalogo_page.dart';
+import 'package:smartcart/features/prices/domain/entities/precio.dart';
 import 'package:smartcart/features/prices/domain/entities/promocion.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/prices/presentation/pages/precio_producto_page.dart';
@@ -23,8 +24,9 @@ const _arroz = Producto(
 Future<TestEnv> _pumpPagina(
   WidgetTester tester, {
   void Function(TestEnv env)? prepare,
+  double ancho = 420,
 }) async {
-  setScreenSize(tester, 420, 1400);
+  setScreenSize(tester, ancho, 1400);
   final env = TestEnv()..iniciarSesionComoComercio(ApprovalStatus.aprobado);
   prepare?.call(env);
   await tester.pumpWidget(
@@ -194,6 +196,30 @@ void main() {
       expect(find.text('Quitar promoción'), findsNothing);
     });
 
+    testWidgets('en una pantalla de 320 px no hay desbordes', (tester) async {
+      await _pumpPagina(tester, ancho: 320, prepare: (env) {
+        env.precios.precargar('p1', 1250000, disponible: false);
+        env.precios.promociones['p1'] = Promocion(
+          idProducto: 'p1',
+          precioPromocional: 999000,
+          inicio: DateTime(2026, 11, 10),
+          fin: DateTime(2026, 11, 20),
+        );
+        env.precios.historiales['p1'] = [
+          for (var i = 0; i < 3; i++)
+            RegistroPrecio(
+              precio: 1250000,
+              disponible: false,
+              fuente: FuentePrecio.comercio,
+              registradoEn: DateTime(2026, 11, 15, 14, 5),
+            ),
+        ];
+      });
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(r'$ 999.000'), findsWidgets);
+    });
+
     testWidgets('muestra los últimos cambios del historial', (tester) async {
       await _pumpPagina(tester);
 
@@ -208,8 +234,8 @@ void main() {
   });
 
   group('HU-11 desde el catálogo', () {
-    Future<TestEnv> pumpCatalogo(WidgetTester tester) async {
-      setScreenSize(tester, 420, 900);
+    Future<TestEnv> pumpCatalogo(WidgetTester tester, {double ancho = 420}) async {
+      setScreenSize(tester, ancho, 900);
       final env = TestEnv()..iniciarSesionComoComercio(ApprovalStatus.aprobado);
       env.catalogo.deComercio('c1').addAll(const [
         Producto(
@@ -260,6 +286,14 @@ void main() {
       expect(find.text(r'$ 2.500'), findsOneWidget);
       expect(find.text('Agotado'), findsOneWidget);
       expect(find.text('Sin precio'), findsOneWidget);
+    });
+
+    testWidgets('en una pantalla de 320 px la tarjeta no se desborda',
+        (tester) async {
+      await pumpCatalogo(tester, ancho: 320);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(r'$ 2.500'), findsOneWidget);
     });
 
     testWidgets('el botón de precio abre la edición rápida del producto',

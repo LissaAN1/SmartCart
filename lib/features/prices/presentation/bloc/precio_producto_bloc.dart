@@ -90,8 +90,9 @@ class PrecioProductoState {
 }
 
 /// HU-11: edición rápida del precio, la disponibilidad y la promoción de un
-/// producto del catálogo. Después de cada cambio vuelve a leer la ficha para
-/// mostrar la fecha y el historial que guardó la base.
+/// producto del catálogo. Cada evento hace una sola llamada a un caso de uso;
+/// los que escriben devuelven la ficha ya actualizada (con la fecha y el
+/// historial que guardó la base).
 class PrecioProductoBloc
     extends Bloc<PrecioProductoEvent, PrecioProductoState> {
   final Producto producto;
@@ -166,19 +167,18 @@ class PrecioProductoBloc
     }
   }
 
-  /// Corre una acción de escritura y recarga la ficha. Un segundo toque
-  /// mientras se guarda no reenvía.
+  /// Corre una acción de escritura y muestra la ficha que devuelve. Un
+  /// segundo toque mientras se guarda no reenvía.
   Future<void> _ejecutar(
     Emitter<PrecioProductoState> emit,
     AccionPrecio accion,
-    Future<Object?> Function() escribir,
+    Future<FichaPrecio> Function() escribir,
     String aviso,
   ) async {
     if (state.ocupado || state.status != PrecioProductoStatus.ready) return;
     emit(state.copyWith(accion: accion));
     try {
-      await escribir();
-      final ficha = await _ficha(producto.id);
+      final ficha = await escribir();
       emit(state.copyWith(
         ficha: ficha,
         accion: AccionPrecio.ninguna,

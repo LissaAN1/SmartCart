@@ -24,12 +24,20 @@ void main() {
   group('ActualizarPrecioUseCase · escenario 1', () {
     test('guarda el precio con la fecha, la hora y la fuente "Comercio"',
         () async {
-      final precio =
+      final ficha =
           await env.actualizarPrecio('p1', const PrecioDatos(precio: 2500));
 
-      expect(precio.precio, 2500);
-      expect(precio.fuente, FuentePrecio.comercio);
-      expect(precio.actualizadoEn, env.precios.fecha);
+      expect(ficha.precio?.precio, 2500);
+      expect(ficha.precio?.fuente, FuentePrecio.comercio);
+      expect(ficha.precio?.actualizadoEn, env.precios.fecha);
+    });
+
+    test('devuelve la ficha ya actualizada, con el historial', () async {
+      await env.actualizarPrecio('p1', const PrecioDatos(precio: 2500));
+      final ficha =
+          await env.actualizarPrecio('p1', const PrecioDatos(precio: 2800));
+
+      expect([for (final r in ficha.historial) r.precio], [2800, 2500]);
     });
 
     test('conserva el historial de precios', () async {
@@ -72,10 +80,10 @@ void main() {
     test('marca agotado conservando el precio', () async {
       env.precios.precargar('p1', 2500);
 
-      final precio = await env.cambiarDisponibilidadProducto('p1', false);
+      final ficha = await env.cambiarDisponibilidadProducto('p1', false);
 
-      expect(precio.disponible, isFalse);
-      expect(precio.precio, 2500);
+      expect(ficha.precio?.disponible, isFalse);
+      expect(ficha.precio?.precio, 2500);
       expect(env.precios.historiales['p1']!.single.disponible, isFalse);
     });
 
@@ -105,7 +113,7 @@ void main() {
     test('guarda la promoción solo con las fechas, sin hora', () async {
       env.precios.precargar('p1', 2500);
 
-      final promo = await env.guardarPromocion('p1', datos);
+      final promo = (await env.guardarPromocion('p1', datos)).promocion!;
 
       expect(promo.precioPromocional, 2000);
       expect(promo.inicio, DateTime(2026, 11, 15));
@@ -158,9 +166,8 @@ void main() {
         ),
       );
 
-      await env.quitarPromocion('p1');
+      final ficha = await env.quitarPromocion('p1');
 
-      final ficha = await env.getFichaPrecio('p1');
       expect(ficha.promocion, isNull);
       expect(ficha.precioMostrado(env.ahora), 2500);
     });
