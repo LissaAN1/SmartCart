@@ -433,16 +433,24 @@ class _FilaHistorial extends StatelessWidget {
         children: [
           Icon(Icons.history, size: 18, color: t.textoGris),
           const SizedBox(width: 10),
+          // Dos líneas para que quepa en pantallas angostas.
           Expanded(
-            child: Text(
-              '${formatoCop(registro.precio)}'
-              '${registro.disponible ? '' : ' · Agotado'}',
-              style: TextStyle(fontWeight: FontWeight.w600, color: t.texto),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${formatoCop(registro.precio)}'
+                  '${registro.disponible ? '' : ' · Agotado'}',
+                  style:
+                      TextStyle(fontWeight: FontWeight.w600, color: t.texto),
+                ),
+                Text(
+                  '${fechaHora(registro.registradoEn)} · '
+                  '${registro.fuente.etiqueta}',
+                  style: TextStyle(fontSize: 12, color: t.textoGris),
+                ),
+              ],
             ),
-          ),
-          Text(
-            '${fechaHora(registro.registradoEn)} · ${registro.fuente.etiqueta}',
-            style: TextStyle(fontSize: 12, color: t.textoGris),
           ),
         ],
       ),

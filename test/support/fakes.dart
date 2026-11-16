@@ -50,6 +50,7 @@ import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad
 import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
 import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/domain/usecases/get_mi_comercio_usecase.dart';
@@ -690,6 +691,14 @@ class TestEnv {
         crear: crearProducto,
         editar: editarProducto,
         eliminar: eliminarProducto,
+      );
+  PrecioProductoBloc precioBloc(Producto producto) => PrecioProductoBloc(
+        producto: producto,
+        ficha: getFichaPrecio,
+        actualizar: actualizarPrecio,
+        disponibilidad: cambiarDisponibilidadProducto,
+        guardarPromocion: guardarPromocion,
+        quitarPromocion: quitarPromocion,
       );
   CargaCsvBloc cargaCsvBloc() =>
       CargaCsvBloc(elegir: elegirArchivoCsv, cargar: cargarProductosCsv);

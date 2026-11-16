@@ -21,6 +21,14 @@ import 'package:smartcart/features/catalog/domain/usecases/get_comercio_aprobado
 import 'package:smartcart/features/catalog/domain/usecases/get_productos_usecase.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/carga_csv_bloc.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/producto_form_bloc.dart';
+import 'package:smartcart/features/prices/data/repository/precios_repository_impl.dart';
+import 'package:smartcart/features/prices/domain/repository/precios_repository.dart';
+import 'package:smartcart/features/prices/domain/usecases/actualizar_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/cambiar_disponibilidad_producto_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/get_ficha_precio_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/guardar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/domain/usecases/quitar_promocion_usecase.dart';
+import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/comercio/domain/repository/comercio_repository.dart';
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
@@ -119,6 +127,40 @@ void main() {
       expect(sl<ProductoFormBloc>(param1: producto).editando, producto);
       expect(sl<ProductoFormBloc>(param1: null).editando, isNull);
     });
+  });
+
+  test('HU-11: precios y promociones se registran con el tipo del contrato',
+      () {
+    setupDependencies();
+
+    expect(sl.isRegistered<PreciosRepository>(), isTrue);
+    expect(sl.isRegistered<GetFichaPrecioUseCase>(), isTrue);
+    expect(sl.isRegistered<ActualizarPrecioUseCase>(), isTrue);
+    expect(sl.isRegistered<CambiarDisponibilidadProductoUseCase>(), isTrue);
+    expect(sl.isRegistered<GuardarPromocionUseCase>(), isTrue);
+    expect(sl.isRegistered<QuitarPromocionUseCase>(), isTrue);
+    expect(sl.isRegistered<PrecioProductoBloc>(), isTrue);
+  });
+
+  test('HU-11: el Bloc de precios recibe el producto y usa el repositorio real',
+      () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+    const producto = Producto(
+      id: 'p1',
+      nombre: 'Arroz blanco',
+      idCategoria: 'cat-super',
+      categoria: 'Super',
+    );
+
+    final bloc = sl<PrecioProductoBloc>(param1: producto);
+
+    expect(bloc.producto, producto);
+    expect(identical(bloc, sl<PrecioProductoBloc>(param1: producto)), isFalse);
+    expect(sl<PreciosRepository>(), isA<PreciosRepositoryImpl>());
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {
