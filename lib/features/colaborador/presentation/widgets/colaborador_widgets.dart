@@ -40,7 +40,7 @@ class TarjetaPuntos extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [t.primario, const Color(0xFFE2582A)],
+          colors: [t.primario, ColoresUi.acentoCalido],
         ),
         boxShadow: [
           BoxShadow(

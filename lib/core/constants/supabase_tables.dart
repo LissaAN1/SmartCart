@@ -56,6 +56,10 @@ class SupabaseFunctions {
   static const explorarProductos = 'explorar_productos';
   static const explorarComercios = 'explorar_comercios';
 
+  /// HU-08: el repartidor aprobado cambia su disponibilidad (en línea o no).
+  /// Ver docs/sql/perfiles_reales.sql.
+  static const cambiarDisponibilidad = 'cambiar_disponibilidad';
+
   /// HU-13: guarda un reporte pendiente del precio vigente de un producto.
   /// Devuelve `registrado` o `ya_reportado`.
   static const reportarPrecioIncorrecto = 'reportar_precio_incorrecto';

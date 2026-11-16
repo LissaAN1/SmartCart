@@ -180,8 +180,8 @@ class OfertaCard extends StatelessWidget {
                     top: 6,
                     child: EtiquetaEstado(
                       texto: etiqueta!,
-                      color: const Color(0xFF8A3B12),
-                      fondo: const Color(0xFFFDEBDD),
+                      color: ColoresUi.ofertaTexto,
+                      fondo: ColoresUi.ofertaFondo,
                       tamanoTexto: 11,
                     ),
                   ),

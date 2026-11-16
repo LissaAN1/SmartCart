@@ -43,7 +43,7 @@ class SocialLoginSection extends StatelessWidget {
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: t.texto,
-              backgroundColor: const Color(0xFFF6F7F9),
+              backgroundColor: ColoresUi.campo,
               side: BorderSide(color: t.borde, width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
@@ -58,7 +58,7 @@ class SocialLoginSection extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF4285F4),
+                    color: ColoresUi.google,
                   ),
                 ),
                 SizedBox(width: 10),

@@ -117,3 +117,25 @@ abstract final class ColoresEstado {
   static const rojoSuave = Color(0xFFFBE6E6);
   static const enLinea = Color(0xFF22C55E);
 }
+
+/// Colores que no dependen del perfil ni indican un estado: la semilla del
+/// tema de Material, el fondo de los campos, el naranja de las etiquetas de
+/// oferta y el color de marca de Google. Las pantallas los piden aquí en vez
+/// de escribir el valor.
+abstract final class ColoresUi {
+  /// Semilla con la que Material 3 genera el esquema de colores de la app.
+  static const semilla = Color(0xFF1B8077);
+
+  /// Fondo de los campos de texto y de las opciones sin seleccionar.
+  static const campo = Color(0xFFF6F7F9);
+
+  /// Etiqueta de oferta (texto y fondo), como la de "-15%" en el Home.
+  static const ofertaTexto = Color(0xFF8A3B12);
+  static const ofertaFondo = Color(0xFFFDEBDD);
+
+  /// Extremo cálido del degradado del banner del colaborador.
+  static const acentoCalido = Color(0xFFE2582A);
+
+  /// Azul de la marca de Google (el botón "Continuar con Google").
+  static const google = Color(0xFF4285F4);
+}
