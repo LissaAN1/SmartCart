@@ -44,6 +44,15 @@ abstract final class AppRoutes {
   /// HU-14: historial de reportes del colaborador (lista paginada).
   static const misReportes = '/colaborador/reportes';
 
+  /// HU-15: reportes de otros colaboradores que esperan confirmación.
+  static const reportesPorConfirmar = '/colaborador/reportes/por-confirmar';
+
+  /// HU-16: puntos, nivel, reputación e historial de puntos del colaborador.
+  static const misPuntos = '/colaborador/puntos';
+
+  /// HU-15: reportes de la comunidad que el comercio confirma o corrige.
+  static const reportesComunidad = '/comercio/reportes-comunidad';
+
   /// HU-14: escáner de códigos de barras. Devuelve el código leído.
   static const reporteEscaner = '/colaborador/reporte/escaner';
 

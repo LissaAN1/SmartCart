@@ -651,9 +651,18 @@ class FakeSelectorFoto implements SelectorFoto {
   Object? error;
   int llamadas = 0;
 
+  /// Si el dispositivo tiene cámara (Android e iOS); en web y escritorio solo
+  /// se puede subir una imagen.
   @override
-  Future<FotoReporte?> tomar() async {
+  bool hayCamara = true;
+
+  /// De dónde se pidió cada foto, en orden.
+  final origenes = <OrigenFoto>[];
+
+  @override
+  Future<FotoReporte?> elegir(OrigenFoto origen) async {
     llamadas++;
+    origenes.add(origen);
     if (error != null) throw error!;
     return foto;
   }

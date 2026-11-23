@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
 import 'package:smartcart/components/auth_text_field.dart';
 import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
@@ -634,6 +635,136 @@ void main() {
       expect(env.reportes.reportes.length, 1);
       expect(find.byType(ReporteFormPage), findsNothing);
       expect(ReporteFormStatus.values, contains(ReporteFormStatus.enviado));
+    });
+  });
+
+  group('Primero el producto, después la foto', () {
+    testWidgets('al elegir el establecimiento lo primero es la lista de '
+        'productos: la cámara no se abre sola', (tester) async {
+      setScreenSize(tester, 420, 900);
+      final env = TestEnv()..iniciarSesionComoColaborador();
+      var abrioEscaner = false;
+      // La página con su configuración por defecto, como la arma AppRouter.
+      await tester.pumpWidget(MaterialApp(
+        onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.reporteEscaner) abrioEscaner = true;
+          return null;
+        },
+        home: ReporteProductoPage(
+          establecimiento: establecimientoDePrueba(),
+          crearLista: env.busquedaProductosBloc,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(abrioEscaner, isFalse);
+      expect(find.text('Elige el producto'), findsOneWidget);
+      expect(find.text('Arroz blanco 500 g'), findsOneWidget);
+      // El escáner sigue disponible como opción del buscador.
+      expect(find.byTooltip('Escanear código de barras'), findsOneWidget);
+    });
+
+    testWidgets('con cámara ofrece tomar la foto o subir una', (tester) async {
+      await _pump(tester);
+      await _irAlFormulario(tester);
+
+      expect(find.text('Tomar foto de la etiqueta'), findsOneWidget);
+      expect(find.text('Subir foto'), findsOneWidget);
+    });
+
+    testWidgets('"Tomar foto" pide la foto a la cámara', (tester) async {
+      final env = await _pump(tester);
+      await _irAlFormulario(tester);
+
+      await _tocar(tester, find.text('Tomar foto de la etiqueta'));
+
+      expect(env.selectorFoto.origenes, [OrigenFoto.camara]);
+      expect(find.text('Cambiar foto'), findsOneWidget);
+    });
+
+    testWidgets('"Subir foto" pide la foto a la galería', (tester) async {
+      final env = await _pump(tester);
+      await _irAlFormulario(tester);
+
+      await _tocar(tester, find.text('Subir foto'));
+
+      expect(env.selectorFoto.origenes, [OrigenFoto.galeria]);
+      expect(find.text('Cambiar foto'), findsOneWidget);
+      expect(find.text('Tomar foto de la etiqueta'), findsNothing);
+    });
+
+    testWidgets('una foto subida se envía con el reporte', (tester) async {
+      final env = await _pump(tester);
+      await _irAlFormulario(tester);
+      await _escribir(tester, 'Precio (COP)', '4.900');
+      await _tocar(tester, find.text('Subir foto'));
+
+      await _tocarEnviar(tester);
+
+      expect(find.text('Reporte enviado'), findsOneWidget);
+      expect(env.reportes.reportes.single.foto.bytes, isNotEmpty);
+    });
+
+    testWidgets('"Cambiar foto" deja elegir entre la cámara y la galería',
+        (tester) async {
+      final env = await _pump(tester);
+      await _irAlFormulario(tester);
+      await _tocar(tester, find.text('Subir foto'));
+
+      await _tocar(tester, find.text('Cambiar foto'));
+      expect(find.text('Tomar foto'), findsOneWidget);
+      expect(find.text('Subir foto de la galería'), findsOneWidget);
+
+      await tester.tap(find.text('Tomar foto'));
+      await tester.pumpAndSettle();
+
+      expect(env.selectorFoto.origenes,
+          [OrigenFoto.galeria, OrigenFoto.camara]);
+    });
+
+    testWidgets('sin cámara (web o escritorio) solo se ofrece subir la imagen',
+        (tester) async {
+      final env = await _pump(
+        tester,
+        prepare: (env) => env.selectorFoto.hayCamara = false,
+      );
+      await _irAlFormulario(tester);
+
+      expect(find.text('Tomar foto de la etiqueta'), findsNothing);
+      expect(find.text('Subir foto de la etiqueta'), findsOneWidget);
+
+      await _tocar(tester, find.text('Subir foto de la etiqueta'));
+      expect(env.selectorFoto.origenes, [OrigenFoto.galeria]);
+
+      // "Cambiar foto" no pregunta: solo hay galería.
+      await _tocar(tester, find.text('Cambiar foto'));
+      expect(find.text('Subir foto de la galería'), findsNothing);
+      expect(env.selectorFoto.origenes,
+          [OrigenFoto.galeria, OrigenFoto.galeria]);
+    });
+
+    test('el caso de uso toma la foto con la cámara si no se le dice otra '
+        'cosa', () async {
+      final env = TestEnv();
+
+      await env.tomarFoto();
+      await env.tomarFoto(OrigenFoto.galeria);
+
+      expect(env.selectorFoto.origenes,
+          [OrigenFoto.camara, OrigenFoto.galeria]);
+      expect(env.tomarFoto.hayCamara, isTrue);
+    });
+
+    test('el Bloc pide la foto al origen que se le indica', () async {
+      final env = TestEnv()..iniciarSesionComoColaborador();
+      final bloc = env.reporteFormBloc();
+      addTearDown(bloc.close);
+
+      bloc.add(ReporteFotoSolicitada(origen: OrigenFoto.galeria));
+      await bloc.stream.firstWhere((s) => s.foto != null);
+
+      expect(env.selectorFoto.origenes, [OrigenFoto.galeria]);
+      expect(bloc.hayCamara, isTrue);
     });
   });
 }

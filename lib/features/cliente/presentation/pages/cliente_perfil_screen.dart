@@ -5,6 +5,7 @@ import '../../../../core/ui/roles/roles_ui.dart';
 import '../../../../core/utils/format_helpers.dart';
 import '../../../auth/domain/entities/collaborator_stats.dart';
 import '../../../auth/domain/entities/profile.dart';
+import '../../../puntos/domain/nivel_colaborador.dart';
 import '../widgets/cliente_widgets.dart';
 
 class ClientePerfilScreen extends StatelessWidget {
@@ -74,8 +75,11 @@ class ClientePerfilScreen extends StatelessWidget {
               items: [
                 Estadistica(Icons.stars_outlined,
                     '${estadisticasColaborador.points}', 'Puntos'),
-                Estadistica(Icons.military_tech_outlined,
-                    '${estadisticasColaborador.level}', 'Nivel'),
+                Estadistica(
+                    Icons.military_tech_outlined,
+                    NivelColaborador.desdeNumero(estadisticasColaborador.level)
+                        .nombre,
+                    'Nivel'),
                 Estadistica(Icons.verified_outlined,
                     estadisticasColaborador.reputationLabel, 'Reputación'),
               ],

@@ -88,6 +88,17 @@ import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart
 import 'package:smartcart/features/auth/domain/repository/profile_repository.dart';
 import 'package:smartcart/features/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
+import 'package:smartcart/features/puntos/data/repository/puntos_repository_impl.dart';
+import 'package:smartcart/features/puntos/domain/entities/movimiento_puntos.dart';
+import 'package:smartcart/features/puntos/domain/repository/puntos_repository.dart';
+import 'package:smartcart/features/puntos/domain/usecases/get_movimientos_puntos_usecase.dart';
+import 'package:smartcart/features/puntos/domain/usecases/get_resumen_puntos_usecase.dart';
+import 'package:smartcart/features/puntos/presentation/bloc/resumen_puntos_bloc.dart';
+import 'package:smartcart/features/reportes/data/repository/validacion_repository_impl.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte_por_confirmar.dart';
+import 'package:smartcart/features/reportes/domain/repository/validacion_repository.dart';
+import 'package:smartcart/features/reportes/domain/usecases/validacion_usecases.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/accion_reporte_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -483,6 +494,37 @@ void main() {
     expect(bloc.state.reportando, isEmpty);
     // Cada pantalla de detalle tiene su propio Bloc.
     expect(identical(bloc, sl<DetalleProductoBloc>(param1: consulta)), isFalse);
+  });
+
+  test('HU-15 y HU-16: confirmación de reportes y puntos con repositorios '
+      'reales', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<ValidacionRepository>(), isA<ValidacionRepositoryImpl>());
+    expect(sl<PuntosRepository>(), isA<PuntosRepositoryImpl>());
+    expect(sl<GetReportesPorConfirmarUseCase>(),
+        same(sl<GetReportesPorConfirmarUseCase>()));
+    expect(sl.isRegistered<ConfirmarReporteColaboradorUseCase>(), isTrue);
+    expect(sl.isRegistered<GetReportesDeMiComercioUseCase>(), isTrue);
+    expect(sl.isRegistered<ConfirmarReporteComercioUseCase>(), isTrue);
+    expect(sl.isRegistered<CorregirReporteComercioUseCase>(), isTrue);
+    expect(sl.isRegistered<GetResumenPuntosUseCase>(), isTrue);
+    expect(sl.isRegistered<GetMovimientosPuntosUseCase>(), isTrue);
+
+    // Cada pantalla tiene su propio Bloc: son fábricas.
+    expect(identical(sl<AccionReporteBloc>(), sl<AccionReporteBloc>()), isFalse);
+    expect(identical(sl<ResumenPuntosBloc>(), sl<ResumenPuntosBloc>()), isFalse);
+    expect(sl<PaginatedBloc<MovimientoPuntos>>(),
+        isA<PaginatedBloc<MovimientoPuntos>>());
+    // La lista por confirmar sirve para el colaborador y para el comercio.
+    expect(sl<PaginatedBloc<ReportePorConfirmar>>(param1: false),
+        isA<PaginatedBloc<ReportePorConfirmar>>());
+    expect(sl<PaginatedBloc<ReportePorConfirmar>>(param1: true),
+        isA<PaginatedBloc<ReportePorConfirmar>>());
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {

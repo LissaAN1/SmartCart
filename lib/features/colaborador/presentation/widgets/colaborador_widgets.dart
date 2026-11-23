@@ -278,6 +278,10 @@ class ReporteItem extends StatelessWidget {
   final EstadoReportePrecio estado;
   final VoidCallback? onTap;
 
+  /// Motivo del rechazo o lo que falta para confirmarlo (HU-15); se muestra
+  /// bajo el establecimiento.
+  final String? detalle;
+
   const ReporteItem({
     super.key,
     required this.producto,
@@ -286,6 +290,7 @@ class ReporteItem extends StatelessWidget {
     required this.fecha,
     required this.estado,
     this.onTap,
+    this.detalle,
   });
 
   @override
@@ -324,6 +329,15 @@ class ReporteItem extends StatelessWidget {
                           color: t.texto)),
                   Text('$tienda • $fecha',
                       style: TextStyle(fontSize: 12.5, color: t.textoGris)),
+                  if (detalle != null && detalle!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(detalle!,
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: t.textoGris)),
+                    ),
                 ],
               ),
             ),

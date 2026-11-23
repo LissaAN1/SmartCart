@@ -68,6 +68,20 @@ class SupabaseFunctions {
   /// reciente al más antiguo y de cualquier estado.
   static const misReportes = 'mis_reportes';
 
+  /// HU-15: reportes de otros colaboradores que esperan una confirmación, los
+  /// de mi comercio que espera confirmar o corregir, y las tres acciones.
+  /// Ver docs/sql/sprint3_hu15_hu16.sql.
+  static const reportesPorConfirmar = 'reportes_por_confirmar';
+  static const reportesDeMiComercio = 'reportes_de_mi_comercio';
+  static const confirmarReporteColaborador = 'confirmar_reporte_colaborador';
+  static const confirmarReporteComercio = 'confirmar_reporte_comercio';
+  static const corregirReporteComercio = 'corregir_reporte_comercio';
+
+  /// HU-16: puntos, nivel y reputación del colaborador, y su historial de
+  /// puntos del más reciente al más antiguo.
+  static const resumenPuntos = 'resumen_puntos';
+  static const misMovimientosPuntos = 'mis_movimientos_puntos';
+
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
   static const decidirSolicitud = 'decidir_solicitud';
@@ -211,6 +225,25 @@ class SupabaseColumns {
   static const misReporteAgotado = 'agotado';
   static const misReporteEstado = 'estado';
   static const misReporteCreadoEn = 'creado_en';
+  // ...y desde la HU-15
+  static const misReporteMotivo = 'motivo';
+  static const misReporteRequiereConfirmacion = 'requiere_confirmacion';
+
+  // Columnas que devuelven reportes_por_confirmar y reportes_de_mi_comercio
+  // (HU-15). El id, el producto, el comercio, el precio, la fecha y el motivo
+  // se llaman como en mis_reportes.
+  static const porConfirmarPrecioActual = 'precio_actual';
+
+  // Columnas que devuelven resumen_puntos y mis_movimientos_puntos (HU-16)
+  static const resumenSaldo = 'puntos_saldo';
+  static const resumenAcumulados = 'puntos_acumulados';
+  static const resumenNivel = 'nivel';
+  static const resumenReputacion = 'reputacion';
+  static const movimientoId = 'id_movimiento';
+  static const movimientoPuntos = 'puntos';
+  static const movimientoTipo = 'tipo';
+  static const movimientoMotivo = 'motivo';
+  static const movimientoCreadoEn = 'creado_en';
 
   // carrito_item y favoritos (HU-17)
   static const carritoUsuario = 'id_usuario';

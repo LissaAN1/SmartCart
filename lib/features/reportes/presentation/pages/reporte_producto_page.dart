@@ -19,26 +19,28 @@ typedef CrearListaProductos = PaginatedBloc<Producto> Function(
   ConsultaProductoReporte consulta,
 );
 
-/// HU-14, paso 2: el colaborador identifica el producto, escaneando su código
-/// de barras o buscándolo por nombre o marca. Sin texto lista todos los
-/// productos del establecimiento.
+/// HU-14, paso 2: el colaborador elige el producto de la lista del
+/// establecimiento, buscándolo por nombre o marca. Sin texto lista todos los
+/// productos.
 ///
-/// Donde hay cámara (Android, iOS y web) abre el escáner apenas se entra, que
-/// es lo más rápido para quien está frente al estante. Si el producto del
-/// código existe, pasa directo al formulario; si cancela el escáner o el
-/// código no está, se queda aquí para buscar por nombre.
+/// Lo primero que ve es la lista; la cámara no se abre sola. Si prefiere
+/// escanear, toca el ícono del escáner en el buscador (Android, iOS y web): si
+/// el código es de un producto del establecimiento, pasa directo al
+/// formulario; si cancela o el código no está, se queda aquí para buscar por
+/// nombre. La foto de la etiqueta se pide en el paso siguiente.
 class ReporteProductoPage extends StatefulWidget {
   final EstablecimientoCercano establecimiento;
   final CrearListaProductos crearLista;
 
-  /// Abrir el escáner al entrar. Es `true` salvo que no haya cámara.
+  /// Abrir el escáner apenas se entra. Por defecto no: primero se elige el
+  /// producto de la lista y el escáner queda como opción en el buscador.
   final bool escanearAlEntrar;
 
   const ReporteProductoPage({
     super.key,
     required this.establecimiento,
     required this.crearLista,
-    this.escanearAlEntrar = true,
+    this.escanearAlEntrar = false,
   });
 
   @override

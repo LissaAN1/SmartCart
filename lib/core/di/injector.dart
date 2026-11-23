@@ -79,7 +79,20 @@ import 'package:smartcart/features/comercio/domain/usecases/registrar_comercio_u
 import 'package:smartcart/features/comercio/presentation/bloc/comercio_bloc.dart';
 import 'package:smartcart/features/comercio/domain/usecases/fijar_ubicacion_comercio_usecase.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
+import 'package:smartcart/features/puntos/data/repository/puntos_repository_impl.dart';
+import 'package:smartcart/features/puntos/data/source/supabase_puntos_data_source.dart';
+import 'package:smartcart/features/puntos/domain/entities/movimiento_puntos.dart';
+import 'package:smartcart/features/puntos/domain/repository/puntos_repository.dart';
+import 'package:smartcart/features/puntos/domain/usecases/get_movimientos_puntos_usecase.dart';
+import 'package:smartcart/features/puntos/domain/usecases/get_resumen_puntos_usecase.dart';
+import 'package:smartcart/features/puntos/presentation/bloc/resumen_puntos_bloc.dart';
 import 'package:smartcart/features/reportes/data/repository/reportes_repository_impl.dart';
+import 'package:smartcart/features/reportes/data/repository/validacion_repository_impl.dart';
+import 'package:smartcart/features/reportes/data/source/supabase_validacion_data_source.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte_por_confirmar.dart';
+import 'package:smartcart/features/reportes/domain/repository/validacion_repository.dart';
+import 'package:smartcart/features/reportes/domain/usecases/validacion_usecases.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/accion_reporte_bloc.dart';
 import 'package:smartcart/features/reportes/data/source/image_picker_selector_foto.dart';
 import 'package:smartcart/features/reportes/data/source/supabase_reportes_data_source.dart';
 import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
@@ -181,6 +194,13 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseReportesDataSource>(
     () => SupabaseReportesDataSource(client: sl()),
   );
+  // HU-15 y HU-16: confirmar reportes dudosos y puntos del colaborador.
+  sl.registerLazySingleton<SupabaseValidacionDataSource>(
+    () => SupabaseValidacionDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<SupabasePuntosDataSource>(
+    () => SupabasePuntosDataSource(client: sl()),
+  );
   sl.registerLazySingleton<SupabaseCarritoDataSource>(
     () => SupabaseCarritoDataSource(client: sl()),
   );
@@ -238,6 +258,12 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<ReportesRepository>(
     () => ReportesRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<ValidacionRepository>(
+    () => ValidacionRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<PuntosRepository>(
+    () => PuntosRepositoryImpl(dataSource: sl()),
   );
   sl.registerLazySingleton<PreciosRepository>(
     () => PreciosRepositoryImpl(dataSource: sl()),
@@ -324,6 +350,35 @@ void setupDependencies() {
   );
   sl.registerLazySingleton(
     () => GetMisReportesUseCase(colaborador: sl(), reportes: sl()),
+  );
+
+  // HU-15: confirmar o corregir reportes dudosos (colaborador y comercio).
+  sl.registerLazySingleton(
+    () => GetReportesPorConfirmarUseCase(colaborador: sl(), validacion: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ConfirmarReporteColaboradorUseCase(
+      colaborador: sl(),
+      ubicacion: sl(),
+      validacion: sl(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => GetReportesDeMiComercioUseCase(comercio: sl(), validacion: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ConfirmarReporteComercioUseCase(comercio: sl(), validacion: sl()),
+  );
+  sl.registerLazySingleton(
+    () => CorregirReporteComercioUseCase(comercio: sl(), validacion: sl()),
+  );
+
+  // HU-16: puntos, nivel, reputación e historial.
+  sl.registerLazySingleton(
+    () => GetResumenPuntosUseCase(colaborador: sl(), puntos: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetMovimientosPuntosUseCase(colaborador: sl(), puntos: sl()),
   );
 
   // HU-17: todos parten de GetClienteActivoUseCase.
@@ -450,6 +505,15 @@ void setupDependencies() {
   sl.registerFactory(() => UbicacionBloc(obtener: sl()));
   sl.registerFactory(() => ReporteFormBloc(tomarFoto: sl(), enviar: sl()));
   sl.registerFactory(() => SugerenciaBloc(sugerir: sl()));
+  // HU-15 y HU-16.
+  sl.registerFactory(
+    () => AccionReporteBloc(
+      confirmarColaborador: sl(),
+      confirmarComercio: sl(),
+      corregirComercio: sl(),
+    ),
+  );
+  sl.registerFactory(() => ResumenPuntosBloc(getResumen: sl()));
 
   // HU-17: el carrito y los favoritos los crea el RolShell del cliente (uno
   // por sesión) y los comparten todas sus pantallas.
@@ -529,6 +593,26 @@ void setupDependencies() {
       errorMessageFor: mensajeDeFallo,
     );
   });
+  // HU-15: los reportes por confirmar; `param1` dice si los pide el comercio
+  // (los de sus productos) o un colaborador (los de otras personas).
+  sl.registerFactoryParam<PaginatedBloc<ReportePorConfirmar>, bool, void>(
+    (esComercio, _) {
+      final fetch = esComercio
+          ? sl<GetReportesDeMiComercioUseCase>().call
+          : sl<GetReportesPorConfirmarUseCase>().call;
+      return PaginatedBloc<ReportePorConfirmar>(
+        fetchPage: fetch,
+        errorMessageFor: mensajeDeFallo,
+      );
+    },
+  );
+  // HU-16: el historial de puntos del colaborador.
+  sl.registerFactory<PaginatedBloc<MovimientoPuntos>>(
+    () => PaginatedBloc<MovimientoPuntos>(
+      fetchPage: sl<GetMovimientosPuntosUseCase>().call,
+      errorMessageFor: mensajeDeFallo,
+    ),
+  );
   sl.registerFactoryParam<PaginatedBloc<Producto>, String, ConsultaProductoReporte>(
     (idComercio, consulta) {
       final buscar = sl<BuscarProductosReporteUseCase>();

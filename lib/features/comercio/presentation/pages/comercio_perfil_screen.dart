@@ -12,12 +12,16 @@ class ComercioPerfilScreen extends StatelessWidget {
   final VoidCallback? onCerrarSesion;
   final Profile profile;
   final Comercio comercio;
+
+  /// HU-15: reportes de la comunidad que el comercio confirma o corrige.
+  final VoidCallback? onReportesComunidad;
   const ComercioPerfilScreen({
     super.key,
     this.onTab,
     this.onCerrarSesion,
     required this.profile,
     required this.comercio,
+    this.onReportesComunidad,
   });
 
   @override
@@ -95,6 +99,12 @@ class ComercioPerfilScreen extends StatelessWidget {
           const TituloSeccion(titulo: 'CONFIGURACIÓN'),
           GrupoMenu(
             items: [
+              ItemMenu(
+                  icono: Icons.fact_check_outlined,
+                  titulo: 'Reportes de la comunidad',
+                  subtitulo: 'Confirma o corrige precios reportados',
+                  onTap: onReportesComunidad ??
+                      () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.store_mall_directory_outlined,
                   titulo: 'Ajustes del Negocio',

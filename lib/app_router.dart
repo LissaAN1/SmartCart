@@ -49,7 +49,13 @@ import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dar
 import 'package:smartcart/features/explorar/presentation/pages/explorar_page.dart';
 import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.dart';
 import 'package:smartcart/features/favoritos/presentation/pages/favoritos_page.dart';
+import 'package:smartcart/features/puntos/domain/entities/movimiento_puntos.dart';
+import 'package:smartcart/features/puntos/presentation/bloc/resumen_puntos_bloc.dart';
+import 'package:smartcart/features/puntos/presentation/pages/mis_puntos_page.dart';
 import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
+import 'package:smartcart/features/reportes/domain/entities/reporte_por_confirmar.dart';
+import 'package:smartcart/features/reportes/presentation/bloc/accion_reporte_bloc.dart';
+import 'package:smartcart/features/reportes/presentation/pages/reportes_por_confirmar_page.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
@@ -230,6 +236,43 @@ abstract final class AppRouter {
             param1: PageRequest.defaultPageSize,
           )..add(PaginatedStarted()),
           child: const MisReportesPage(),
+        ),
+      // HU-15: reportes que esperan confirmación (colaborador y comercio).
+      AppRoutes.reportesPorConfirmar => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  sl<PaginatedBloc<ReportePorConfirmar>>(param1: false)
+                    ..add(PaginatedStarted()),
+            ),
+            BlocProvider(create: (_) => sl<AccionReporteBloc>()),
+          ],
+          child: const ReportesPorConfirmarPage(),
+        ),
+      AppRoutes.reportesComunidad => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  sl<PaginatedBloc<ReportePorConfirmar>>(param1: true)
+                    ..add(PaginatedStarted()),
+            ),
+            BlocProvider(create: (_) => sl<AccionReporteBloc>()),
+          ],
+          child: const ReportesPorConfirmarPage(esComercio: true),
+        ),
+      // HU-16: puntos, nivel, reputación e historial.
+      AppRoutes.misPuntos => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  sl<ResumenPuntosBloc>()..add(ResumenPuntosStarted()),
+            ),
+            BlocProvider(
+              create: (_) => sl<PaginatedBloc<MovimientoPuntos>>()
+                ..add(PaginatedStarted()),
+            ),
+          ],
+          child: const MisPuntosPage(),
         ),
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),

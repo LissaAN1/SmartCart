@@ -26,6 +26,9 @@ class ReporteHistorialItem extends StatelessWidget {
         EstadoReporte.validado => EstadoReportePrecio.verificado,
         EstadoReporte.rechazado => EstadoReportePrecio.rechazado,
       },
+      // HU-15: el rechazo explica por qué, y un reporte dudoso dice que espera
+      // confirmación.
+      detalle: reporte.motivo,
       onTap: onTap,
     );
   }
