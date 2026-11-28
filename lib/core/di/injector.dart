@@ -1,5 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/estadisticas/data/repository/estadisticas_repository_impl.dart';
+import 'package:smartcart/features/estadisticas/data/source/supabase_estadisticas_data_source.dart';
+import 'package:smartcart/features/estadisticas/domain/repository/estadisticas_repository.dart';
+import 'package:smartcart/features/estadisticas/domain/usecases/get_estadisticas_usecase.dart';
+import 'package:smartcart/features/estadisticas/presentation/bloc/estadisticas_bloc.dart';
 import 'package:smartcart/features/aprobaciones/data/repository/solicitudes_repository_impl.dart';
 import 'package:smartcart/features/aprobaciones/data/source/supabase_solicitudes_data_source.dart';
 import 'package:smartcart/features/aprobaciones/domain/entities/solicitud.dart';
@@ -268,6 +273,10 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseComparacionDataSource>(
     () => SupabaseComparacionDataSource(client: sl()),
   );
+  // HU-28: estadísticas del panel del administrador.
+  sl.registerLazySingleton<SupabaseEstadisticasDataSource>(
+    () => SupabaseEstadisticasDataSource(client: sl()),
+  );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -327,6 +336,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<ComparacionRepository>(
     () => ComparacionRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<EstadisticasRepository>(
+    () => EstadisticasRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -457,6 +469,9 @@ void setupDependencies() {
     () => GetOfertasCarritoUseCase(cliente: sl(), repositorio: sl()),
   );
   sl.registerLazySingleton(() => CompararCarritoUseCase());
+  sl.registerLazySingleton(
+    () => GetEstadisticasUseCase(auth: sl(), profiles: sl(), estadisticas: sl()),
+  );
   sl.registerLazySingleton(
     () => GetCarritoUseCase(cliente: sl(), carrito: sl()),
   );
@@ -599,6 +614,8 @@ void setupDependencies() {
     () => ComparacionBloc(ofertas: sl(), miUbicacion: sl(), comparar: sl()),
   );
   sl.registerFactory(() => PreciosCarritoBloc(ofertas: sl()));
+  // HU-28: el panel del administrador.
+  sl.registerFactory(() => EstadisticasBloc(obtener: sl()));
   // HU-19: el mapa de comercios del cliente.
   sl.registerFactory(
     () => MapaComerciosBloc(

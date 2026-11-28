@@ -1,8 +1,10 @@
 // lib/src/features/admin/ui/screens/admin_home_screen.dart
-// Home del ADMINISTRADOR ("Panel"). Solo UI con datos de ejemplo.
+// Home del ADMINISTRADOR ("Panel").
 import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/admin_widgets.dart';
+import 'package:smartcart/features/estadisticas/presentation/bloc/estadisticas_bloc.dart';
+import 'package:smartcart/features/estadisticas/presentation/widgets/panel_estadisticas.dart';
 
 class AdminHomeScreen extends StatelessWidget {
   final ValueChanged<int>? onTab;
@@ -11,19 +13,27 @@ class AdminHomeScreen extends StatelessWidget {
   /// HU-24: abre la lista de comercios y repartidores pendientes.
   final VoidCallback? onAbrirAprobaciones;
 
+  /// HU-28: las cifras del panel; las consulta el `RolShell`.
+  final EstadisticasState? estadisticas;
+  final VoidCallback? onReintentar;
+
   const AdminHomeScreen({
     super.key,
     this.onTab,
     required this.nombre,
     this.onAbrirAprobaciones,
+    this.estadisticas,
+    this.onReintentar,
   });
 
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.admin;
+    final datos = estadisticas?.datos;
+    final pendientes = datos?.solicitudesPendientes ?? 0;
     return PantallaRol(
       tema: t,
-      navItems: navAdmin(),
+      navItems: navAdmin(pendientes: pendientes),
       tabActiva: 0,
       onTab: onTab,
       barraSuperior: BarraMarca(
@@ -42,68 +52,12 @@ class AdminHomeScreen extends StatelessWidget {
               style: TextStyle(fontSize: 14, color: t.textoGris)),
           const SizedBox(height: 18),
 
-          // ══ KPIs ══
-          const Row(
-            children: [
-              Expanded(
-                child: TarjetaMetrica(
-                  icono: Icons.people_outline,
-                  valor: '12.480',
-                  etiqueta: 'Usuarios activos',
-                  nota: '+4% esta semana',
-                  centrada: false,
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: TarjetaMetrica(
-                  icono: Icons.receipt_long_outlined,
-                  valor: '1.326',
-                  etiqueta: 'Pedidos hoy',
-                  nota: '+9% vs ayer',
-                  centrada: false,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Row(
-            children: [
-              Expanded(
-                child: TarjetaMetrica(
-                  icono: Icons.storefront_outlined,
-                  valor: '342',
-                  etiqueta: 'Comercios',
-                  centrada: false,
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: TarjetaMetrica(
-                  icono: Icons.two_wheeler,
-                  valor: '87',
-                  etiqueta: 'Repartidores en línea',
-                  centrada: false,
-                ),
-              ),
-            ],
+          // ══ CIFRAS (HU-28) ══
+          PanelEstadisticas(
+            estado: estadisticas,
+            onReintentar: onReintentar,
           ),
           const SizedBox(height: 18),
-
-          // ══ ESTADO DEL SISTEMA ══
-          TarjetaEstadoSistema(
-            servicios: const [
-              ServicioSistema('API principal', '48 ms latencia', EstadoServicio.operativo,
-                  icono: Icons.cloud_outlined),
-              ServicioSistema('Pasarela de pagos', '120 ms latencia',
-                  EstadoServicio.operativo,
-                  icono: Icons.credit_card),
-              ServicioSistema('Notificaciones push', '310 ms latencia',
-                  EstadoServicio.degradado,
-                  icono: Icons.notifications_none),
-            ],
-            onVerHistorial: () => mostrarProximamente(context),
-          ),
 
           // ══ ACCESOS RÁPIDOS ══
           const TituloSeccion(
@@ -114,6 +68,7 @@ class AdminHomeScreen extends StatelessWidget {
             icono: Icons.check_circle_outline,
             titulo: 'Aprobaciones',
             subtitulo: 'Comercios y repartidores pendientes',
+            contador: pendientes,
             onTap: onAbrirAprobaciones,
           ),
           const SizedBox(height: 12),
@@ -140,13 +95,15 @@ class AdminHomeScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // ══ ACCIÓN REQUERIDA ══
-          AvisoDestacado(
-            icono: Icons.assignment_late_outlined,
-            titulo: 'Acción Requerida',
-            descripcion: 'Revisa las solicitudes de comercios y repartidores '
-                'pendientes: no pueden operar hasta que las apruebes.',
-            onTap: onAbrirAprobaciones,
-          ),
+          // Con las cifras cargadas, el aviso solo sale si hay solicitudes.
+          if (datos == null || pendientes > 0)
+            AvisoDestacado(
+              icono: Icons.assignment_late_outlined,
+              titulo: 'Acción Requerida',
+              descripcion: 'Revisa las solicitudes de comercios y repartidores '
+                  'pendientes: no pueden operar hasta que las apruebes.',
+              onTap: onAbrirAprobaciones,
+            ),
         ],
       ),
     );

@@ -25,6 +25,7 @@ import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
 import 'package:smartcart/features/session/ui/bloc/session_state.dart';
+import 'package:smartcart/features/estadisticas/presentation/bloc/estadisticas_bloc.dart';
 
 /// Aloja el Home y el Perfil del perfil con el que entró la persona y alterna
 /// entre ellos según la pestaña tocada. Las demás pestañas no tienen pantalla
@@ -47,12 +48,17 @@ class RolShell extends StatefulWidget {
   /// pantalla no está disponible.
   final ClienteBlocs Function()? crearCliente;
 
+  /// HU-28: crea las estadísticas del panel del administrador. Sin él el
+  /// panel muestra "No hay información disponible".
+  final EstadisticasBloc Function()? crearEstadisticas;
+
   const RolShell({
     super.key,
     required this.rol,
     required this.profile,
     this.crearMisReportes,
     this.crearCliente,
+    this.crearEstadisticas,
   });
 
   @override
@@ -71,17 +77,27 @@ class _RolShellState extends State<RolShell> {
   /// aquí; las pantallas del cliente los reciben como argumento de la ruta.
   ClienteBlocs? _cliente;
 
+  /// HU-28: las cifras del panel. Se vuelven a consultar cada vez que se
+  /// abre el panel o se vuelve a él.
+  EstadisticasBloc? _estadisticas;
+
   @override
   void initState() {
     super.initState();
     _misReportes = widget.crearMisReportes?.call()?..add(PaginatedStarted());
     _cliente = widget.crearCliente?.call()?..iniciar();
+    _estadisticas = widget.crearEstadisticas?.call();
+    _consultarEstadisticas();
   }
+
+  void _consultarEstadisticas() =>
+      _estadisticas?.add(EstadisticasSolicitadas());
 
   @override
   void dispose() {
     _misReportes?.close();
     _cliente?.cerrar();
+    _estadisticas?.close();
     super.dispose();
   }
 
@@ -141,6 +157,7 @@ class _RolShellState extends State<RolShell> {
       return;
     }
     setState(() => _enPerfil = perfil);
+    if (!perfil) _consultarEstadisticas();
   }
 
   /// HU-06: abre el onboarding y, si la persona activó el modo, se queda con
@@ -153,9 +170,12 @@ class _RolShellState extends State<RolShell> {
     }
   }
 
-  /// HU-24: lista de comercios y repartidores pendientes de aprobación.
-  void _abrirAprobaciones() =>
-      Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+  /// HU-24: lista de comercios y repartidores pendientes de aprobación. Al
+  /// volver, las cifras del panel (HU-28) reflejan las decisiones.
+  Future<void> _abrirAprobaciones() async {
+    await Navigator.of(context).pushNamed(AppRoutes.adminSolicitudes);
+    if (mounted) _consultarEstadisticas();
+  }
 
   /// HU-17: el carrito, la exploración y los favoritos del cliente. Las
   /// pantallas reciben el carrito y los favoritos como argumento de la ruta.
@@ -334,13 +354,28 @@ class _RolShellState extends State<RolShell> {
           profile: p,
           comercio: c,
           onReportesComunidad: _abrirReportesComunidad)),
-      (RolTema.admin, false) => AdminHomeScreen(
-          onTab: _onTab,
-          nombre: p.fullName,
-          onAbrirAprobaciones: _abrirAprobaciones),
+      (RolTema.admin, false) => _conEstadisticas(p.fullName),
       (RolTema.admin, true) =>
         AdminPerfilScreen(onTab: _onTab, onCerrarSesion: _salir, profile: p),
     };
+  }
+
+  /// Panel del administrador con las cifras reales (HU-28).
+  Widget _conEstadisticas(String nombre) {
+    Widget panel(EstadisticasState? estado) => AdminHomeScreen(
+          onTab: _onTab,
+          nombre: nombre,
+          onAbrirAprobaciones: _abrirAprobaciones,
+          estadisticas: estado,
+          onReintentar: _consultarEstadisticas,
+        );
+
+    final bloc = _estadisticas;
+    if (bloc == null) return panel(null);
+    return BlocBuilder<EstadisticasBloc, EstadisticasState>(
+      bloc: bloc,
+      builder: (context, estado) => panel(estado),
+    );
   }
 
   /// Home del repartidor con su disponibilidad real (la guarda

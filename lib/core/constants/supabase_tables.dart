@@ -49,6 +49,10 @@ class SupabaseFunctions {
   /// comercios aprobados. Ver docs/sql/sprint3_hu18.sql.
   static const ofertasDelCarrito = 'ofertas_del_carrito';
 
+  /// HU-28: las cifras del panel del administrador, solo para él.
+  /// Ver docs/sql/sprint3_hu28.sql.
+  static const estadisticasPanel = 'estadisticas_panel';
+
   /// HU-14: guarda un reporte de precio pendiente si el colaborador está en
   /// el establecimiento.
   static const enviarReportePrecio = 'enviar_reporte_precio';
@@ -234,6 +238,18 @@ class SupabaseColumns {
   static const ofertaCarritoComercio = 'id_comercio';
   static const ofertaCalificacion = 'calificacion';
   static const ofertaTotalCalificaciones = 'total_calificaciones';
+
+  // Claves del JSON que devuelve estadisticas_panel (HU-28)
+  static const estadisticaUsuariosPorRol = 'usuarios_por_rol';
+  static const estadisticaComerciosPorEstado = 'comercios_por_estado';
+  static const estadisticaRepartidoresAprobados = 'repartidores_aprobados';
+  static const estadisticaRepartidoresEnLinea = 'repartidores_en_linea';
+  static const estadisticaSolicitudesComercio = 'solicitudes_comercio';
+  static const estadisticaSolicitudesRepartidor = 'solicitudes_repartidor';
+  static const estadisticaReportesPendientes = 'reportes_precio_pendientes';
+  static const estadisticaOrdenes = 'ordenes';
+  static const estadisticaOrdenesHoy = 'hoy';
+  static const estadisticaOrdenesPorEstado = 'por_estado';
 
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';
