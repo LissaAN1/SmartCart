@@ -27,6 +27,11 @@ import 'package:smartcart/features/busqueda/presentation/pages/busqueda_page.dar
 import 'package:smartcart/features/busqueda/presentation/pages/detalle_producto_page.dart';
 import 'package:smartcart/features/busqueda/presentation/pages/escaner_page.dart';
 import 'package:smartcart/features/catalog/presentation/bloc/inventario_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/detalle_orden_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/ordenes_cliente_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/push_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/pages/detalle_orden_page.dart';
+import 'package:smartcart/features/seguimiento/presentation/widgets/avisos_push.dart';
 import 'package:smartcart/features/prices/presentation/bloc/precio_producto_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/bloc/colaborador_onboarding_bloc.dart';
 import 'package:smartcart/features/colaborador/presentation/pages/colaborador_home_screen.dart';
@@ -129,26 +134,33 @@ abstract final class AppRouter {
               create: (_) =>
                   sl<NotificacionesBloc>()..add(NotificacionesStarted()),
             ),
+            // HU-23: el cliente recibe push cuando cambia el estado de su
+            // orden.
+            if (args.role == UserRole.cliente)
+              BlocProvider(create: (_) => sl<PushBloc>()..add(PushIniciado())),
           ],
           child: AvisoNotificaciones(
-            child: RolShell(
-              rol: args.role,
-              profile: args.profile,
-              // HU-14: el Home del colaborador muestra sus últimos reportes
-              // reales (los más recientes).
-              // HU-17: el carrito y los favoritos del cliente, compartidos por
-              // todas sus pantallas.
-              crearCliente: args.role == UserRole.cliente
-                  ? () => ClienteBlocs(
-                        carrito: sl<CarritoBloc>(),
-                        favoritos: sl<FavoritosBloc>(),
-                      )
-                  : null,
-              crearMisReportes: args.role == UserRole.colaborador
-                  ? () => sl<PaginatedBloc<MiReporte>>(
-                        param1: ColaboradorHomeScreen.reportesEnHome,
-                      )
-                  : null,
+            child: _conPushSiCliente(
+              args.role,
+              RolShell(
+                rol: args.role,
+                profile: args.profile,
+                // HU-14: el Home del colaborador muestra sus últimos reportes
+                // reales (los más recientes).
+                // HU-17: el carrito y los favoritos del cliente, compartidos por
+                // todas sus pantallas.
+                crearCliente: args.role == UserRole.cliente
+                    ? () => ClienteBlocs(
+                          carrito: sl<CarritoBloc>(),
+                          favoritos: sl<FavoritosBloc>(),
+                        )
+                    : null,
+                crearMisReportes: args.role == UserRole.colaborador
+                    ? () => sl<PaginatedBloc<MiReporte>>(
+                          param1: ColaboradorHomeScreen.reportesEnHome,
+                        )
+                    : null,
+              ),
             ),
           ),
         ),
@@ -257,9 +269,24 @@ abstract final class AppRouter {
             child: const ConfirmarCompraPage(),
           ),
         ),
-      AppRoutes.misOrdenes => BlocProvider(
-          create: (_) => sl<PaginatedBloc<Orden>>()..add(PaginatedStarted()),
+      // HU-23: pestañas "En curso" / "Historial" y cuántas hay en curso.
+      AppRoutes.misOrdenes => MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) =>
+                  sl<PaginatedBloc<Orden>>()..add(PaginatedStarted()),
+            ),
+            BlocProvider(
+              create: (_) =>
+                  sl<ConteoOrdenesBloc>()..add(ConteoOrdenesPedido()),
+            ),
+          ],
           child: const MisOrdenesPage(),
+        ),
+      AppRoutes.detalleOrden when args is String => BlocProvider(
+          create: (_) =>
+              sl<DetalleOrdenBloc>(param1: args)..add(DetalleOrdenStarted()),
+          child: const DetalleOrdenPage(),
         ),
       // HU-25: calificar al comercio o al repartidor.
       AppRoutes.calificarOrden when args is CalificarOrdenArgs => BlocProvider(
@@ -399,8 +426,10 @@ abstract final class AppRouter {
       AppRoutes.reporteEscaner ||
       AppRoutes.escaner =>
         MaterialPageRoute<String>(builder: (_) => page, settings: settings),
-      // Calificar devuelve `true` si se envió, para que la lista se relea.
-      AppRoutes.calificarOrden =>
+      // Calificar devuelve `true` si se envió, y el detalle de una orden si
+      // se confirmó: así la lista se relee.
+      AppRoutes.calificarOrden ||
+      AppRoutes.detalleOrden =>
         MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
       // El detalle de una solicitud devuelve la decisión tomada.
       AppRoutes.adminSolicitudDetalle => MaterialPageRoute<ApprovalStatus>(
@@ -411,6 +440,11 @@ abstract final class AppRouter {
 
   /// Entrega el carrito y los favoritos del cliente a una pantalla con
   /// `BlocProvider.value`: ya los creó el `RolShell`, que es quien los cierra.
+  /// HU-23: solo el Home del cliente escucha las notificaciones push (el
+  /// `PushBloc` solo se crea para el cliente).
+  static Widget _conPushSiCliente(UserRole rol, Widget home) =>
+      rol == UserRole.cliente ? AvisosPush(child: home) : home;
+
   static Widget _conBlocsDelCliente(ClienteBlocs blocs, Widget pagina) {
     return MultiBlocProvider(
       providers: [

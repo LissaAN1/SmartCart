@@ -161,6 +161,15 @@ import 'package:smartcart/features/favoritos/presentation/bloc/favoritos_bloc.da
 import 'package:smartcart/features/login/ui/bloc/login_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
+import 'package:smartcart/features/seguimiento/data/repository/seguimiento_repository_impl.dart';
+import 'package:smartcart/features/seguimiento/data/source/firebase_notificaciones_push.dart';
+import 'package:smartcart/features/seguimiento/data/source/supabase_seguimiento_data_source.dart';
+import 'package:smartcart/features/seguimiento/domain/notificaciones_push.dart';
+import 'package:smartcart/features/seguimiento/domain/repository/seguimiento_repository.dart';
+import 'package:smartcart/features/seguimiento/domain/usecases/seguimiento_usecases.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/detalle_orden_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/ordenes_cliente_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/push_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Localizador de servicios (patrón Service Locator) de la app.
@@ -233,6 +242,14 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseComprasDataSource>(
     () => SupabaseComprasDataSource(client: sl()),
   );
+  // HU-23: seguimiento de órdenes y notificaciones push. Solo esta línea
+  // conoce Firebase.
+  sl.registerLazySingleton<SupabaseSeguimientoDataSource>(
+    () => SupabaseSeguimientoDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<NotificacionesPush>(
+    () => FirebaseNotificacionesPush(),
+  );
   sl.registerLazySingleton<SupabaseCalificacionesDataSource>(
     () => SupabaseCalificacionesDataSource(client: sl()),
   );
@@ -294,6 +311,12 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<ComprasRepository>(
     () => ComprasRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<SeguimientoRepository>(
+    () => SeguimientoRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<DispositivosRepository>(
+    () => DispositivosRepositoryImpl(dataSource: sl()),
   );
   sl.registerLazySingleton<CalificacionesRepository>(
     () => CalificacionesRepositoryImpl(dataSource: sl()),
@@ -483,6 +506,23 @@ void setupDependencies() {
   sl.registerLazySingleton(
     () => GetMisOrdenesUseCase(cliente: sl(), compras: sl()),
   );
+  // HU-23: seguimiento de órdenes y push.
+  sl.registerLazySingleton(
+    () => GetOrdenesClienteUseCase(cliente: sl(), seguimiento: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ContarOrdenesEnCursoUseCase(cliente: sl(), seguimiento: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetDetalleOrdenUseCase(cliente: sl(), seguimiento: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ConfirmarRecepcionUseCase(cliente: sl(), seguimiento: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ActivarNotificacionesPushUseCase(
+        auth: sl(), push: sl(), dispositivos: sl()),
+  );
   // HU-25: calificar una orden completada.
   sl.registerLazySingleton(
     () => CalificarOrdenUseCase(cliente: sl(), calificaciones: sl()),
@@ -641,12 +681,16 @@ void setupDependencies() {
       ubicacion: sl(),
     ),
   );
+  // HU-23: "Mis órdenes" con las pestañas "En curso" e "Historial".
   sl.registerFactory<PaginatedBloc<Orden>>(
-    () => PaginatedBloc<Orden>(
-      fetchPage: sl<GetMisOrdenesUseCase>().call,
-      errorMessageFor: mensajeDeFallo,
-    ),
+    () => OrdenesClienteBloc(ordenes: sl()),
   );
+  sl.registerFactory(() => ConteoOrdenesBloc(contar: sl()));
+  sl.registerFactoryParam<DetalleOrdenBloc, String, void>(
+    (idOrden, _) =>
+        DetalleOrdenBloc(idOrden: idOrden, detalle: sl(), confirmar: sl()),
+  );
+  sl.registerFactory(() => PushBloc(activar: sl(), push: sl()));
   // HU-25: la orden y a quién se califica llegan de la pantalla.
   sl.registerFactoryParam<CalificarOrdenBloc, String, TipoCalificacion>(
     (idOrden, tipo) => CalificarOrdenBloc(

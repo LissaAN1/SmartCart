@@ -77,8 +77,12 @@ abstract final class AppRoutes {
   /// Recibe un `ClienteBlocs` (la compra vacía el carrito).
   static const confirmarCompra = '/cliente/compra';
 
-  /// HU-20: las órdenes del cliente (lista paginada).
+  /// HU-20 y HU-23: las órdenes del cliente ("En curso" e "Historial").
   static const misOrdenes = '/cliente/ordenes';
+
+  /// HU-23: el detalle de una orden. Recibe el id (`String`) y devuelve
+  /// `true` si el cliente la confirmó (la lista debe recargarse).
+  static const detalleOrden = '/cliente/ordenes/detalle';
 
   /// HU-25: calificar al comercio o al repartidor de una orden completada.
   /// Recibe un `CalificarOrdenArgs` y devuelve `true` si se envió.

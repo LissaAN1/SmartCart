@@ -111,6 +111,14 @@ import 'package:smartcart/features/reportes/domain/usecases/validacion_usecases.
 import 'package:smartcart/features/reportes/presentation/bloc/accion_reporte_bloc.dart';
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
+import 'package:smartcart/features/seguimiento/data/repository/seguimiento_repository_impl.dart';
+import 'package:smartcart/features/seguimiento/data/source/firebase_notificaciones_push.dart';
+import 'package:smartcart/features/seguimiento/domain/notificaciones_push.dart';
+import 'package:smartcart/features/seguimiento/domain/repository/seguimiento_repository.dart';
+import 'package:smartcart/features/seguimiento/domain/usecases/seguimiento_usecases.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/detalle_orden_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/ordenes_cliente_bloc.dart';
+import 'package:smartcart/features/seguimiento/presentation/bloc/push_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smartcart/features/comparacion/data/repository/comparacion_repository_impl.dart';
 import 'package:smartcart/features/comparacion/domain/repository/comparacion_repository.dart';
@@ -610,6 +618,26 @@ void main() {
     expect(identical(sl<ComparacionBloc>(), sl<ComparacionBloc>()), isFalse);
     expect(identical(sl<PreciosCarritoBloc>(), sl<PreciosCarritoBloc>()),
         isFalse);
+  });
+
+  test('HU-23: seguimiento de órdenes y push con los tipos del contrato', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<SeguimientoRepository>(), isA<SeguimientoRepositoryImpl>());
+    expect(sl<DispositivosRepository>(), isA<DispositivosRepositoryImpl>());
+    // Solo el inyector conoce Firebase.
+    expect(sl<NotificacionesPush>(), isA<FirebaseNotificacionesPush>());
+    expect(sl<ConfirmarRecepcionUseCase>(), same(sl<ConfirmarRecepcionUseCase>()));
+    expect(sl.isRegistered<ActivarNotificacionesPushUseCase>(), isTrue);
+    // "Mis órdenes" ahora tiene pestañas.
+    expect(sl<PaginatedBloc<Orden>>(), isA<OrdenesClienteBloc>());
+    expect(sl<ConteoOrdenesBloc>(), isNot(same(sl<ConteoOrdenesBloc>())));
+    expect(sl<DetalleOrdenBloc>(param1: 'o1').idOrden, 'o1');
+    expect(sl.isRegistered<PushBloc>(), isTrue);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {
