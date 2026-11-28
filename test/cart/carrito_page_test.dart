@@ -6,9 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/cart/presentation/pages/carrito_page.dart';
 import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
 
 import '../support/fakes.dart';
 import '../support/fakes_cliente.dart';
+import '../support/fakes_comparacion.dart';
 import '../support/pump_helpers.dart';
 
 /// Monta el carrito con las mismas rutas de apoyo que el resto de pruebas:
@@ -23,6 +25,8 @@ Future<(TestEnv, ClienteBlocs)> _pump(
   prepare?.call(env);
   final blocs = env.clienteBlocs();
   addTearDown(blocs.cerrar);
+  final precios = env.preciosCarritoBloc()..add(PreciosCarritoSolicitados());
+  addTearDown(precios.close);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -31,6 +35,7 @@ Future<(TestEnv, ClienteBlocs)> _pump(
         providers: [
           BlocProvider.value(value: blocs.carrito),
           BlocProvider.value(value: blocs.favoritos),
+          BlocProvider.value(value: precios),
         ],
         child: const CarritoPage(),
       ),

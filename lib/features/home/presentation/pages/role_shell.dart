@@ -175,6 +175,10 @@ class _RolShellState extends State<RolShell> {
     );
   }
 
+  /// HU-18: comparación del carrito completo.
+  void _abrirComparacion() => Navigator.of(context)
+      .pushNamed(AppRoutes.comparacion, arguments: _cliente);
+
   /// HU-19: ubicación, radio y comercios cercanos del cliente.
   void _abrirMapa() => Navigator.of(context).pushNamed(AppRoutes.mapaComercios);
 
@@ -294,6 +298,7 @@ class _RolShellState extends State<RolShell> {
               onAbrirExplorar: _cliente == null ? null : _abrirExplorar,
               onBuscar: _cliente == null ? null : _abrirBusqueda,
               onAbrirMapa: _cliente == null ? null : _abrirMapa,
+              onComparar: _cliente == null ? null : _abrirComparacion,
             )),
       (RolTema.cliente, true) => _conCarrito((itemsCarrito) =>
           ClientePerfilScreen(

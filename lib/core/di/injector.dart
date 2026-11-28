@@ -108,6 +108,12 @@ import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimie
 import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/comparacion/data/repository/comparacion_repository_impl.dart';
+import 'package:smartcart/features/comparacion/data/source/supabase_comparacion_data_source.dart';
+import 'package:smartcart/features/comparacion/domain/repository/comparacion_repository.dart';
+import 'package:smartcart/features/comparacion/domain/usecases/comparacion_usecases.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/comparacion_bloc.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
 import 'package:smartcart/features/ubicacion/data/repository/ubicacion_cliente_repository_impl.dart';
 import 'package:smartcart/features/ubicacion/data/source/geocoding_geocodificador.dart';
 import 'package:smartcart/features/ubicacion/data/source/geolocator_servicio_ubicacion.dart';
@@ -239,6 +245,10 @@ void setupDependencies() {
     () => SupabaseUbicacionClienteDataSource(client: sl()),
   );
   sl.registerLazySingleton<Geocodificador>(() => GeocodingGeocodificador());
+  // HU-18: ofertas del carrito para compararlo.
+  sl.registerLazySingleton<SupabaseComparacionDataSource>(
+    () => SupabaseComparacionDataSource(client: sl()),
+  );
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -289,6 +299,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<UbicacionClienteRepository>(
     () => UbicacionClienteRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<ComparacionRepository>(
+    () => ComparacionRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -414,6 +427,11 @@ void setupDependencies() {
   sl.registerLazySingleton(
     () => BuscarDireccionUseCase(geocodificador: sl()),
   );
+  // HU-18: comparación del carrito.
+  sl.registerLazySingleton(
+    () => GetOfertasCarritoUseCase(cliente: sl(), repositorio: sl()),
+  );
+  sl.registerLazySingleton(() => CompararCarritoUseCase());
   sl.registerLazySingleton(
     () => GetCarritoUseCase(cliente: sl(), carrito: sl()),
   );
@@ -532,6 +550,12 @@ void setupDependencies() {
 
   // HU-14: el reporte de precio y la ubicación no necesitan datos.
   sl.registerFactory(() => UbicacionBloc(obtener: sl()));
+  // HU-18: la comparación del carrito y los precios de la pantalla del
+  // carrito.
+  sl.registerFactory(
+    () => ComparacionBloc(ofertas: sl(), miUbicacion: sl(), comparar: sl()),
+  );
+  sl.registerFactory(() => PreciosCarritoBloc(ofertas: sl()));
   // HU-19: el mapa de comercios del cliente.
   sl.registerFactory(
     () => MapaComerciosBloc(
