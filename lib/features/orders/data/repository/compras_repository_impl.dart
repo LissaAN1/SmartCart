@@ -19,9 +19,14 @@ class ComprasRepositoryImpl implements ComprasRepository {
   @override
   Future<List<OrdenGenerada>> confirmar(
     List<LineaSolicitud> lineas,
-    Map<String, EleccionEntrega> elecciones,
-  ) =>
-      _dataSource.confirmar(lineas, elecciones);
+    Map<String, EleccionEntrega> elecciones, {
+    List<String>? quitarDelCarrito,
+  }) =>
+      _dataSource.confirmar(
+        lineas,
+        elecciones,
+        quitarDelCarrito: quitarDelCarrito,
+      );
 
   @override
   Future<PagedResult<Orden>> misOrdenes(PageRequest request) =>

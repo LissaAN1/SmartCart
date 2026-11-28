@@ -33,6 +33,8 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.misOrdenes => 'MIS ORDENES',
     AppRoutes.busqueda => 'BUSQUEDA',
     AppRoutes.mapaComercios => 'MAPA',
+    AppRoutes.comparacion => 'COMPARACION',
+    AppRoutes.comparacionDetalle => 'DETALLE ALTERNATIVA',
     AppRoutes.catalogoProducto => 'PRODUCTO NUEVO',
     AppRoutes.profileSelection => 'SELECTION',
     AppRoutes.onboarding => 'INICIO',

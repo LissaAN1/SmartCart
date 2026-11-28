@@ -6,12 +6,18 @@ import 'package:smartcart/features/orders/domain/entities/orden.dart';
 import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/orders/domain/entities/tipo_entrega.dart';
 import 'package:smartcart/features/orders/domain/usecases/compras_usecases.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/preferencia_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/ubicacion_cliente_usecases.dart';
 
 abstract class ConfirmarCompraEvent {}
 
-/// Armar el plan de compra con el carrito (al abrir la pantalla y al
-/// reintentar).
-class ConfirmarCompraStarted extends ConfirmarCompraEvent {}
+/// Armar el plan de compra (al abrir la pantalla y al reintentar), con el
+/// carrito o con la alternativa elegida en la comparación (HU-18).
+class ConfirmarCompraStarted extends ConfirmarCompraEvent {
+  final SeleccionCompra? seleccion;
+
+  ConfirmarCompraStarted([this.seleccion]);
+}
 
 /// El cliente eligió recogida o entrega para un comercio.
 class EntregaElegida extends ConfirmarCompraEvent {
@@ -21,13 +27,8 @@ class EntregaElegida extends ConfirmarCompraEvent {
   EntregaElegida(this.idComercio, this.tipo);
 }
 
-/// El cliente escribió o cambió la dirección de entrega de un comercio.
-class DireccionCambiada extends ConfirmarCompraEvent {
-  final String idComercio;
-  final String direccion;
-
-  DireccionCambiada(this.idComercio, this.direccion);
-}
+/// Volver a leer la ubicación guardada (al volver del mapa de la HU-19).
+class UbicacionRecargada extends ConfirmarCompraEvent {}
 
 /// El cliente presionó "Confirmar compra".
 class CompraConfirmada extends ConfirmarCompraEvent {}
@@ -40,6 +41,9 @@ class ConfirmarCompraState {
 
   /// Lo elegido por comercio (por id). Todos arrancan en recogida.
   final Map<String, EleccionEntrega> elecciones;
+
+  /// La ubicación guardada del cliente: el destino de las entregas.
+  final PreferenciaUbicacion? ubicacion;
 
   /// Error de la carga ([ConfirmarCompraStatus.falloCarga]).
   final String? errorMessage;
@@ -54,6 +58,7 @@ class ConfirmarCompraState {
     this.status = ConfirmarCompraStatus.cargando,
     this.plan,
     this.elecciones = const {},
+    this.ubicacion,
     this.errorMessage,
     this.aviso,
     this.comprobante,
@@ -63,7 +68,11 @@ class ConfirmarCompraState {
   String? get motivoBloqueo {
     final plan = this.plan;
     if (plan == null) return ComprasReglas.mensajeCarritoVacio;
-    return ComprasReglas.validar(plan, elecciones);
+    return ComprasReglas.validar(
+      plan,
+      elecciones,
+      tieneUbicacion: ubicacion != null,
+    );
   }
 
   bool get puedeConfirmar =>
@@ -73,6 +82,7 @@ class ConfirmarCompraState {
     ConfirmarCompraStatus? status,
     PlanCompra? plan,
     Map<String, EleccionEntrega>? elecciones,
+    PreferenciaUbicacion? ubicacion,
     String? errorMessage,
     AvisoUi? aviso,
     ComprobanteCompra? comprobante,
@@ -81,6 +91,7 @@ class ConfirmarCompraState {
       status: status ?? this.status,
       plan: plan ?? this.plan,
       elecciones: elecciones ?? this.elecciones,
+      ubicacion: ubicacion ?? this.ubicacion,
       errorMessage: errorMessage,
       aviso: aviso,
       comprobante: comprobante ?? this.comprobante,
@@ -94,19 +105,35 @@ class ConfirmarCompraBloc
     extends Bloc<ConfirmarCompraEvent, ConfirmarCompraState> {
   final GetPlanCompraUseCase _obtenerPlan;
   final ConfirmarCompraUseCase _confirmar;
+  final GetMiUbicacionUseCase _ubicacion;
+
+  /// La alternativa elegida; `null` si se confirma el carrito.
+  SeleccionCompra? _seleccion;
 
   int _avisos = 0;
 
   ConfirmarCompraBloc({
     required GetPlanCompraUseCase obtenerPlan,
     required ConfirmarCompraUseCase confirmar,
+    required GetMiUbicacionUseCase ubicacion,
   })  : _obtenerPlan = obtenerPlan,
         _confirmar = confirmar,
+        _ubicacion = ubicacion,
         super(const ConfirmarCompraState()) {
     on<ConfirmarCompraStarted>(_onStarted);
     on<EntregaElegida>(_onEntregaElegida);
-    on<DireccionCambiada>(_onDireccionCambiada);
+    on<UbicacionRecargada>(_onUbicacionRecargada);
     on<CompraConfirmada>(_onConfirmada);
+  }
+
+  /// Si no se puede leer, seguimos sin ella: la recogida no la necesita y la
+  /// entrega pide configurarla.
+  Future<PreferenciaUbicacion?> _leerUbicacion() async {
+    try {
+      return await _ubicacion();
+    } catch (_) {
+      return null;
+    }
   }
 
   String _mensaje(Object e) => e is AuthFailure
@@ -117,12 +144,14 @@ class ConfirmarCompraBloc
     ConfirmarCompraStarted event,
     Emitter<ConfirmarCompraState> emit,
   ) async {
+    _seleccion = event.seleccion ?? _seleccion;
     emit(const ConfirmarCompraState());
     try {
-      final plan = await _obtenerPlan();
+      final plan = await _obtenerPlan(_seleccion);
       emit(ConfirmarCompraState(
         status: ConfirmarCompraStatus.listo,
         plan: plan,
+        ubicacion: await _leerUbicacion(),
         elecciones: {
           for (final g in plan.registrados)
             g.idComercio!: EleccionEntrega.recogida,
@@ -141,32 +170,20 @@ class ConfirmarCompraBloc
     Emitter<ConfirmarCompraState> emit,
   ) {
     if (state.status != ConfirmarCompraStatus.listo) return;
-    final anterior = state.elecciones[event.idComercio];
     emit(state.copyWith(
       elecciones: {
         ...state.elecciones,
-        event.idComercio: EleccionEntrega(
-          tipo: event.tipo,
-          // Al volver a elegir entrega se conserva lo que ya se había escrito.
-          direccion: anterior?.direccion,
-        ),
+        event.idComercio: EleccionEntrega(tipo: event.tipo),
       },
     ));
   }
 
-  void _onDireccionCambiada(
-    DireccionCambiada event,
+  Future<void> _onUbicacionRecargada(
+    UbicacionRecargada event,
     Emitter<ConfirmarCompraState> emit,
-  ) {
-    if (state.status != ConfirmarCompraStatus.listo) return;
-    final anterior =
-        state.elecciones[event.idComercio] ?? EleccionEntrega.recogida;
-    emit(state.copyWith(
-      elecciones: {
-        ...state.elecciones,
-        event.idComercio: anterior.conDireccion(event.direccion),
-      },
-    ));
+  ) async {
+    final ubicacion = await _leerUbicacion();
+    if (ubicacion != null) emit(state.copyWith(ubicacion: ubicacion));
   }
 
   Future<void> _onConfirmada(
@@ -178,7 +195,11 @@ class ConfirmarCompraBloc
     if (plan == null || state.status != ConfirmarCompraStatus.listo) return;
     emit(state.copyWith(status: ConfirmarCompraStatus.confirmando));
     try {
-      final comprobante = await _confirmar(plan, state.elecciones);
+      final comprobante = await _confirmar(
+        plan,
+        state.elecciones,
+        quitarDelCarrito: _seleccion?.productosDelCarrito,
+      );
       emit(state.copyWith(
         status: ConfirmarCompraStatus.exito,
         comprobante: comprobante,

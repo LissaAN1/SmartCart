@@ -86,4 +86,8 @@ extension NavegacionCliente on BuildContext {
 
   Future<void> abrirExplorar() => Navigator.of(this)
       .pushNamed(AppRoutes.explorar, arguments: _clienteBlocs);
+
+  /// HU-18: la comparación del carrito completo.
+  Future<void> abrirComparacion() => Navigator.of(this)
+      .pushNamed(AppRoutes.comparacion, arguments: _clienteBlocs);
 }

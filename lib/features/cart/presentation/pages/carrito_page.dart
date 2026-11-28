@@ -6,14 +6,21 @@ import 'package:smartcart/core/ui/roles/roles_ui.dart';
 import 'package:smartcart/features/cart/domain/carrito_reglas.dart';
 import 'package:smartcart/features/cart/domain/entities/item_carrito.dart';
 import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
+import 'package:smartcart/core/utils/format_helpers.dart';
 import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
+import 'package:smartcart/features/comparacion/domain/valor_carrito.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
 
 /// HU-17: el carrito del cliente. Muestra cuántos productos hay, deja cambiar
 /// la cantidad de cada uno y quitarlos. El carrito está guardado en la base:
 /// al volver a abrir la app sigue ahí.
 ///
-/// Necesita un `CarritoBloc` y un `FavoritosBloc` arriba en el árbol (los da
-/// `AppRouter`; el segundo, para poder abrir la exploración desde aquí).
+/// HU-18: muestra el precio vigente de cada producto, su subtotal y el total,
+/// y abre la comparación del carrito.
+///
+/// Necesita un `CarritoBloc`, un `FavoritosBloc` y un `PreciosCarritoBloc`
+/// arriba en el árbol (los da `AppRouter`; el segundo, para poder abrir la
+/// exploración desde aquí).
 class CarritoPage extends StatelessWidget {
   const CarritoPage({super.key});
 
@@ -28,9 +35,22 @@ class CarritoPage extends StatelessWidget {
       ),
       cuerpo: BlocConsumer<CarritoBloc, CarritoState>(
         listenWhen: (previous, current) =>
-            current.aviso != null && current.aviso!.id != previous.aviso?.id,
+            (current.aviso != null &&
+                current.aviso!.id != previous.aviso?.id) ||
+            _productosCambiaron(previous, current),
         listener: (context, state) {
-          if (esPantallaActual(context)) mostrarAviso(context, state.aviso!);
+          final aviso = state.aviso;
+          if (aviso != null && esPantallaActual(context)) {
+            mostrarAviso(context, aviso);
+          }
+          // Un producto nuevo no tiene precio cargado: lo pedimos. Cambiar la
+          // cantidad no hace falta, el subtotal se calcula con la que se ve.
+          final precios = context.read<PreciosCarritoBloc>();
+          if (precios.state.status != PreciosCarritoStatus.cargando &&
+              state.items.any(
+                  (i) => !precios.state.precios.containsKey(i.idProducto))) {
+            precios.add(PreciosCarritoSolicitados());
+          }
         },
         builder: (context, state) {
           if (state.vacio) {
@@ -51,6 +71,12 @@ class CarritoPage extends StatelessWidget {
       ),
     );
   }
+}
+
+bool _productosCambiaron(CarritoState antes, CarritoState ahora) {
+  final a = antes.items.map((i) => i.idProducto).toSet();
+  final b = ahora.items.map((i) => i.idProducto).toSet();
+  return a.length != b.length || !a.containsAll(b);
 }
 
 class _FalloCarga extends StatelessWidget {
@@ -134,6 +160,7 @@ class _Lista extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = TemaRol.of(context);
+    final precios = context.watch<PreciosCarritoBloc>().state;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
@@ -148,8 +175,15 @@ class _Lista extends StatelessWidget {
             ),
           ),
         ),
-        for (final item in state.items) _LineaCarrito(item: item),
-        const SizedBox(height: 4),
+        for (final item in state.items)
+          _LineaCarrito(
+            item: item,
+            precio: precios.precios[item.idProducto],
+            cargando: precios.status == PreciosCarritoStatus.cargando ||
+                precios.status == PreciosCarritoStatus.initial,
+          ),
+        _Total(state: state, precios: precios),
+        const SizedBox(height: 12),
         BotonSuave(
           texto: 'Agregar más productos',
           icono: Icons.add,
@@ -173,7 +207,15 @@ class _Lista extends StatelessWidget {
 class _LineaCarrito extends StatelessWidget {
   final ItemCarrito item;
 
-  const _LineaCarrito({required this.item});
+  /// HU-18: el precio vigente del producto; `null` mientras carga.
+  final PrecioLinea? precio;
+  final bool cargando;
+
+  const _LineaCarrito({
+    required this.item,
+    this.precio,
+    this.cargando = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +257,8 @@ class _LineaCarrito extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12.5, color: t.textoGris),
             ),
+            if (precio != null || !cargando)
+              _PrecioDeLinea(precio: precio, cantidad: item.cantidad),
             Row(
               children: [
                 IconButton(
@@ -256,6 +300,129 @@ class _LineaCarrito extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// HU-18: "$ 4.900 c/u" con el subtotal de la línea, o por qué no se suma.
+class _PrecioDeLinea extends StatelessWidget {
+  final PrecioLinea? precio;
+  final int cantidad;
+
+  const _PrecioDeLinea({required this.precio, required this.cantidad});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    final p = precio;
+    final subtotal = p?.subtotal(cantidad);
+    if (p == null || subtotal == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Text(
+          p?.agotado == true
+              ? 'Agotado en este comercio'
+              : 'Sin precio publicado',
+          style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: ColoresEstado.ambar),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, right: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${formatoCop(p.precio!)} c/u${p.enPromocion ? ' · Promoción' : ''}',
+              style: TextStyle(fontSize: 13.5, color: t.textoGris),
+            ),
+          ),
+          Text(
+            formatoCop(subtotal),
+            style: TextStyle(
+                fontSize: 15.5, fontWeight: FontWeight.w800, color: t.texto),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// HU-18: el total del carrito con las cantidades que se ven y el botón para
+/// compararlo.
+class _Total extends StatelessWidget {
+  final CarritoState state;
+  final PreciosCarritoState precios;
+
+  const _Total({required this.state, required this.precios});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    final valor = ValorCarrito.de(state.items, precios.precios);
+    final cargando = precios.status == PreciosCarritoStatus.cargando ||
+        precios.status == PreciosCarritoStatus.initial;
+    return TarjetaSuave(
+      radio: 20,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Total estimado',
+                  style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: t.texto),
+                ),
+              ),
+              if (cargando && precios.precios.isEmpty)
+                const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+              else
+                Text(
+                  formatoCop(valor.total),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: t.primarioOscuro),
+                ),
+            ],
+          ),
+          if (precios.status == PreciosCarritoStatus.fallidos)
+            TextButton(
+              onPressed: () => context
+                  .read<PreciosCarritoBloc>()
+                  .add(PreciosCarritoSolicitados()),
+              child: Text(
+                  '${precios.errorMessage ?? 'No pudimos cargar los precios.'} Reintentar'),
+            )
+          else if (!cargando && valor.sinPrecio > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                valor.sinPrecio == 1
+                    ? '1 producto sin precio no se suma.'
+                    : '${valor.sinPrecio} productos sin precio no se suman.',
+                style: TextStyle(fontSize: 12.5, color: t.textoGris),
+              ),
+            ),
+          const SizedBox(height: 12),
+          BotonPrimario(
+            texto: 'Comparar carrito',
+            iconoFinal: Icons.compare_arrows,
+            onTap: () => context.abrirComparacion(),
+          ),
+        ],
       ),
     );
   }

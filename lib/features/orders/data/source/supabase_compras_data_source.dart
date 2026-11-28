@@ -33,8 +33,9 @@ class SupabaseComprasDataSource {
 
   Future<List<OrdenGenerada>> confirmar(
     List<LineaSolicitud> lineas,
-    Map<String, EleccionEntrega> elecciones,
-  ) {
+    Map<String, EleccionEntrega> elecciones, {
+    List<String>? quitarDelCarrito,
+  }) {
     return _proteger(() async {
       final rows = await _client.rpc(
         SupabaseFunctions.confirmarCompra,
@@ -42,13 +43,9 @@ class SupabaseComprasDataSource {
           'p_lineas': _lineasJson(lineas),
           'p_entregas': [
             for (final e in elecciones.entries)
-              {
-                'id_comercio': e.key,
-                'tipo': e.value.tipo.dbName,
-                if (e.value.tipo == TipoEntrega.entrega)
-                  'direccion': e.value.direccion?.trim(),
-              },
+              {'id_comercio': e.key, 'tipo': e.value.tipo.dbName},
           ],
+          'p_quitar_del_carrito': quitarDelCarrito,
         },
       ) as List<dynamic>;
       return [

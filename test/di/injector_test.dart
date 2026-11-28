@@ -112,6 +112,11 @@ import 'package:smartcart/features/reportes/presentation/bloc/accion_reporte_blo
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:smartcart/features/comparacion/data/repository/comparacion_repository_impl.dart';
+import 'package:smartcart/features/comparacion/domain/repository/comparacion_repository.dart';
+import 'package:smartcart/features/comparacion/domain/usecases/comparacion_usecases.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/comparacion_bloc.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
 import 'package:smartcart/features/ubicacion/data/repository/ubicacion_cliente_repository_impl.dart';
 import 'package:smartcart/features/ubicacion/data/source/geocoding_geocodificador.dart';
 import 'package:smartcart/features/ubicacion/domain/repository/geocodificador.dart';
@@ -587,6 +592,23 @@ void main() {
     expect(sl.isRegistered<GetComerciosEnRadioUseCase>(), isTrue);
     expect(sl.isRegistered<BuscarDireccionUseCase>(), isTrue);
     expect(identical(sl<MapaComerciosBloc>(), sl<MapaComerciosBloc>()),
+        isFalse);
+  });
+
+  test('HU-18: la comparación del carrito se arma con el repositorio real',
+      () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<ComparacionRepository>(), isA<ComparacionRepositoryImpl>());
+    expect(sl<GetOfertasCarritoUseCase>(),
+        same(sl<GetOfertasCarritoUseCase>()));
+    expect(sl.isRegistered<CompararCarritoUseCase>(), isTrue);
+    expect(identical(sl<ComparacionBloc>(), sl<ComparacionBloc>()), isFalse);
+    expect(identical(sl<PreciosCarritoBloc>(), sl<PreciosCarritoBloc>()),
         isFalse);
   });
 

@@ -9,10 +9,10 @@
 -- reales: rol `authenticated` + el id del usuario en request.jwt.claims.
 --
 -- Necesita en la base: un comercio APROBADO, una categoría y al menos 5
--- usuarios (el dueño de ese comercio y otros 4). Dentro de la transacción el
--- script crea: un segundo comercio (solo recogida), productos con precio, una
--- promoción, un producto agotado, el rol cliente para dos usuarios y el
--- carrito de uno de ellos.
+-- usuarios (el dueño de ese comercio, uno sin comercio y otros 3). Dentro de
+-- la transacción el script crea: un segundo comercio (solo recogida),
+-- productos con precio, una promoción, un producto agotado, el rol cliente
+-- para dos usuarios y el carrito de uno de ellos.
 -- =====================================================================
 
 begin;
@@ -65,23 +65,29 @@ select
   set_config('pruebas.categoria', coalesce((
     select k.id_categoria::text from public.categoria k limit 1), ''), true);
 
+-- El dueño del comercio B no puede tener ya un comercio.
+select set_config('pruebas.duenoB', coalesce((
+  select u.id_usuario::text from public.usuario u
+   where u.id_usuario::text <> current_setting('pruebas.duenoA')
+     and not exists (select 1 from public.comercio c where c.id_usuario = u.id_usuario)
+   order by u.id_usuario limit 1), ''), true);
+
 select
   set_config('pruebas.cli1', coalesce((
     select u.id_usuario::text from public.usuario u
-     where u.id_usuario::text <> current_setting('pruebas.duenoA')
+     where u.id_usuario::text not in
+           (current_setting('pruebas.duenoA'), current_setting('pruebas.duenoB'))
      order by u.id_usuario limit 1 offset 0), ''), true),
   set_config('pruebas.cli2', coalesce((
     select u.id_usuario::text from public.usuario u
-     where u.id_usuario::text <> current_setting('pruebas.duenoA')
+     where u.id_usuario::text not in
+           (current_setting('pruebas.duenoA'), current_setting('pruebas.duenoB'))
      order by u.id_usuario limit 1 offset 1), ''), true),
-  set_config('pruebas.duenoB', coalesce((
-    select u.id_usuario::text from public.usuario u
-     where u.id_usuario::text <> current_setting('pruebas.duenoA')
-     order by u.id_usuario limit 1 offset 2), ''), true),
   set_config('pruebas.rep', coalesce((
     select u.id_usuario::text from public.usuario u
-     where u.id_usuario::text <> current_setting('pruebas.duenoA')
-     order by u.id_usuario limit 1 offset 3), ''), true);
+     where u.id_usuario::text not in
+           (current_setting('pruebas.duenoA'), current_setting('pruebas.duenoB'))
+     order by u.id_usuario limit 1 offset 2), ''), true);
 
 do $$
 declare
@@ -102,7 +108,6 @@ begin
    where id_comercio = v_a::uuid;
 
   -- Comercio B (de duenoB): SOLO recogida.
-  delete from public.comercio where id_usuario = current_setting('pruebas.duenoB')::uuid;
   insert into public.comercio
     (id_usuario, nombre, telefono, direccion, ciudad,
      hora_apertura, hora_cierre, tipo_servicio, estado)
@@ -128,8 +133,11 @@ begin
     (v_pa2, 12000, true, 'comercio'),
     (v_pa3, 2000, false, 'comercio'),
     (v_pb1, 4000, true, 'comercio');
+  -- La promoción termina HOY en Colombia: debe valer.
   insert into public.promocion (id_producto, precio_promocional, fecha_inicio, fecha_fin)
-  values (v_pa2, 10000, current_date - 1, current_date + 1);
+  values (v_pa2, 10000,
+          (now() at time zone 'America/Bogota')::date - 1,
+          (now() at time zone 'America/Bogota')::date);
 
   perform set_config('pruebas.pa1', v_pa1::text, true);
   perform set_config('pruebas.pa2', v_pa2::text, true);
@@ -152,6 +160,11 @@ begin
    where id_usuario in (current_setting('pruebas.duenoA')::uuid,
                         current_setting('pruebas.duenoB')::uuid,
                         current_setting('pruebas.rep')::uuid);
+
+  -- Los clientes de prueba arrancan sin ubicación guardada.
+  delete from public.ubicacion_cliente
+   where id_usuario in (current_setting('pruebas.cli1')::uuid,
+                        current_setting('pruebas.cli2')::uuid);
 
   -- Carrito de cli1: arroz x2, aceite x1 (A) y leche x3 (B).
   delete from public.carrito_item where id_usuario = current_setting('pruebas.cli1')::uuid;
@@ -192,15 +205,15 @@ begin
   perform public.pruebas_falla(
     format($q$select * from public.confirmar_compra(%L::jsonb, %L::jsonb)$q$,
       v_lineas,
-      format('[{"id_comercio":"%s","tipo":"recogida"},{"id_comercio":"%s","tipo":"entrega","direccion":"Calle 9 # 9-9"}]', v_a, v_b)),
+      format('[{"id_comercio":"%s","tipo":"recogida"},{"id_comercio":"%s","tipo":"entrega"}]', v_a, v_b)),
     'no ofrece entrega', 'A3: no se elige entrega en un comercio que no la ofrece');
 
-  -- A4: la entrega exige dirección.
+  -- A4 (escenario 3): la entrega exige la ubicación guardada.
   perform public.pruebas_falla(
     format($q$select * from public.confirmar_compra(%L::jsonb, %L::jsonb)$q$,
       v_lineas,
       format('[{"id_comercio":"%s","tipo":"entrega"},{"id_comercio":"%s","tipo":"recogida"}]', v_a, v_b)),
-    'dirección de entrega', 'A4: una entrega sin dirección se rechaza');
+    'Configura tu ubicación', 'A4: una entrega sin ubicación guardada se rechaza');
 
   -- A5: falta elegir para un comercio.
   perform public.pruebas_falla(
@@ -249,13 +262,15 @@ declare
   v_a text := current_setting('pruebas.comercioA');
   v_b text := current_setting('pruebas.comercioB');
 begin
+  perform public.guardar_ubicacion_cliente(3.4516, -76.5320, 5000, 'Calle 9 # 9-9, Cali');
+
   -- B1 (escenario 1): dos comercios → una compra con dos órdenes.
   create temp table pruebas_resultado on commit drop as
   select * from public.confirmar_compra(
     format('[{"id_producto":"%s","cantidad":2},{"id_producto":"%s","cantidad":1},{"id_producto":"%s","cantidad":3}]',
       current_setting('pruebas.pa1'), current_setting('pruebas.pa2'),
       current_setting('pruebas.pb1'))::jsonb,
-    format('[{"id_comercio":"%s","tipo":"entrega","direccion":"Calle 9 # 9-9"},{"id_comercio":"%s","tipo":"recogida"}]', v_a, v_b)::jsonb);
+    format('[{"id_comercio":"%s","tipo":"entrega"},{"id_comercio":"%s","tipo":"recogida"}]', v_a, v_b)::jsonb);
 
   perform public.pruebas_ok(
     (select count(*) from pruebas_resultado) = 2
@@ -274,10 +289,12 @@ begin
 
   perform public.pruebas_ok(
     (select tipo_entrega from public.orden where id_comercio = v_a::uuid) = 'entrega'
-    and (select direccion_entrega from public.orden where id_comercio = v_a::uuid) = 'Calle 9 # 9-9'
+    and (select direccion_entrega from public.orden where id_comercio = v_a::uuid) = 'Calle 9 # 9-9, Cali'
+    and (select latitud_entrega from public.orden where id_comercio = v_a::uuid) = 3.4516
     and (select tipo_entrega from public.orden where id_comercio = v_b::uuid) = 'recogida'
-    and (select direccion_entrega from public.orden where id_comercio = v_b::uuid) is null,
-    'B4: cada orden guarda su recogida o entrega (con dirección solo en la entrega)');
+    and (select direccion_entrega from public.orden where id_comercio = v_b::uuid) is null
+    and (select latitud_entrega from public.orden where id_comercio = v_b::uuid) is null,
+    'B4: la entrega queda con la ubicación guardada como destino; la recogida no');
 
   perform public.pruebas_ok(
     (select count(*) from public.orden_item) = 3
@@ -540,8 +557,12 @@ begin
     'Solo el cliente de una orden', 'D14: solo el cliente de la orden puede calificarla');
 end $$;
 
--- Un segundo pedido al comercio A, calificado con 3: el promedio es 4.0.
+-- Un segundo pedido al comercio A, calificado con 3: el promedio es 4.0. Se
+-- confirma como una alternativa de la HU-18: se compra un producto y sale del
+-- carrito otro (el equivalente que el cliente tenía).
 reset role;
+insert into public.carrito_item (id_usuario, id_producto, cantidad)
+values (current_setting('pruebas.cli1')::uuid, current_setting('pruebas.pa2')::uuid, 1);
 select set_config('request.jwt.claims',
   json_build_object('sub', current_setting('pruebas.cli1'), 'role', 'authenticated')::text, true);
 set local role authenticated;
@@ -553,8 +574,12 @@ declare
 begin
   select o.id_orden into v_orden from public.confirmar_compra(
     format('[{"id_producto":"%s","cantidad":1}]', current_setting('pruebas.pa1'))::jsonb,
-    format('[{"id_comercio":"%s","tipo":"recogida"}]', current_setting('pruebas.comercioA'))::jsonb) o;
+    format('[{"id_comercio":"%s","tipo":"recogida"}]', current_setting('pruebas.comercioA'))::jsonb,
+    array[current_setting('pruebas.pa2')::uuid]) o;
   perform set_config('pruebas.ordenA2', v_orden::text, true);
+  perform public.pruebas_ok(
+    (select count(*) from public.carrito_item) = 0,
+    'B9: al confirmar una alternativa salen del carrito los productos que cubre');
 end $$;
 
 reset role;
@@ -584,6 +609,25 @@ begin
     and (select total_calificaciones from public.usuario
       where id_usuario = current_setting('pruebas.duenoA')::uuid) = 2,
     'D16: el promedio queda en la cuenta del comercio (lo que muestra su perfil)');
+end $$;
+
+
+-- El comercio no puede cambiar su propia calificación escribiendo la tabla.
+select set_config('request.jwt.claims',
+  json_build_object('sub', current_setting('pruebas.duenoA'), 'role', 'authenticated')::text, true);
+set local role authenticated;
+update public.usuario set calificacion_promedio = 5.0, total_calificaciones = 999
+ where id_usuario = current_setting('pruebas.duenoA')::uuid;
+
+reset role;
+do $$
+begin
+  perform public.pruebas_ok(
+    (select calificacion_promedio from public.usuario
+      where id_usuario = current_setting('pruebas.duenoA')::uuid) = 4.0
+    and (select total_calificaciones from public.usuario
+      where id_usuario = current_setting('pruebas.duenoA')::uuid) = 2,
+    'D17: nadie cambia su propia calificación escribiendo en usuario');
 end $$;
 
 

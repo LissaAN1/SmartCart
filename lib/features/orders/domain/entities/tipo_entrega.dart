@@ -17,18 +17,13 @@ enum TipoEntrega {
   }
 }
 
-/// Lo que el cliente eligió para un comercio: recogerla o que se la lleven y,
-/// en ese caso, adónde.
+/// Lo que el cliente eligió para un comercio: recogerla o que se la lleven.
+/// El destino de una entrega es la ubicación que tiene guardada (HU-19).
 class EleccionEntrega {
   final TipoEntrega tipo;
 
-  /// Solo se usa (y es obligatoria) con [TipoEntrega.entrega].
-  final String? direccion;
-
-  const EleccionEntrega({required this.tipo, this.direccion});
+  const EleccionEntrega({required this.tipo});
 
   static const recogida = EleccionEntrega(tipo: TipoEntrega.recogida);
-
-  EleccionEntrega conDireccion(String? nueva) =>
-      EleccionEntrega(tipo: tipo, direccion: nueva);
+  static const entrega = EleccionEntrega(tipo: TipoEntrega.entrega);
 }

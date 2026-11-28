@@ -67,6 +67,12 @@ abstract final class AppRoutes {
   /// favoritos. Recibe un `ClienteBlocs`.
   static const explorar = '/cliente/explorar';
 
+  /// HU-18: comparación del carrito completo. Recibe un `ClienteBlocs`.
+  static const comparacion = '/cliente/comparacion';
+
+  /// HU-18: detalle de una alternativa. Recibe un `AlternativaArgs`.
+  static const comparacionDetalle = '/cliente/comparacion/alternativa';
+
   /// HU-20: elegir recogida o entrega por comercio y confirmar la compra.
   /// Recibe un `ClienteBlocs` (la compra vacía el carrito).
   static const confirmarCompra = '/cliente/compra';

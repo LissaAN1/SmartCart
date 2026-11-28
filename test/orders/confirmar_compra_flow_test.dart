@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/cart/presentation/pages/carrito_page.dart';
 import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
 import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/orders/domain/entities/tipo_entrega.dart';
 import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_bloc.dart';
@@ -11,6 +12,7 @@ import 'package:smartcart/features/orders/presentation/pages/confirmar_compra_pa
 
 import '../support/fakes.dart';
 import '../support/fakes_cliente.dart';
+import '../support/fakes_comparacion.dart';
 import '../support/fakes_ordenes.dart';
 import '../support/pump_helpers.dart';
 
@@ -81,8 +83,8 @@ void main() {
       await bloc.close();
     });
 
-    test('elegir entrega exige dirección; escribirla habilita confirmar',
-        () async {
+    test('escenario 3: la entrega se bloquea sin ubicación y se habilita al '
+        'configurarla', () async {
       final env = TestEnv()..iniciarSesionComoClienteConCompras();
       env.llenarCarrito({'p1': 1});
       final bloc = env.confirmarCompraBloc()..add(ConfirmarCompraStarted());
@@ -91,20 +93,32 @@ void main() {
       bloc.add(EntregaElegida('c1', TipoEntrega.entrega));
       await Future<void>.delayed(Duration.zero);
       expect(bloc.state.puedeConfirmar, isFalse);
-      expect(bloc.state.motivoBloqueo, contains('dirección de entrega'));
+      expect(bloc.state.motivoBloqueo, contains('Configura tu ubicación'));
 
-      bloc.add(DireccionCambiada('c1', 'Calle 10 # 5-20'));
-      await Future<void>.delayed(Duration.zero);
+      env.guardarUbicacionDelCliente();
+      bloc.add(UbicacionRecargada());
+      await bloc.stream.firstWhere((s) => s.ubicacion != null);
       expect(bloc.state.puedeConfirmar, isTrue);
+      await bloc.close();
+    });
 
-      // Volver a recogida no pide dirección y al regresar a entrega se
-      // conserva la que ya estaba escrita.
-      bloc.add(EntregaElegida('c1', TipoEntrega.recogida));
-      await Future<void>.delayed(Duration.zero);
-      expect(bloc.state.puedeConfirmar, isTrue);
-      bloc.add(EntregaElegida('c1', TipoEntrega.entrega));
-      await Future<void>.delayed(Duration.zero);
-      expect(bloc.state.elecciones['c1']!.direccion, 'Calle 10 # 5-20');
+    test('con una alternativa compra sus productos y quita los del carrito '
+        'que cubre', () async {
+      final env = TestEnv()..iniciarSesionComoClienteConCompras();
+      env.llenarCarrito({'p2': 1});
+      final bloc = env.confirmarCompraBloc()
+        ..add(ConfirmarCompraStarted(const SeleccionCompra(
+          lineas: [LineaSolicitud(idProducto: 'p3', cantidad: 2)],
+          productosDelCarrito: ['p2'],
+        )));
+      final listo = await _hasta(bloc, ConfirmarCompraStatus.listo);
+      expect(listo.plan!.registrados.single.idComercio, 'c2');
+
+      bloc.add(CompraConfirmada());
+      await _hasta(bloc, ConfirmarCompraStatus.exito);
+
+      expect(env.ordenes.compras.ultimoQuitarDelCarrito, ['p2']);
+      expect(env.cliente.carrito.lineas, isEmpty);
       await bloc.close();
     });
 
@@ -177,14 +191,14 @@ void main() {
       expect(boton.onPressed, isNotNull);
     });
 
-    testWidgets('elegir entrega pide la dirección y bloquea hasta escribirla',
-        (tester) async {
+    testWidgets('escenario 3: sin ubicación la entrega pide configurarla y no '
+        'deja confirmar', (tester) async {
       await _pump(tester);
 
       await tester.tap(find.text('Entrega a domicilio'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Dirección de entrega'), findsOneWidget);
+      expect(find.text('Configurar ubicación'), findsOneWidget);
       expect(
         tester
             .widget<FilledButton>(
@@ -192,19 +206,29 @@ void main() {
             .onPressed,
         isNull,
       );
-      expect(find.text('Escribe la dirección de entrega para Minimercado La Esquina.'),
-          findsOneWidget);
 
-      await tester.enterText(find.byType(TextField), 'Calle 10 # 5-20');
+      await tester.tap(find.text('Configurar ubicación'));
+      await tester.pumpAndSettle();
+      expect(find.text('MAPA'), findsOneWidget);
+    });
+
+    testWidgets('con ubicación guardada la muestra como destino y deja '
+        'confirmar la entrega', (tester) async {
+      final (env, _, _) = await _pump(
+        tester,
+        prepare: (env) => env.guardarUbicacionDelCliente(
+            direccion: 'Calle 5 # 38-20, Cali'),
+      );
+
+      await tester.tap(find.text('Entrega a domicilio'));
       await tester.pumpAndSettle();
 
-      expect(
-        tester
-            .widget<FilledButton>(
-                find.widgetWithText(FilledButton, 'Confirmar compra'))
-            .onPressed,
-        isNotNull,
-      );
+      expect(find.text('Entrega en: Calle 5 # 38-20, Cali'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirmar compra'));
+      await tester.pumpAndSettle();
+
+      expect(env.ordenes.compras.ultimasElecciones!['c1']!.tipo,
+          TipoEntrega.entrega);
     });
 
     testWidgets(
@@ -221,6 +245,9 @@ void main() {
       expect(find.text('Minimercado La Esquina'), findsOneWidget);
       expect(find.text('Tienda Doña Rosa'), findsOneWidget);
       expect(env.ordenes.compras.ordenes.length, 2);
+      // La lista de compra por establecimiento.
+      expect(find.text('Lista de compra'), findsNWidgets(2));
+      expect(find.text('• 2 × Arroz blanco 500 g'), findsOneWidget);
 
       // La compra sacó los productos del carrito y el CarritoBloc se releyó.
       expect(env.cliente.carrito.lineas, isEmpty);
@@ -321,6 +348,9 @@ void main() {
       final blocs = env.clienteBlocs();
       addTearDown(blocs.cerrar);
 
+      final precios = env.preciosCarritoBloc()..add(PreciosCarritoSolicitados());
+      addTearDown(precios.close);
+
       await tester.pumpWidget(
         MaterialApp(
           onGenerateRoute: stubRoutes,
@@ -328,6 +358,7 @@ void main() {
             providers: [
               BlocProvider.value(value: blocs.carrito),
               BlocProvider.value(value: blocs.favoritos),
+              BlocProvider.value(value: precios),
             ],
             child: const CarritoPage(),
           ),
@@ -344,6 +375,9 @@ void main() {
       final blocs = env.clienteBlocs();
       addTearDown(blocs.cerrar);
 
+      final precios = env.preciosCarritoBloc()..add(PreciosCarritoSolicitados());
+      addTearDown(precios.close);
+
       await tester.pumpWidget(
         MaterialApp(
           onGenerateRoute: stubRoutes,
@@ -351,6 +385,7 @@ void main() {
             providers: [
               BlocProvider.value(value: blocs.carrito),
               BlocProvider.value(value: blocs.favoritos),
+              BlocProvider.value(value: precios),
             ],
             child: const CarritoPage(),
           ),

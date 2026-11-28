@@ -8,20 +8,20 @@ import 'package:smartcart/features/orders/domain/entities/tipo_entrega.dart';
 /// funciones puras para avisar rápido en la pantalla y probarlas. Si cambias
 /// una, cámbiala en los dos lados.
 abstract final class ComprasReglas {
-  /// Largo mínimo de la dirección de entrega.
-  static const direccionMinima = 5;
-
   static const mensajeCarritoVacio =
       'Tu carrito está vacío. Agrega productos para confirmar la compra.';
   static const mensajeNoDisponibles =
       'Hay productos agotados o sin precio. Quítalos del carrito para continuar.';
+  static const mensajeSinUbicacion =
+      'Configura tu ubicación antes de pedir entrega a domicilio.';
 
   /// Si [plan] y las [elecciones] (por id de comercio) permiten confirmar la
   /// compra, devuelve `null`; si no, el motivo.
   static String? validar(
     PlanCompra plan,
-    Map<String, EleccionEntrega> elecciones,
-  ) {
+    Map<String, EleccionEntrega> elecciones, {
+    bool tieneUbicacion = false,
+  }) {
     if (plan.estaVacio) return mensajeCarritoVacio;
     if (plan.hayNoDisponibles) return mensajeNoDisponibles;
 
@@ -34,13 +34,9 @@ abstract final class ComprasReglas {
       if (!grupo.ofreceEntrega) {
         return '${grupo.establecimiento} no ofrece entrega. Elige recogida.';
       }
-      if (!direccionValida(eleccion.direccion)) {
-        return 'Escribe la dirección de entrega para ${grupo.establecimiento}.';
-      }
+      // La ubicación guardada es el destino de la entrega.
+      if (!tieneUbicacion) return mensajeSinUbicacion;
     }
     return null;
   }
-
-  static bool direccionValida(String? direccion) =>
-      (direccion ?? '').trim().length >= direccionMinima;
 }

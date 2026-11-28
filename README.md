@@ -27,6 +27,9 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 
 | HU | Título | Estado |
 |---|---|---|
+| **HU-18** | **Alternativas de carrito según el criterio** | **Implementada en la rama `feat/hu18-alternativas-carrito` y probada con dobles (981 pruebas en total). El SQL ya se ejecutó en Supabase y sus 10 pruebas dan `OK`. Falta probarla en Android. El criterio Calidad/precio queda listo y se cierra con las calificaciones de la HU-25.** Ver [docs/HU18_informe_implementacion.md](docs/HU18_informe_implementacion.md) y [docs/HU18_informe_pruebas.md](docs/HU18_informe_pruebas.md) |
+| **HU-20** | **Confirmación del carrito y generación de órdenes** | **Implementada e integrada con la HU-18 y la HU-19, probada con dobles. El SQL ya se ejecutó en Supabase y sus 48 pruebas dan `OK`. Falta probarla en Android.** Ver [docs/HU20_HU25_informe_implementacion.md](docs/HU20_HU25_informe_implementacion.md) |
+| **HU-25** | **Calificaciones de comercios y repartidores** | **Implementada y probada con dobles; su SQL (el mismo de la HU-20) ya se ejecutó en Supabase y sus pruebas dan `OK`. Calificar necesita órdenes completadas (HU-21 y HU-22).** |
 | **HU-19** | **Ubicación, radio de búsqueda y mapa** | **Implementada en la rama `feat/hu19-ubicacion-mapa` y probada con dobles (933 pruebas en total). El SQL ya se ejecutó en Supabase y sus 16 pruebas de políticas dan `OK`. Falta probarla en Android.** Ver [docs/HU19_informe_implementacion.md](docs/HU19_informe_implementacion.md) y [docs/HU19_informe_pruebas.md](docs/HU19_informe_pruebas.md) |
 
 **Para probar las diez historias en orden**, seguir el [recorrido para probar el Sprint 2](#recorrido-para-probar-el-sprint-2).
@@ -219,7 +222,7 @@ Se prueba con una cuenta de **Cliente** (por ejemplo `adri@gmail.com`) y necesit
 4. **Comprobar que se guarda.** Cerrar la app por completo y volver a abrirla con la misma cuenta: el carrito y los favoritos siguen ahí.
 5. **Ver lo guardado.** En el SQL Editor: `select * from public.carrito_item;`, `select * from public.favorito_producto;` y `select * from public.favorito_comercio;`.
 
-El carrito muestra productos y cantidades, sin precios ni totales: la HU-11 ya guarda los precios, pero esta historia no los lee (el total y la comparación son de la HU-18).
+Desde la HU-18 el carrito también muestra el precio de cada producto, su subtotal y el total (ver [Probar la comparación del carrito](#probar-la-comparación-del-carrito-hu-18)).
 
 ### Probar el modo Colaborador (HU-06)
 
@@ -256,6 +259,38 @@ update public.comercio set latitud = latitud + 0.01 where nombre = 'La Paila';
 ```
 
 Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio order by creado_en desc;` (estado `pendiente`) y, en **Storage → reportes**, la foto en la carpeta del colaborador.
+
+### Probar la comparación del carrito (HU-18)
+
+1. Ejecutar `docs/sql/sprint3_hu18.sql` en Supabase (paso 17 de la tabla de scripts; necesita los de HU-12, HU-17 y HU-19) y `docs/sql/pruebas_hu18_ofertas.sql` (paso 18: todas las filas en `OK`).
+2. Datos: dos o más comercios **aprobados con ubicación** que tengan el **mismo producto** (mismo código de barras, o mismo nombre y marca) a precios distintos. Sirve cargar `docs/ejemplos/productos_validos.csv` en dos comercios y cambiar algunos precios (HU-11).
+3. Como **Cliente**: agregar varios de esos productos al carrito y abrir **Carrito**. Cada producto muestra su precio vigente (el de la promoción si está vigente) y su subtotal, y abajo el **Total estimado**.
+4. Tocar **Comparar carrito** (o **Comparar** en el Home):
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Ahorro | Criterio **Mayor ahorro** | Cada producto en su comercio más barato; total estimado y "Ahorras $ …" frente al carrito actual |
+| 2. Comodidad | Criterio **Comodidad** | El menor número de comercios; muestra cuántos y la distancia total |
+| 3. Calidad/precio | Criterio **Calidad/precio** | Combina precio y calificación; en el detalle cada comercio muestra su calificación o "Sin calificaciones" (hasta que exista la HU-25) |
+| 4. Distancia máxima | Con la ubicación guardada (HU-19), elegir **1 km** o **2 km** | Los comercios más lejanos no aparecen en ninguna alternativa |
+| 5. Producto sin disponibilidad | Marcar agotado (HU-11) un producto del carrito en todos los comercios que lo tienen | "No encontramos disponible: …" y alternativas con el resto |
+| 6. Carrito vacío | Vaciar el carrito y tocar **Comparar** | "Tu carrito está vacío" y el botón para explorar productos |
+
+**Ver detalle** muestra el mapa con los comercios y, por comercio, cada producto con su precio, fuente, fecha y confianza (HU-13).
+
+### Probar la compra y las calificaciones (HU-20 y HU-25)
+
+1. Ejecutar `docs/sql/sprint3_hu20_hu25.sql` en Supabase (paso 21 de la tabla de scripts; necesita antes los de HU-15/16, HU-17 y HU-19) y `docs/sql/pruebas_hu20_hu25_politicas.sql` (paso 22: todas las filas en `OK`).
+2. Como **Cliente**, con productos de comercios aprobados en el carrito: en **Carrito**, **Confirmar compra** (compra el carrito tal cual) o **Comparar carrito** → **Ver detalle** → **Elegir esta alternativa** (HU-18).
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Varios comercios | Confirmar con productos de dos comercios | "Se generaron 2 órdenes", cada una en "Orden generada" con su lista de compra; los productos salen del carrito |
+| 2. Entrega no disponible | Con un comercio cuyo servicio es solo recogida | Solo aparece "Recogida en tienda" |
+| 3. Entrega sin ubicación | Elegir "Entrega a domicilio" sin ubicación guardada | Pide **Configurar ubicación** (mapa de la HU-19) y no deja confirmar hasta tenerla |
+| 4. Carrito vacío | Intentar confirmar sin productos | No se generan órdenes |
+
+3. **Mis órdenes** se abre en **Perfil → Historial de compras**. El botón para calificar aparece cuando una orden está **Recogida** o **Entregada**; mientras no existan las pantallas del comercio y del repartidor, se puede cambiar a mano para probar: `update public.orden set estado = 'recogida' where numero = <número>;`. El promedio se ve en el Perfil del comercio (al volver a entrar) y en el detalle de las alternativas.
 
 ### Probar la ubicación y el mapa (HU-19)
 
@@ -396,6 +431,12 @@ order by u.correo;
 | 14 | `pruebas_hu13_politicas.sql` | 18 pruebas de la fuente y la fecha que llegan con cada precio y de los reportes de precio incorrecto (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 | 15 | `sprint3_hu19.sql` | `ubicacion_cliente` (con RLS), `guardar_ubicacion_cliente()` y `comercios_en_radio()` |
 | 16 | `pruebas_hu19_politicas.sql` | 16 pruebas de la ubicación del cliente, el radio y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 17 | `sprint3_hu18.sql` | `ofertas_del_carrito()` y la fecha de Colombia en `ofertas_publicadas()` para las promociones |
+| 18 | `pruebas_hu18_ofertas.sql` | 10 pruebas de las ofertas del carrito, las promociones y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 19 | `sprint3_hu15_hu16.sql` | Validación de reportes, puntos, niveles y reputación (HU-15 y HU-16) |
+| 20 | `pruebas_hu15_hu16_politicas.sql` | Pruebas de la validación y los puntos (termina en `ROLLBACK`) |
+| 21 | `sprint3_hu20_hu25.sql` | `compra`, `orden`, `orden_item` y `calificacion` con RLS; `previsualizar_compra()`, `confirmar_compra()`, `mis_ordenes()`, `calificar_orden()` y la protección de la calificación en `usuario` |
+| 22 | `pruebas_hu20_hu25_politicas.sql` | Pruebas de las órdenes, las calificaciones y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, sin el 11, las del carrito y los favoritos, y sin el 13, el reporte de precio incorrecto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -455,6 +496,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/reportes/` | HU-14: distancia y reglas, validadores, casos de uso (los tres escenarios del backlog), Blocs, el flujo completo en pantalla, la ubicación del comercio (HU-07) y los accesos del colaborador |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 | `test/busqueda/` | HU-12: búsqueda por nombre y marca, código escaneado, paginado, detalle por establecimiento y accesos desde el Home del cliente |
+| `test/comparacion/` | HU-18: algoritmo de las alternativas (los seis escenarios, empates y distancia máxima), Blocs, la comparación, el detalle y los precios del carrito (incluye 320 px) |
 | `test/ubicacion/` | HU-19: reglas del radio, casos de uso, `MapaComerciosBloc` (los tres escenarios, errores y doble toque) y la pantalla del mapa (incluye 320 px) |
 | `test/prices/`, `test/catalog/catalogo_hu11_test.dart`, `test/catalog/catalogo_diseno_test.dart` | HU-11: formato COP y de fechas, validaciones, vigencia de promociones, casos de uso, Blocs, historial y las pantallas Catálogo y Editar Producto con el diseño (incluye 320 px) |
 
@@ -494,10 +536,13 @@ lib/
     ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
     ├── notificaciones/            HU-24: aviso al solicitante
     ├── cart/                      HU-17: carrito del cliente (domain, data, presentation)
+    ├── comparacion/               HU-18: precios del carrito y alternativas según el criterio
+    ├── orders/                    HU-20: confirmar la compra y las órdenes del cliente
+    ├── calificaciones/            HU-25: calificar al comercio y al repartidor
     ├── favoritos/                 HU-17: favoritos de productos y comercios
     ├── explorar/                  HU-17: lista provisional de productos y comercios para el cliente
     └── admin | cliente | colaborador | comercio | repartidor
-        (orders/ y notifications/ están vacías: son de HU futuras)
+        (notifications/ está vacía: es de HU futuras)
 ```
 
 Reglas de capas (las mismas de los laboratorios 5 y 6, con la lección de Clean Architecture):
@@ -616,7 +661,7 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
   - "El mismo producto" en varias tiendas se reconoce por el código de barras o, si no tiene, por el nombre y la marca exactos.
   - Solo aparecen productos con precio de comercios aprobados. El nivel de confianza de cada precio lo calcula la HU-13 en el detalle.
   - En el emulador no hay cámara: el escáner ofrece "Escribir el código".
-  - La lupa, el buscador y el botón **Comparar** del Home abren esta misma búsqueda; comparar el carrito completo entre comercios es de la HU-18.
+  - La lupa y el buscador del Home abren esta búsqueda. Desde la HU-18, el botón **Comparar** abre la comparación del carrito completo.
   - Las tarjetas de resultado muestran el rango de precios; la fuente, la fecha y la confianza se ven en el detalle (HU-13).
 - **HU-13 (detalle del precio):**
   - Necesita `docs/sql/sprint2_hu13.sql` en Supabase (después de los de HU-12 y HU-17); `pruebas_hu13_politicas.sql` debe dar todas las líneas en `OK`; en nuestro Supabase ya se corrieron los dos y dieron las 18 líneas en `OK`. La primera ejecución reveló que `btrim` no quitaba los saltos de línea de un motivo en blanco; el script ya los quita. El equipo la verificó en Android.
@@ -634,11 +679,21 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
   - Para elegir qué reportar, los colaboradores leen los productos de comercios aprobados (política `producto_select_colaborador`). Por eso `pruebas_hu10_politicas.sql` y `pruebas_hu11_politicas.sql` quitan el rol colaborador al "otro usuario" dentro de su transacción: prueban a alguien sin ese permiso.
 - **HU-17 (carrito y favoritos):**
   - Necesita `docs/sql/sprint2_hu17.sql` en Supabase (sin él la app no encuentra el carrito, los favoritos ni la exploración). Después, `pruebas_hu17_politicas.sql` debe dar todas las líneas en `OK`; en nuestro Supabase, con `main` integrado, dieron todo `OK`. El carrito y los favoritos también los verificó el equipo en un dispositivo Android (las pruebas automáticas usan dobles).
-  - **El carrito no muestra precios ni totales.** La HU-11 ya guarda los precios, pero la HU-17 no los lee; el total y la comparación son de la HU-18.
+  - Los precios, el total y la comparación del carrito los agregó la HU-18.
   - **"Explorar" es provisional.** Es la lista mínima desde la que el cliente agrega y marca favoritos (se abre con **Comenzar ahora**). La búsqueda de la HU-12 ya existe y es la que abren la lupa y el buscador del Home; desde la HU-13 su detalle del producto tiene los botones de carrito y favorito (con `AgregarCarritoBoton` y `FavoritoBoton`), pero sus tarjetas de resultado todavía no. Cuando el equipo decida retirar Explorar, esos dos botones se pueden poner también en las tarjetas.
   - Límites que fijamos nosotros (el backlog no los define): 99 unidades por producto y 100 productos distintos. El carrito se lee completo en una sola consulta; las listas de favoritos y de exploración sí se paginan.
   - Cada línea del carrito es un producto **de un comercio**. Cómo reconocer el mismo producto en varios comercios (para comparar el carrito, HU-18) es una decisión pendiente del equipo.
   - Las tarjetas de "Ofertas cerca de ti" del Home siguen siendo de ejemplo y su botón de agregar todavía avisa "próximamente".
+- **HU-18 (alternativas de carrito):**
+  - Necesita `docs/sql/sprint3_hu18.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu18_ofertas.sql` dio las 10 líneas en `OK`. Falta probarla en un dispositivo Android.
+  - **Calidad/precio depende de la HU-25.** Lee `calificacion_promedio` y `total_calificaciones` del dueño del comercio en `usuario`; mientras no existan, todos los comercios cuentan como neutros y se muestra "Sin calificaciones". La fórmula (`ComparacionReglas`): `precio × (1 + 0,20 × (5 − calificación) / 4)`, y un comercio sin calificaciones cuenta como 3.
+  - El ahorro se calcula sobre los productos que tienen precio en el carrito actual y en la alternativa; nunca es negativo.
+  - Una alternativa se elige en su detalle y se confirma con la HU-20. La distancia es en línea recta.
+- **HU-20 y HU-25 (órdenes y calificaciones):**
+  - Necesitan `docs/sql/sprint3_hu20_hu25.sql` en Supabase (después del de la HU-19); en nuestro proyecto ya se ejecutó y `pruebas_hu20_hu25_politicas.sql` dio las 48 líneas en `OK`. Falta probarlas en un dispositivo Android.
+  - La entrega usa como destino la ubicación guardada del cliente (HU-19). "Confirmar compra" del carrito compra el carrito tal cual; las alternativas se confirman desde su detalle.
+  - Los estados de la orden solo cambian cuando existan la gestión del comercio (HU-21) y la entrega (HU-22); avisar al comercio de una orden nueva es de la HU-21.
+  - Si una cuenta fuera a la vez dueña de un comercio y repartidora, sus dos promedios se mezclarían (se guardan en `usuario`).
 - **HU-19 (ubicación, radio y mapa):**
   - Necesita `docs/sql/sprint3_hu19.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu19_politicas.sql` dio las 16 líneas en `OK`. La primera ejecución reveló que `comercio.latitud` y `longitud` son `numeric` en nuestra base; `comercios_en_radio()` ya las convierte. Falta probarla en un dispositivo Android.
   - El radio va de 1 a 20 km (`RadioReglas` y el SQL); empieza en 5 km.

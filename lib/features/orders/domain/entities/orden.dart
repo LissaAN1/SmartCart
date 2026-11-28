@@ -53,6 +53,9 @@ class OrdenGenerada {
   final TipoEntrega tipoEntrega;
   final int total;
 
+  /// La lista de compra de este comercio.
+  final List<LineaCompra> lineas;
+
   /// Siempre [EstadoOrden.generada]: así nacen todas.
   EstadoOrden get estado => EstadoOrden.generada;
 
@@ -63,7 +66,18 @@ class OrdenGenerada {
     required this.comercio,
     required this.tipoEntrega,
     required this.total,
+    this.lineas = const [],
   });
+
+  OrdenGenerada conLineas(List<LineaCompra> lineas) => OrdenGenerada(
+        id: id,
+        numero: numero,
+        idComercio: idComercio,
+        comercio: comercio,
+        tipoEntrega: tipoEntrega,
+        total: total,
+        lineas: lineas,
+      );
 }
 
 /// Lo que recibe el cliente al confirmar: las órdenes que se generaron (una

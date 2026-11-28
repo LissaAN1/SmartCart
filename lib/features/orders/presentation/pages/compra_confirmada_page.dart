@@ -17,12 +17,16 @@ class CompraConfirmadaPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = TemaRol.cliente;
     final ordenes = comprobante.ordenes;
-    return PantallaRol(
+    // La compra ya se hizo: "atrás" lleva al inicio y no a las pantallas
+    // desde donde se confirmó, que quedaron con el carrito anterior.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) Navigator.of(context).popUntil((r) => r.isFirst);
+      },
+      child: PantallaRol(
       tema: t,
-      barraSuperior: const BarraTituloRol(
-        titulo: 'Compra confirmada',
-        mostrarAtras: true,
-      ),
+      barraSuperior: const BarraTituloRol(titulo: 'Compra confirmada'),
       cuerpo: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
@@ -65,6 +69,7 @@ class CompraConfirmadaPage extends StatelessWidget {
             onTap: () => Navigator.of(context).popUntil((r) => r.isFirst),
           ),
         ],
+      ),
       ),
     );
   }
@@ -110,6 +115,25 @@ class _TarjetaOrden extends StatelessWidget {
               orden.tipoEntrega.label,
               style: TextStyle(fontSize: 13, color: t.textoGris),
             ),
+            if (orden.lineas.isNotEmpty) ...[
+              const Divider(height: 20),
+              Text(
+                'Lista de compra',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: t.textoGris,
+                ),
+              ),
+              for (final linea in orden.lineas)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                    '• ${linea.cantidad} × ${linea.nombre}',
+                    style: TextStyle(fontSize: 14, color: t.texto),
+                  ),
+                ),
+            ],
             const SizedBox(height: 6),
             Text(
               formatoCop(orden.total),

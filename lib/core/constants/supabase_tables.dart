@@ -45,6 +45,10 @@ class SupabaseFunctions {
   static const guardarUbicacionCliente = 'guardar_ubicacion_cliente';
   static const comerciosEnRadio = 'comercios_en_radio';
 
+  /// HU-18: cada producto del carrito con las ofertas del mismo producto en
+  /// comercios aprobados. Ver docs/sql/sprint3_hu18.sql.
+  static const ofertasDelCarrito = 'ofertas_del_carrito';
+
   /// HU-14: guarda un reporte de precio pendiente si el colaborador está en
   /// el establecimiento.
   static const enviarReportePrecio = 'enviar_reporte_precio';
@@ -223,6 +227,13 @@ class SupabaseColumns {
   static const ofertaDisponible = 'disponible';
   static const ofertaFuente = 'fuente';
   static const ofertaActualizadoEn = 'actualizado_en';
+
+  // Columnas propias de ofertas_del_carrito (HU-18); las demás son las de
+  // precios_de_producto y comercios_cercanos.
+  static const ofertaCarritoLinea = 'id_linea';
+  static const ofertaCarritoComercio = 'id_comercio';
+  static const ofertaCalificacion = 'calificacion';
+  static const ofertaTotalCalificaciones = 'total_calificaciones';
 
   // categoria (HU-10)
   static const categoriaId = 'id_categoria';

@@ -10,6 +10,7 @@ import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/orders/domain/entities/tipo_entrega.dart';
 
 import '../support/fakes.dart';
+import '../support/fakes_cliente.dart';
 import '../support/fakes_ordenes.dart';
 
 const _arroz = LineaCompra(
@@ -196,31 +197,30 @@ void main() {
     });
 
     test('la entrega solo vale donde el comercio la ofrece', () {
-      const entrega = EleccionEntrega(
-          tipo: TipoEntrega.entrega, direccion: 'Calle 1 # 2-3');
+      const entrega = EleccionEntrega.entrega;
       expect(
-        ComprasReglas.validar(plan, {'c1': recogida, 'c2': entrega}),
+        ComprasReglas.validar(plan, {'c1': recogida, 'c2': entrega},
+            tieneUbicacion: true),
         'Doña Rosa no ofrece entrega. Elige recogida.',
       );
       expect(
-        ComprasReglas.validar(plan, {'c1': entrega, 'c2': recogida}),
+        ComprasReglas.validar(plan, {'c1': entrega, 'c2': recogida},
+            tieneUbicacion: true),
         isNull,
       );
     });
 
-    test('la entrega pide una dirección de al menos 5 caracteres', () {
-      for (final direccion in [null, '', '    ', 'Cl 1']) {
-        expect(
-          ComprasReglas.validar(plan, {
-            'c1': EleccionEntrega(
-                tipo: TipoEntrega.entrega, direccion: direccion),
-            'c2': recogida,
-          }),
-          'Escribe la dirección de entrega para La Esquina.',
-          reason: 'dirección: $direccion',
-        );
-      }
-      expect(ComprasReglas.direccionValida('  Cll 12  '), isTrue);
+    test('escenario 3: la entrega pide la ubicación guardada', () {
+      expect(
+        ComprasReglas.validar(
+            plan, {'c1': EleccionEntrega.entrega, 'c2': recogida}),
+        ComprasReglas.mensajeSinUbicacion,
+      );
+      // La recogida no la necesita.
+      expect(
+        ComprasReglas.validar(plan, {'c1': recogida, 'c2': recogida}),
+        isNull,
+      );
     });
 
     test('productos agotados bloquean la confirmación', () {
@@ -307,19 +307,50 @@ void main() {
     });
 
     test('cada orden lleva lo que se eligió para su comercio', () async {
+      env.guardarUbicacionDelCliente();
       final plan = await planDe({'p1': 1, 'p3': 1});
 
       final comprobante = await env.confirmarCompra(plan, {
-        'c1': const EleccionEntrega(
-            tipo: TipoEntrega.entrega, direccion: 'Calle 10 # 5-20'),
+        'c1': EleccionEntrega.entrega,
         'c2': EleccionEntrega.recogida,
       });
 
       final porComercio = {for (final o in comprobante.ordenes) o.idComercio: o};
       expect(porComercio['c1']!.tipoEntrega, TipoEntrega.entrega);
       expect(porComercio['c2']!.tipoEntrega, TipoEntrega.recogida);
-      expect(env.ordenes.compras.ultimasElecciones!['c1']!.direccion,
-          'Calle 10 # 5-20');
+      expect(env.ordenes.compras.ultimasElecciones!['c1']!.tipo,
+          TipoEntrega.entrega);
+    });
+
+    test('cada orden entrega la lista de compra de su comercio', () async {
+      final plan = await planDe({'p1': 2, 'p2': 1, 'p3': 1});
+
+      final comprobante = await env.confirmarCompra(plan, {
+        'c1': EleccionEntrega.recogida,
+        'c2': EleccionEntrega.recogida,
+      });
+
+      final porComercio = {for (final o in comprobante.ordenes) o.idComercio: o};
+      expect(porComercio['c1']!.lineas.map((l) => l.idProducto),
+          unorderedEquals(['p1', 'p2']));
+      expect(porComercio['c2']!.lineas.single.cantidad, 1);
+    });
+
+    test('al confirmar una alternativa sale del carrito lo que cubre', () async {
+      env.llenarCarrito({'p2': 1});
+      // La alternativa compra p1 en lugar del p2 del carrito.
+      const seleccion = SeleccionCompra(
+        lineas: [LineaSolicitud(idProducto: 'p1', cantidad: 1)],
+        productosDelCarrito: ['p2'],
+      );
+      final plan = await env.getPlanCompra(seleccion);
+
+      await env.confirmarCompra(plan, {'c1': EleccionEntrega.recogida},
+          quitarDelCarrito: seleccion.productosDelCarrito);
+
+      expect(env.ordenes.compras.ultimasLineas!.map((l) => l.idProducto), ['p1']);
+      expect(env.ordenes.compras.ultimoQuitarDelCarrito, ['p2']);
+      expect(env.cliente.carrito.lineas, isEmpty);
     });
 
     test('un establecimiento sin registro recibe lista de compra, no orden',
@@ -374,24 +405,20 @@ void main() {
       final plan = await planDe({'p3': 1});
 
       await _falla(
-        () => env.confirmarCompra(plan, {
-          'c2': const EleccionEntrega(
-              tipo: TipoEntrega.entrega, direccion: 'Calle 1 # 2-3'),
-        }),
+        () => env.confirmarCompra(plan, {'c2': EleccionEntrega.entrega}),
         'no ofrece entrega',
       );
       expect(env.ordenes.compras.confirmarCalls, 0);
     });
 
-    test('la entrega sin dirección no se confirma', () async {
+    test('escenario 3: sin ubicación no se confirma una entrega', () async {
       final plan = await planDe({'p1': 1});
 
       await _falla(
-        () => env.confirmarCompra(plan, {
-          'c1': const EleccionEntrega(tipo: TipoEntrega.entrega),
-        }),
-        'dirección de entrega',
+        () => env.confirmarCompra(plan, {'c1': EleccionEntrega.entrega}),
+        'Configura tu ubicación',
       );
+      expect(env.ordenes.compras.confirmarCalls, 0);
     });
 
     test('solo un cliente confirma compras', () async {

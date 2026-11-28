@@ -13,11 +13,13 @@ abstract class ComprasRepository {
 
   /// Genera la compra: una orden por cada comercio, todas en estado
   /// "Orden generada", y saca lo comprado del carrito. [elecciones] va por id
-  /// de comercio.
+  /// de comercio. [quitarDelCarrito] dice qué productos del carrito cubre la
+  /// compra cuando no son los mismos de [lineas] (alternativa de la HU-18).
   Future<List<OrdenGenerada>> confirmar(
     List<LineaSolicitud> lineas,
-    Map<String, EleccionEntrega> elecciones,
-  );
+    Map<String, EleccionEntrega> elecciones, {
+    List<String>? quitarDelCarrito,
+  });
 
   /// Las órdenes del cliente con sesión iniciada, de la más reciente a la más
   /// antigua.

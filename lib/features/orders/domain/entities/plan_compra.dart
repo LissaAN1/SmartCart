@@ -9,6 +9,22 @@ class LineaSolicitud {
   const LineaSolicitud({required this.idProducto, required this.cantidad});
 }
 
+/// Una compra ya elegida que no es el carrito tal cual: una alternativa de la
+/// HU-18, que puede comprar un producto en otro comercio.
+class SeleccionCompra {
+  /// Lo que se compra.
+  final List<LineaSolicitud> lineas;
+
+  /// Los productos del carrito que quedan cubiertos: salen de él al
+  /// confirmar.
+  final List<String> productosDelCarrito;
+
+  const SeleccionCompra({
+    required this.lineas,
+    required this.productosDelCarrito,
+  });
+}
+
 /// Una línea de la compra con el precio de hoy.
 class LineaCompra {
   /// `null` en un establecimiento sin registro en SmartCart.
@@ -85,10 +101,9 @@ class LineaPrevia {
   });
 }
 
-/// Lo que el cliente va a comprar, repartido por establecimiento. Es la
-/// "alternativa de carrito" elegida: hoy sale del carrito tal cual (cada
-/// producto es de un comercio), y la HU-18 podrá proponer otros repartos con
-/// la misma forma.
+/// Lo que el cliente va a comprar, repartido por establecimiento: sale del
+/// carrito tal cual (cada producto es de un comercio) o de la alternativa que
+/// eligió en la comparación (HU-18, [SeleccionCompra]).
 class PlanCompra {
   final List<GrupoCompra> grupos;
 

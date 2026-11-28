@@ -45,6 +45,7 @@ import 'package:smartcart/features/calificaciones/presentation/bloc/calificar_or
 import 'package:smartcart/features/calificaciones/presentation/pages/calificar_orden_args.dart';
 import 'package:smartcart/features/calificaciones/presentation/pages/calificar_orden_page.dart';
 import 'package:smartcart/features/orders/domain/entities/orden.dart';
+import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_bloc.dart';
 import 'package:smartcart/features/orders/presentation/pages/confirmar_compra_page.dart';
 import 'package:smartcart/features/orders/presentation/pages/mis_ordenes_page.dart';
@@ -73,6 +74,10 @@ import 'package:smartcart/features/reportes/presentation/pages/reporte_estableci
 import 'package:smartcart/features/reportes/presentation/pages/reporte_form_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_producto_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/sugerir_establecimiento_page.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/comparacion_bloc.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
+import 'package:smartcart/features/comparacion/presentation/pages/alternativa_detalle_page.dart';
+import 'package:smartcart/features/comparacion/presentation/pages/comparacion_page.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/mapa_comercios_bloc.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 import 'package:smartcart/features/ubicacion/presentation/pages/mapa_comercios_page.dart';
@@ -214,8 +219,35 @@ abstract final class AppRouter {
       AppRoutes.reporteEscaner => const EscanerCodigoPage(),
       // HU-17: pantallas del cliente. Reciben el carrito y los favoritos ya
       // creados por el RolShell y no los cierran.
-      AppRoutes.carrito when args is ClienteBlocs =>
-        _conBlocsDelCliente(args, const CarritoPage()),
+      // HU-18: el carrito muestra el precio de cada producto y el total.
+      AppRoutes.carrito when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          BlocProvider(
+            create: (_) =>
+                sl<PreciosCarritoBloc>()..add(PreciosCarritoSolicitados()),
+            child: const CarritoPage(),
+          ),
+        ),
+      // HU-18: comparación del carrito completo y detalle de una alternativa.
+      AppRoutes.comparacion when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          BlocProvider(
+            create: (_) => sl<ComparacionBloc>()..add(ComparacionIniciada()),
+            child: const ComparacionPage(),
+          ),
+        ),
+      AppRoutes.comparacionDetalle when args is AlternativaArgs =>
+        AlternativaDetallePage(args: args),
+      // HU-18 + HU-20: confirmar la alternativa elegida en la comparación.
+      AppRoutes.confirmarCompra when args is ConBlocsDelCliente =>
+        _conBlocsDelCliente(
+          args.blocs,
+          BlocProvider(
+            create: (_) => sl<ConfirmarCompraBloc>()
+              ..add(ConfirmarCompraStarted(args.argumento as SeleccionCompra?)),
+            child: const ConfirmarCompraPage(),
+          ),
+        ),
       // HU-20: confirmar la compra; al terminar relee el carrito (ya vacío).
       AppRoutes.confirmarCompra when args is ClienteBlocs => _conBlocsDelCliente(
           args,

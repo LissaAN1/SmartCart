@@ -5,11 +5,12 @@ import 'package:smartcart/core/ui/aviso_ui.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
 import 'package:smartcart/core/utils/format_helpers.dart';
 import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
-import 'package:smartcart/features/orders/domain/compras_reglas.dart';
 import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/orders/domain/entities/tipo_entrega.dart';
 import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_bloc.dart';
 import 'package:smartcart/features/orders/presentation/pages/compra_confirmada_page.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/preferencia_ubicacion.dart';
+import 'package:smartcart/core/routes/app_routes.dart';
 
 /// HU-20: antes de confirmar, el cliente elige por cada comercio si recoge su
 /// compra o se la llevan (y adónde). Al confirmar se genera una orden por
@@ -111,6 +112,7 @@ class _Contenido extends StatelessWidget {
             eleccion: state.elecciones[grupo.idComercio] ??
                 EleccionEntrega.recogida,
             habilitada: !confirmando,
+            ubicacion: state.ubicacion,
           ),
         for (final grupo in plan.sinRegistro) _TarjetaSinRegistro(grupo: grupo),
         const SizedBox(height: 4),
@@ -163,11 +165,13 @@ class _TarjetaComercio extends StatelessWidget {
   final GrupoCompra grupo;
   final EleccionEntrega eleccion;
   final bool habilitada;
+  final PreferenciaUbicacion? ubicacion;
 
   const _TarjetaComercio({
     required this.grupo,
     required this.eleccion,
     required this.habilitada,
+    this.ubicacion,
   });
 
   @override
@@ -237,13 +241,7 @@ class _TarjetaComercio extends StatelessWidget {
                 ),
               ),
             if (eleccion.tipo == TipoEntrega.entrega)
-              _CampoDireccion(
-                // Una clave por comercio: al reconstruirse conserva el texto.
-                key: ValueKey('direccion-$id'),
-                inicial: eleccion.direccion ?? '',
-                habilitado: habilitada,
-                onChanged: (texto) => bloc.add(DireccionCambiada(id, texto)),
-              ),
+              _Destino(ubicacion: ubicacion, habilitado: habilitada),
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerRight,
@@ -263,48 +261,50 @@ class _TarjetaComercio extends StatelessWidget {
   }
 }
 
-class _CampoDireccion extends StatefulWidget {
-  final String inicial;
+/// Adónde llega la entrega: la ubicación guardada (HU-19). Sin ella se pide
+/// configurarla antes de confirmar.
+class _Destino extends StatelessWidget {
+  final PreferenciaUbicacion? ubicacion;
   final bool habilitado;
-  final ValueChanged<String> onChanged;
 
-  const _CampoDireccion({
-    super.key,
-    required this.inicial,
-    required this.habilitado,
-    required this.onChanged,
-  });
+  const _Destino({required this.ubicacion, required this.habilitado});
 
-  @override
-  State<_CampoDireccion> createState() => _CampoDireccionState();
-}
-
-class _CampoDireccionState extends State<_CampoDireccion> {
-  late final _controller = TextEditingController(text: widget.inicial);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  Future<void> _configurar(BuildContext context) async {
+    final bloc = context.read<ConfirmarCompraBloc>();
+    await Navigator.of(context).pushNamed(AppRoutes.mapaComercios);
+    bloc.add(UbicacionRecargada());
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = TemaRol.of(context);
+    final u = ubicacion;
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: TextField(
-        controller: _controller,
-        enabled: widget.habilitado,
-        onChanged: widget.onChanged,
-        textCapitalization: TextCapitalization.sentences,
-        maxLength: 200,
-        decoration: InputDecoration(
-          labelText: 'Dirección de entrega',
-          hintText: 'Calle, número, barrio',
-          helperText:
-              'Mínimo ${ComprasReglas.direccionMinima} caracteres.',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.place_outlined, size: 18, color: t.primarioOscuro),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  u == null
+                      ? 'Para pedir entrega necesitamos tu ubicación.'
+                      : 'Entrega en: ${u.direccion ?? 'tu ubicación guardada (GPS)'}',
+                  style: TextStyle(fontSize: 13.5, color: t.texto),
+                ),
+              ),
+            ],
+          ),
+          TextButton(
+            onPressed: habilitado ? () => _configurar(context) : null,
+            child: Text(
+                u == null ? 'Configurar ubicación' : 'Cambiar ubicación'),
+          ),
+        ],
       ),
     );
   }

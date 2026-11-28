@@ -7,10 +7,11 @@ import 'package:smartcart/features/orders/domain/entities/orden.dart';
 import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/orders/domain/entities/tipo_entrega.dart';
 import 'package:smartcart/features/orders/domain/repository/compras_repository.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/ubicacion_cliente_usecases.dart';
 
-/// HU-20: arma el plan de compra a partir del carrito del cliente: lo divide
-/// por comercio, con lo que ofrece cada uno y el precio de hoy. Con el
-/// carrito vacío no hay nada que confirmar.
+/// HU-20: arma el plan de compra a partir del carrito del cliente, o de la
+/// alternativa que eligió (HU-18): lo divide por comercio, con lo que ofrece
+/// cada uno y el precio de hoy. Sin productos no hay nada que confirmar.
 class GetPlanCompraUseCase {
   final GetCarritoUseCase _carrito;
   final ComprasRepository _compras;
@@ -21,15 +22,17 @@ class GetPlanCompraUseCase {
   })  : _carrito = carrito,
         _compras = compras;
 
-  Future<PlanCompra> call() async {
-    final items = await _carrito();
-    if (items.isEmpty) {
+  Future<PlanCompra> call([SeleccionCompra? seleccion]) async {
+    final solicitud = seleccion?.lineas ??
+        [
+          for (final item in await _carrito())
+            LineaSolicitud(
+                idProducto: item.idProducto, cantidad: item.cantidad),
+        ];
+    if (solicitud.isEmpty) {
       throw const AuthFailure(ComprasReglas.mensajeCarritoVacio);
     }
-    final lineas = await _compras.previsualizar([
-      for (final item in items)
-        LineaSolicitud(idProducto: item.idProducto, cantidad: item.cantidad),
-    ]);
+    final lineas = await _compras.previsualizar(solicitud);
     // El carrito se reparte por comercio: de cada uno saldrá una orden.
     return PlanCompra.agrupar(lineas);
   }
@@ -39,24 +42,35 @@ class GetPlanCompraUseCase {
 /// todas en estado "Orden generada", y entrega la lista de compra de los
 /// establecimientos sin registro.
 ///
-/// Comprueba primero las reglas que no necesitan red (carrito vacío, entrega
-/// solo donde se ofrece, dirección). La base las vuelve a comprobar y es la
-/// que no se puede saltar.
+/// Comprueba las reglas (carrito vacío, entrega solo donde se ofrece y con
+/// la ubicación guardada). La base las vuelve a comprobar y es la que no se
+/// puede saltar.
 class ConfirmarCompraUseCase {
   final GetClienteActivoUseCase _cliente;
   final ComprasRepository _compras;
+  final GetMiUbicacionUseCase _ubicacion;
 
   ConfirmarCompraUseCase({
     required GetClienteActivoUseCase cliente,
     required ComprasRepository compras,
+    required GetMiUbicacionUseCase ubicacion,
   })  : _cliente = cliente,
-        _compras = compras;
+        _compras = compras,
+        _ubicacion = ubicacion;
 
   Future<ComprobanteCompra> call(
     PlanCompra plan,
-    Map<String, EleccionEntrega> elecciones,
-  ) async {
-    final error = ComprasReglas.validar(plan, elecciones);
+    Map<String, EleccionEntrega> elecciones, {
+    List<String>? quitarDelCarrito,
+  }) async {
+    // Solo leemos la ubicación si alguien pidió entrega.
+    final pideEntrega =
+        elecciones.values.any((e) => e.tipo == TipoEntrega.entrega);
+    final error = ComprasReglas.validar(
+      plan,
+      elecciones,
+      tieneUbicacion: pideEntrega && await _ubicacion() != null,
+    );
     if (error != null) throw AuthFailure(error);
     await _cliente();
 
@@ -64,9 +78,19 @@ class ConfirmarCompraUseCase {
     final lineas = plan.lineasSolicitud;
     final ordenes = lineas.isEmpty
         ? const <OrdenGenerada>[]
-        : await _compras.confirmar(lineas, elecciones);
+        : await _compras.confirmar(
+            lineas,
+            elecciones,
+            quitarDelCarrito: quitarDelCarrito,
+          );
+    final porComercio = {
+      for (final g in plan.registrados) g.idComercio!: g.lineas,
+    };
     return ComprobanteCompra(
-      ordenes: ordenes,
+      ordenes: [
+        for (final o in ordenes)
+          o.conLineas(porComercio[o.idComercio] ?? const []),
+      ],
       listasDeCompra: plan.sinRegistro,
     );
   }

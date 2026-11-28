@@ -1,3 +1,4 @@
+import 'package:smartcart/features/ubicacion/domain/entities/preferencia_ubicacion.dart';
 import 'package:smartcart/core/pagination/paged_result.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
@@ -16,6 +17,7 @@ import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_blo
 
 import 'fakes.dart';
 import 'fakes_cliente.dart';
+import 'fakes_ubicacion.dart';
 
 // ───────────────────────── Datos de ejemplo ─────────────────────────
 
@@ -105,9 +107,10 @@ class FakeComprasRepository implements ComprasRepository {
   /// Lo que recibió la última llamada a `confirmar`.
   List<LineaSolicitud>? ultimasLineas;
   Map<String, EleccionEntrega>? ultimasElecciones;
+  List<String>? ultimoQuitarDelCarrito;
 
   /// Lo comprado sale del carrito (lo conecta el entorno de pruebas).
-  void Function(List<LineaSolicitud> comprado)? alConfirmar;
+  void Function(List<String> idsDelCarrito)? alConfirmar;
 
   int _siguienteNumero = 1001;
 
@@ -136,11 +139,13 @@ class FakeComprasRepository implements ComprasRepository {
   @override
   Future<List<OrdenGenerada>> confirmar(
     List<LineaSolicitud> lineas,
-    Map<String, EleccionEntrega> elecciones,
-  ) async {
+    Map<String, EleccionEntrega> elecciones, {
+    List<String>? quitarDelCarrito,
+  }) async {
     confirmarCalls++;
     ultimasLineas = lineas;
     ultimasElecciones = elecciones;
+    ultimoQuitarDelCarrito = quitarDelCarrito;
     if (confirmarError != null) throw confirmarError!;
     final porComercio = <String, int>{};
     final nombres = <String, String>{};
@@ -175,7 +180,9 @@ class FakeComprasRepository implements ComprasRepository {
         ),
       );
     }
-    alConfirmar?.call(lineas);
+    // Como la base: sin la lista, sale del carrito lo comprado.
+    alConfirmar?.call(
+        quitarDelCarrito ?? [for (final l in lineas) l.idProducto]);
     return generadas;
   }
 
@@ -234,8 +241,7 @@ final _fakesDeOrdenes = Expando<OrdenesFakes>('fakesDeOrdenes');
 /// construidos con los dobles del entorno.
 extension EntornoOrdenes on TestEnv {
   OrdenesFakes get ordenes => _fakesDeOrdenes[this] ??= (OrdenesFakes()
-    ..compras.alConfirmar = (comprado) {
-      final ids = comprado.map((l) => l.idProducto).toSet();
+    ..compras.alConfirmar = (ids) {
       cliente.carrito.lineas.removeWhere((i) => ids.contains(i.idProducto));
     });
 
@@ -261,7 +267,17 @@ extension EntornoOrdenes on TestEnv {
   GetPlanCompraUseCase get getPlanCompra =>
       GetPlanCompraUseCase(carrito: getCarrito, compras: ordenes.compras);
   ConfirmarCompraUseCase get confirmarCompra => ConfirmarCompraUseCase(
-      cliente: clienteActivo, compras: ordenes.compras);
+      cliente: clienteActivo,
+      compras: ordenes.compras,
+      ubicacion: getMiUbicacion);
+
+  /// Deja guardada la ubicación del cliente (HU-19): sin ella no hay entrega.
+  void guardarUbicacionDelCliente({String? direccion}) =>
+      ubicacion.repositorio.guardada = PreferenciaUbicacion(
+        ubicacion: ubicacionCliente,
+        radioM: 5000,
+        direccion: direccion,
+      );
   GetMisOrdenesUseCase get getMisOrdenes =>
       GetMisOrdenesUseCase(cliente: clienteActivo, compras: ordenes.compras);
   CalificarOrdenUseCase get calificarOrden => CalificarOrdenUseCase(
@@ -270,6 +286,7 @@ extension EntornoOrdenes on TestEnv {
   ConfirmarCompraBloc confirmarCompraBloc() => ConfirmarCompraBloc(
         obtenerPlan: getPlanCompra,
         confirmar: confirmarCompra,
+        ubicacion: getMiUbicacion,
       );
 
   PaginatedBloc<Orden> misOrdenesBloc() => PaginatedBloc<Orden>(
