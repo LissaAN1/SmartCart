@@ -1,13 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartcart/features/auth/domain/failures/auth_failure.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
 import 'package:smartcart/features/reportes/domain/usecases/enviar_reporte_precio_usecase.dart';
 import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
 
 abstract class ReporteFormEvent {}
 
-/// La persona presionó "Tomar foto" (o "Cambiar foto").
-class ReporteFotoSolicitada extends ReporteFormEvent {}
+/// La persona quiere poner la foto de la etiqueta: tomarla con la cámara
+/// ("Tomar foto") o subirla desde la galería ("Subir foto").
+class ReporteFotoSolicitada extends ReporteFormEvent {
+  final OrigenFoto origen;
+
+  ReporteFotoSolicitada({this.origen = OrigenFoto.camara});
+}
 
 /// La persona quitó la foto que había tomado.
 class ReporteFotoQuitada extends ReporteFormEvent {}
@@ -77,6 +83,9 @@ class ReporteFormBloc extends Bloc<ReporteFormEvent, ReporteFormState> {
     on<ReporteEnviado>(_onEnviado);
   }
 
+  /// Si el dispositivo puede tomar la foto con la cámara.
+  bool get hayCamara => _tomarFoto.hayCamara;
+
   bool get _ocupado =>
       state.status == ReporteFormStatus.tomandoFoto ||
       state.status == ReporteFormStatus.enviando;
@@ -88,7 +97,7 @@ class ReporteFormBloc extends Bloc<ReporteFormEvent, ReporteFormState> {
     if (_ocupado) return;
     emit(state.copyWith(status: ReporteFormStatus.tomandoFoto));
     try {
-      final foto = await _tomarFoto();
+      final foto = await _tomarFoto(event.origen);
       // Cancelar la cámara no es un error: se queda con la foto anterior.
       emit(state.copyWith(status: ReporteFormStatus.initial, foto: foto));
     } on AuthFailure catch (e) {

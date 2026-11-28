@@ -16,7 +16,8 @@ Informe de implementación. Rama: `feat/hu14-reporte-precio`, creada desde `feat
 | Se puede marcar un producto como agotado | Implementado | Interruptor "El producto está agotado". |
 | El reporte queda en estado pendiente | Implementado | `reporte_precio.estado` nace `pendiente`; solo la función SQL inserta. |
 | Se puede sugerir un establecimiento que aún no está en la plataforma | Implementado | `SugerirEstablecimientoPage` y la tabla `establecimiento_sugerido`. |
-| *(Ajuste pedido por el equipo)* Escanear directo | Implementado | Al elegir el establecimiento se abre la cámara sola; si el código es de un producto, pasa directo al formulario. |
+| *(Ajuste pedido por el equipo, revisado el 23/11)* Elegir el producto primero | Implementado | Al elegir el establecimiento lo primero es la **lista de productos**; la cámara ya no se abre sola. El escáner queda como ícono en el buscador: si el código es de un producto del establecimiento, pasa directo al formulario. |
+| *(Ajuste pedido por el equipo)* Foto: tomarla o subirla | Implementado | En el formulario hay dos opciones: **Tomar foto de la etiqueta** (cámara, solo en Android e iOS) y **Subir foto** (galería o archivo). En web, "Tomar foto" abre la cámara si se usa desde un navegador de celular; en un navegador de escritorio abre el selector de archivos (no hay webcam con este paquete). En las apps de escritorio solo se ofrece subir la imagen. |
 | *(Ajuste pedido por el equipo)* Historial de mis reportes | Implementado | El Home del colaborador y `MisReportesPage` muestran los reportes reales, incluidos los pendientes. |
 
 Escenarios 1 (reporte exitoso), 2 (fuera del establecimiento: se rechaza y se explica) y 3 (sin foto: se muestra que es obligatoria) tienen prueba automática. Ver `docs/HU14_informe_pruebas.md`.

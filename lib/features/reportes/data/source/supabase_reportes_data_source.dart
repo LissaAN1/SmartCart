@@ -190,6 +190,9 @@ class SupabaseReportesDataSource {
       estado: EstadoReporte.fromDbName(
         row[SupabaseColumns.misReporteEstado] as String?,
       ),
+      motivo: row[SupabaseColumns.misReporteMotivo] as String?,
+      requiereConfirmacion:
+          row[SupabaseColumns.misReporteRequiereConfirmacion] as bool? ?? false,
       // La base guarda la hora en UTC; se muestra en la del dispositivo.
       creadoEn: DateTime.parse(
         row[SupabaseColumns.misReporteCreadoEn].toString(),

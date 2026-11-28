@@ -104,7 +104,7 @@ void main() {
 
       expect(find.text('Activar modo Colaborador'), findsNothing);
       expect(find.text('120'), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
+      expect(find.text('Frecuente'), findsOneWidget);
       expect(find.text('4.5'), findsOneWidget);
       expect(find.text('PUNTOS'), findsOneWidget);
       expect(find.text('NIVEL'), findsOneWidget);

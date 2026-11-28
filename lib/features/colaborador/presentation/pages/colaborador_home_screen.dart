@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/ui/roles/roles_ui.dart';
 import '../widgets/colaborador_widgets.dart';
 import 'package:smartcart/components/error_message.dart';
+import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
+import 'package:smartcart/features/puntos/domain/nivel_colaborador.dart';
 import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/presentation/widgets/reporte_historial_item.dart';
 
@@ -24,6 +26,11 @@ class ColaboradorHomeScreen extends StatelessWidget {
   /// Abre el historial completo. Sin él avisa "próximamente".
   final VoidCallback? onVerHistorial;
 
+  /// HU-16: puntos y nivel reales (de `perfil_colaborador`) y la pantalla con
+  /// su historial. Sin ellos la tarjeta muestra el estado inicial.
+  final CollaboratorStats stats;
+  final VoidCallback? onVerPuntos;
+
   /// Cuántos reportes se muestran en el Home; el resto está en el historial.
   static const reportesEnHome = 3;
 
@@ -37,6 +44,8 @@ class ColaboradorHomeScreen extends StatelessWidget {
     this.errorReportes,
     this.onReintentarReportes,
     this.onVerHistorial,
+    this.stats = CollaboratorStats.initial,
+    this.onVerPuntos,
   });
 
   static const _misiones = [
@@ -64,12 +73,21 @@ class ColaboradorHomeScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
         children: [
           // ══ PUNTOS ══
-          TarjetaPuntos(
-            puntos: 2450,
-            nivel: 'Nivel Plata',
-            siguienteNivel: 'Nivel Oro',
-            progreso: 0.68,
-            onCanjear: () => mostrarProximamente(context),
+          // HU-16: puntos y nivel reales; tocar la tarjeta abre el historial.
+          GestureDetector(
+            onTap: onVerPuntos,
+            child: TarjetaPuntos(
+              puntos: stats.points,
+              nivel:
+                  'Nivel ${NivelColaborador.desdeNumero(stats.level).nombre}',
+              siguienteNivel: NivelColaborador.desdePuntos(stats.points)
+                      .siguiente
+                      ?.nombre ??
+                  'el nivel máximo',
+              progreso:
+                  NivelColaborador.desdePuntos(stats.points).progreso(stats.points),
+              onCanjear: () => mostrarProximamente(context),
+            ),
           ),
           const SizedBox(height: 16),
 

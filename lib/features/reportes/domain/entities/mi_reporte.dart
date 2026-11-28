@@ -1,5 +1,6 @@
-/// En qué punto de la revisión está un reporte. Los reportes nacen
-/// pendientes; validarlos o rechazarlos es de la HU-15.
+/// En qué punto de la revisión está un reporte. El sistema lo revisa al
+/// recibirlo (HU-15): queda validado, rechazado (con su motivo) o pendiente
+/// de confirmación.
 enum EstadoReporte {
   pendiente,
   validado,
@@ -32,6 +33,13 @@ class MiReporte {
   final EstadoReporte estado;
   final DateTime creadoEn;
 
+  /// Por qué se rechazó, o qué falta para confirmarlo (HU-15).
+  final String? motivo;
+
+  /// Está pendiente porque el precio es muy distinto al registrado: espera la
+  /// confirmación de otro colaborador o del comercio.
+  final bool requiereConfirmacion;
+
   const MiReporte({
     required this.id,
     required this.producto,
@@ -41,5 +49,7 @@ class MiReporte {
     required this.creadoEn,
     this.precioPromocional,
     this.agotado = false,
+    this.motivo,
+    this.requiereConfirmacion = false,
   });
 }

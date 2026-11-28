@@ -22,6 +22,7 @@ import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
 import 'package:smartcart/features/repartidor/repartidor.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
+import 'package:smartcart/features/auth/domain/entities/collaborator_stats.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
 import 'package:smartcart/features/session/ui/bloc/session_state.dart';
 
@@ -181,7 +182,10 @@ class _RolShellState extends State<RolShell> {
   /// enviado) se recarga el historial: es barato y evita mostrar uno viejo.
   Future<void> _abrirReportePrecio() async {
     await Navigator.of(context).pushNamed(AppRoutes.reporteEstablecimiento);
-    if (mounted) _recargarMisReportes();
+    if (!mounted) return;
+    _recargarMisReportes();
+    // HU-15/16: el reporte se revisa al instante y pudo dar puntos.
+    _actualizarPerfil();
   }
 
   void _recargarMisReportes() => _misReportes?.add(PaginatedStarted());
@@ -191,6 +195,27 @@ class _RolShellState extends State<RolShell> {
     await Navigator.of(context).pushNamed(AppRoutes.misReportes);
     if (mounted) _recargarMisReportes();
   }
+
+  /// HU-16: puntos, nivel, reputación e historial. Al volver se relee el
+  /// perfil: los puntos pudieron cambiar desde que se abrió la sesión.
+  Future<void> _abrirMisPuntos() async {
+    await Navigator.of(context).pushNamed(AppRoutes.misPuntos);
+    if (mounted) _actualizarPerfil();
+  }
+
+  /// HU-15: reportes de otras personas que esperan confirmación.
+  Future<void> _abrirPorConfirmar() async {
+    await Navigator.of(context).pushNamed(AppRoutes.reportesPorConfirmar);
+    if (mounted) _recargarMisReportes();
+  }
+
+  /// HU-15: el comercio confirma o corrige los reportes de la comunidad.
+  void _abrirReportesComunidad() =>
+      Navigator.of(context).pushNamed(AppRoutes.reportesComunidad);
+
+  /// Vuelve a leer el perfil (puntos, nivel y reputación del colaborador).
+  void _actualizarPerfil() =>
+      context.read<SessionBloc>().add(ProfileRefreshRequested());
 
   /// HU-10: lista de productos del comercio.
   void _abrirCatalogo() => Navigator.of(context).pushNamed(AppRoutes.catalogo);
@@ -276,7 +301,12 @@ class _RolShellState extends State<RolShell> {
               onAbrirFavoritos: _cliente == null ? null : _abrirFavoritos)),
       (RolTema.colaborador, false) => _conMisReportes(),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(
-          onTab: _onTab, onCerrarSesion: _salir, profile: p),
+          onTab: _onTab,
+          onCerrarSesion: _salir,
+          profile: p,
+          onVerPuntos: _abrirMisPuntos,
+          onVerHistorial: _abrirMisReportes,
+          onPorConfirmar: _abrirPorConfirmar),
       // Aquí solo llega un repartidor aprobado (ver `build`).
       (RolTema.repartidor, false) => _conDisponibilidad((disponible, cambiar) =>
           RepartidorHomeScreen(
@@ -285,7 +315,11 @@ class _RolShellState extends State<RolShell> {
           onTab: _onTab, onCerrarSesion: _salir, profile: p),
       (RolTema.comercio, false) => _conComercioHome(),
       (RolTema.comercio, true) => _conComercio((c) => ComercioPerfilScreen(
-          onTab: _onTab, onCerrarSesion: _salir, profile: p, comercio: c)),
+          onTab: _onTab,
+          onCerrarSesion: _salir,
+          profile: p,
+          comercio: c,
+          onReportesComunidad: _abrirReportesComunidad)),
       (RolTema.admin, false) => AdminHomeScreen(
           onTab: _onTab,
           nombre: p.fullName,
@@ -349,6 +383,8 @@ class _RolShellState extends State<RolShell> {
             : null,
         onReintentarReportes: _recargarMisReportes,
         onVerHistorial: _misReportes == null ? null : _abrirMisReportes,
+        stats: _profile.collaborator ?? CollaboratorStats.initial,
+        onVerPuntos: _abrirMisPuntos,
       );
     }
 

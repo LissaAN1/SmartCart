@@ -4,6 +4,7 @@ import 'package:smartcart/components/auth_text_field.dart';
 import 'package:smartcart/components/error_message.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/reportes/domain/repository/selector_foto.dart';
 import 'package:smartcart/features/reportes/domain/validators/reporte_validators.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_args.dart';
@@ -159,8 +160,10 @@ class _ReporteFormPageState extends State<ReporteFormPage> {
                 _BloqueFoto(
                   foto: state.foto,
                   ocupado: ocupado,
-                  onTomar: () =>
-                      context.read<ReporteFormBloc>().add(ReporteFotoSolicitada()),
+                  hayCamara: context.read<ReporteFormBloc>().hayCamara,
+                  onElegir: (origen) => context
+                      .read<ReporteFormBloc>()
+                      .add(ReporteFotoSolicitada(origen: origen)),
                   onQuitar: () =>
                       context.read<ReporteFormBloc>().add(ReporteFotoQuitada()),
                 ),
@@ -189,20 +192,53 @@ class _ReporteFormPageState extends State<ReporteFormPage> {
   }
 }
 
-/// La foto de la etiqueta: botón para tomarla y vista previa cuando ya hay
-/// una. Es obligatoria; si falta, el envío la reclama.
+/// La foto de la etiqueta: dos opciones, tomarla con la cámara o subir una de
+/// la galería, y vista previa cuando ya hay una. Es obligatoria; si falta, el
+/// envío la reclama. Donde no hay cámara (apps de escritorio) solo se ofrece
+/// subir una imagen.
 class _BloqueFoto extends StatelessWidget {
   final FotoReporte? foto;
   final bool ocupado;
-  final VoidCallback onTomar;
+  final bool hayCamara;
+  final ValueChanged<OrigenFoto> onElegir;
   final VoidCallback onQuitar;
 
   const _BloqueFoto({
     required this.foto,
     required this.ocupado,
-    required this.onTomar,
+    required this.hayCamara,
+    required this.onElegir,
     required this.onQuitar,
   });
+
+  /// "Cambiar foto": con cámara pregunta de dónde; sin cámara abre la galería.
+  Future<void> _cambiar(BuildContext context) async {
+    if (!hayCamara) {
+      onElegir(OrigenFoto.galeria);
+      return;
+    }
+    final origen = await showModalBottomSheet<OrigenFoto>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tomar foto'),
+              onTap: () => Navigator.of(ctx).pop(OrigenFoto.camara),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Subir foto de la galería'),
+              onTap: () => Navigator.of(ctx).pop(OrigenFoto.galeria),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (origen != null) onElegir(origen);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +276,7 @@ class _BloqueFoto extends StatelessWidget {
           Row(
             children: [
               TextButton.icon(
-                onPressed: ocupado ? null : onTomar,
+                onPressed: ocupado ? null : () => _cambiar(context),
                 icon: const Icon(Icons.photo_camera_outlined),
                 label: const Text('Cambiar foto'),
               ),
@@ -251,10 +287,24 @@ class _BloqueFoto extends StatelessWidget {
             ],
           ),
         ] else
-          OutlinedButton.icon(
-            onPressed: ocupado ? null : onTomar,
-            icon: const Icon(Icons.photo_camera_outlined),
-            label: const Text('Tomar foto de la etiqueta'),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              if (hayCamara)
+                OutlinedButton.icon(
+                  onPressed:
+                      ocupado ? null : () => onElegir(OrigenFoto.camara),
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Tomar foto de la etiqueta'),
+                ),
+              OutlinedButton.icon(
+                onPressed:
+                    ocupado ? null : () => onElegir(OrigenFoto.galeria),
+                icon: const Icon(Icons.photo_library_outlined),
+                label: Text(hayCamara ? 'Subir foto' : 'Subir foto de la etiqueta'),
+              ),
+            ],
           ),
       ],
     );

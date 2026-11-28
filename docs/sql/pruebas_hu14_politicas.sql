@@ -144,28 +144,31 @@ begin
   end if;
   perform public.pruebas_log('OK A2: el colaborador lee los productos del comercio');
 
-  -- A3: reporte desde dentro del establecimiento: queda pendiente.
+  -- A3: reporte desde dentro del establecimiento: se guarda. Desde la HU-15
+  -- el sistema lo revisa al recibirlo, así que ya no tiene por qué quedar
+  -- "pendiente" (esta prueba no sube la foto, así que la revisión lo rechaza:
+  -- eso se prueba a fondo en pruebas_hu15_hu16_politicas.sql).
   v_id := public.enviar_reporte_precio(
     v_comercio, v_producto, 4900, 4500, true,
     v_uid || '/prueba.jpg', 3.4516, -76.5320);
   select estado, distancia_m into v_estado, v_dist
     from public.reporte_precio where id_reporte = v_id;
-  if v_estado <> 'pendiente' or v_dist > 150 then
-    raise exception 'FALLO A3: el reporte no quedó pendiente o la distancia es rara (%, %)', v_estado, v_dist;
+  if v_estado not in ('pendiente', 'validado', 'rechazado') or v_dist > 150 then
+    raise exception 'FALLO A3: el reporte no se guardó con un estado válido o la distancia es rara (%, %)', v_estado, v_dist;
   end if;
   perform set_config('pruebas.reporte', v_id::text, true);
-  perform public.pruebas_log('OK A3: reporte desde el establecimiento guardado como pendiente');
+  perform public.pruebas_log('OK A3: reporte desde el establecimiento guardado (estado ' || v_estado || ')');
 
   -- A3b: el historial (mis_reportes) muestra el reporte pendiente, con los
   -- nombres del producto y del establecimiento.
   select count(*) into v_n
     from public.mis_reportes()
-   where id_reporte = v_id and estado = 'pendiente'
+   where id_reporte = v_id and estado = v_estado
      and producto = 'Producto de prueba HU-14' and comercio is not null;
   if v_n <> 1 then
-    raise exception 'FALLO A3b: el reporte pendiente no aparece en mis_reportes()';
+    raise exception 'FALLO A3b: el reporte no aparece en mis_reportes()';
   end if;
-  perform public.pruebas_log('OK A3b: el reporte pendiente aparece en el historial del colaborador');
+  perform public.pruebas_log('OK A3b: el reporte aparece en el historial del colaborador');
 
   -- A4: sugerir un establecimiento nuevo.
   insert into public.establecimiento_sugerido
