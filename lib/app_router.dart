@@ -66,7 +66,9 @@ import 'package:smartcart/features/reportes/presentation/pages/reporte_estableci
 import 'package:smartcart/features/reportes/presentation/pages/reporte_form_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_producto_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/sugerir_establecimiento_page.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/mapa_comercios_bloc.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
+import 'package:smartcart/features/ubicacion/presentation/pages/mapa_comercios_page.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_event.dart';
 
@@ -273,6 +275,11 @@ abstract final class AppRouter {
             ),
           ],
           child: const MisPuntosPage(),
+        ),
+      // HU-19: ubicación, radio y comercios cercanos del cliente.
+      AppRoutes.mapaComercios => BlocProvider(
+          create: (_) => sl<MapaComerciosBloc>()..add(MapaIniciado()),
+          child: const MapaComerciosPage(),
         ),
       AppRoutes.catalogoCsv => BlocProvider(
           create: (_) => sl<CargaCsvBloc>(),

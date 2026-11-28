@@ -102,6 +102,12 @@ import 'package:smartcart/features/reportes/presentation/bloc/accion_reporte_blo
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/session/ui/bloc/session_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:smartcart/features/ubicacion/data/repository/ubicacion_cliente_repository_impl.dart';
+import 'package:smartcart/features/ubicacion/data/source/geocoding_geocodificador.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/geocodificador.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/ubicacion_cliente_repository.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/ubicacion_cliente_usecases.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/mapa_comercios_bloc.dart';
 
 void main() {
   tearDown(() => sl.reset());
@@ -525,6 +531,25 @@ void main() {
         isA<PaginatedBloc<ReportePorConfirmar>>());
     expect(sl<PaginatedBloc<ReportePorConfirmar>>(param1: true),
         isA<PaginatedBloc<ReportePorConfirmar>>());
+  });
+
+  test('HU-19: la ubicación del cliente se arma con las implementaciones '
+      'reales', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<UbicacionClienteRepository>(),
+        isA<UbicacionClienteRepositoryImpl>());
+    expect(sl<Geocodificador>(), isA<GeocodingGeocodificador>());
+    expect(sl<GetMiUbicacionUseCase>(), same(sl<GetMiUbicacionUseCase>()));
+    expect(sl.isRegistered<GuardarMiUbicacionUseCase>(), isTrue);
+    expect(sl.isRegistered<GetComerciosEnRadioUseCase>(), isTrue);
+    expect(sl.isRegistered<BuscarDireccionUseCase>(), isTrue);
+    expect(identical(sl<MapaComerciosBloc>(), sl<MapaComerciosBloc>()),
+        isFalse);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {

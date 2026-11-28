@@ -224,6 +224,30 @@ void main() {
       expect(find.text('EXPLORAR'), findsNothing);
     });
 
+    testWidgets('HU-19: el botón de ubicación del Home abre el mapa',
+        (tester) async {
+      await _pumpShell(tester);
+
+      await tester.tap(find.byIcon(Icons.place_outlined));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MAPA'), findsOneWidget);
+    });
+
+    testWidgets('HU-19: "Mi ubicación" del Perfil abre el mapa',
+        (tester) async {
+      await _pumpShell(tester);
+      await tester.tap(find.text('Perfil'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Mi ubicación'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Mi ubicación'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MAPA'), findsOneWidget);
+    });
+
     testWidgets('"Mis favoritos" del Perfil abre los favoritos', (tester) async {
       await _pumpShell(tester);
       await tester.tap(find.text('Perfil'));

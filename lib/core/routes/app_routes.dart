@@ -67,6 +67,10 @@ abstract final class AppRoutes {
   /// favoritos. Recibe un `ClienteBlocs`.
   static const explorar = '/cliente/explorar';
 
+  /// HU-19: ubicación y radio del cliente, con los comercios cercanos en un
+  /// mapa.
+  static const mapaComercios = '/cliente/mapa';
+
   /// HU-12: búsqueda de productos del cliente. Recibe opcionalmente el texto
   /// escrito en el Home (`String`).
   static const busqueda = '/cliente/busqueda';

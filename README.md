@@ -23,6 +23,12 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | **HU-17** | **Carrito de compras y favoritos** | **Implementada, probada con dobles (722 pruebas con `main` integrado), con el SQL ejecutado en Supabase (pruebas de políticas en `OK`, también tras integrar `main`) y probada en un dispositivo Android.** El "Explorar" del cliente es provisional: la búsqueda de la HU-12 ya existe y, desde la HU-13, su detalle del producto tiene los botones de carrito y favoritos. Ver [docs/HU17_informe_implementacion.md](docs/HU17_informe_implementacion.md) y [docs/HU17_informe_pruebas.md](docs/HU17_informe_pruebas.md) |
 | **HU-13** | **Detalle del precio con fuente, fecha y confianza** | **Implementada (rama `feat/hu13-detalle-precio`) y probada con dobles (806 pruebas en total). El SQL ya se ejecutó en Supabase y sus 18 pruebas de políticas dan `OK` . El equipo la verificó en Android.** Con ella queda completo el Sprint 2. Ver [docs/HU13_informe_implementacion.md](docs/HU13_informe_implementacion.md) y [docs/HU13_informe_pruebas.md](docs/HU13_informe_pruebas.md) |
 
+### Estado del Sprint 3
+
+| HU | Título | Estado |
+|---|---|---|
+| **HU-19** | **Ubicación, radio de búsqueda y mapa** | **Implementada en la rama `feat/hu19-ubicacion-mapa` y probada con dobles (933 pruebas en total). El SQL ya se ejecutó en Supabase y sus 16 pruebas de políticas dan `OK`. Falta probarla en Android.** Ver [docs/HU19_informe_implementacion.md](docs/HU19_informe_implementacion.md) y [docs/HU19_informe_pruebas.md](docs/HU19_informe_pruebas.md) |
+
 **Para probar las diez historias en orden**, seguir el [recorrido para probar el Sprint 2](#recorrido-para-probar-el-sprint-2).
 
 ## ¿Qué es SmartCart?
@@ -251,6 +257,20 @@ update public.comercio set latitud = latitud + 0.01 where nombre = 'La Paila';
 
 Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio order by creado_en desc;` (estado `pendiente`) y, en **Storage → reportes**, la foto en la carpeta del colaborador.
 
+### Probar la ubicación y el mapa (HU-19)
+
+1. Ejecutar `docs/sql/sprint3_hu19.sql` en Supabase (paso 15 de la tabla de scripts) y correr `flutter pub get` (se agregaron `flutter_map`, `latlong2` y `geocoding`).
+2. Necesita al menos un comercio **aprobado con ubicación guardada** (ver el paso 2 de la [HU-14](#probar-el-reporte-de-precios-hu-14)).
+3. Entrar como **Cliente** y tocar el ícono de ubicación del Home (o **Perfil → Mi ubicación**).
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Ubicación automática | Aceptar el permiso de ubicación | El mapa se centra en el teléfono con un círculo de 5 km; los comercios aprobados dentro aparecen marcados y en una lista con su distancia |
+| 2. Sin permiso | Negar el permiso o apagar la ubicación del teléfono | "Escribe tu dirección"; al buscar, por ejemplo, "Calle 5 # 38-20, Cali" aparece el mapa centrado en esa dirección |
+| 3. Cambio del radio | Tocar "10 km" o "20 km" | El círculo crece y aparecen los comercios que quedan dentro |
+
+Al cerrar y volver a abrir la app, el mapa recupera la misma ubicación y el mismo radio (`select * from public.ubicacion_cliente;`).
+
 ## Tecnologías
 
 | Tecnología | Uso |
@@ -264,6 +284,8 @@ Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio ord
 | geolocator | Ubicación (GPS) para verificar que el colaborador está en el establecimiento y para guardar la ubicación del comercio (HU-14) |
 | image_picker, permission_handler | Foto de la etiqueta con la cámara y su permiso (HU-14) |
 | mobile_scanner | Escáner de códigos de barras con la cámara: reporte de precio (HU-14) y búsqueda (HU-12); solo Android, iOS y web |
+| flutter_map, latlong2 | Mapa de OpenStreetMap (sin llave) con el radio y los comercios cercanos (HU-19) |
+| geocoding | Convierte la dirección escrita por el cliente en coordenadas (HU-19); solo Android e iOS |
 | flutter_dotenv | Variables de entorno desde `.env` |
 | Clean Architecture por feature | Organización del código (presentación, dominio y datos) |
 
@@ -372,6 +394,8 @@ order by u.correo;
 | 12 | `pruebas_hu17_politicas.sql` | 34 pruebas de las políticas y funciones del carrito y los favoritos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 | 13 | `sprint2_hu13.sql` | `reporte_precio_incorrecto` (con su política de lectura propia) y la función `reportar_precio_incorrecto()` |
 | 14 | `pruebas_hu13_politicas.sql` | 18 pruebas de la fuente y la fecha que llegan con cada precio y de los reportes de precio incorrecto (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 15 | `sprint3_hu19.sql` | `ubicacion_cliente` (con RLS), `guardar_ubicacion_cliente()` y `comercios_en_radio()` |
+| 16 | `pruebas_hu19_politicas.sql` | 16 pruebas de la ubicación del cliente, el radio y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, sin el 11, las del carrito y los favoritos, y sin el 13, el reporte de precio incorrecto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -431,6 +455,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/reportes/` | HU-14: distancia y reglas, validadores, casos de uso (los tres escenarios del backlog), Blocs, el flujo completo en pantalla, la ubicación del comercio (HU-07) y los accesos del colaborador |
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 | `test/busqueda/` | HU-12: búsqueda por nombre y marca, código escaneado, paginado, detalle por establecimiento y accesos desde el Home del cliente |
+| `test/ubicacion/` | HU-19: reglas del radio, casos de uso, `MapaComerciosBloc` (los tres escenarios, errores y doble toque) y la pantalla del mapa (incluye 320 px) |
 | `test/prices/`, `test/catalog/catalogo_hu11_test.dart`, `test/catalog/catalogo_diseno_test.dart` | HU-11: formato COP y de fechas, validaciones, vigencia de promociones, casos de uso, Blocs, historial y las pantallas Catálogo y Editar Producto con el diseño (incluye 320 px) |
 
 ## Estructura
@@ -465,7 +490,7 @@ lib/
     ├── busqueda/                  HU-12: búsqueda del cliente, detalle por establecimiento y escáner
     ├── confianza/                 HU-13: confianza del precio (fuente, fecha, desactualizado) y reporte de precio incorrecto
     ├── reportes/                  HU-14: reporte de precio del colaborador (domain, data, presentation)
-    ├── ubicacion/                 HU-14: ubicación (GPS) y distancia; la usan el comercio y los reportes
+    ├── ubicacion/                 HU-14: ubicación (GPS) y distancia; HU-19: ubicación y radio del cliente y el mapa
     ├── aprobaciones/              HU-24: solicitudes pendientes y decisión del administrador
     ├── notificaciones/            HU-24: aviso al solicitante
     ├── cart/                      HU-17: carrito del cliente (domain, data, presentation)
@@ -614,6 +639,11 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
   - Límites que fijamos nosotros (el backlog no los define): 99 unidades por producto y 100 productos distintos. El carrito se lee completo en una sola consulta; las listas de favoritos y de exploración sí se paginan.
   - Cada línea del carrito es un producto **de un comercio**. Cómo reconocer el mismo producto en varios comercios (para comparar el carrito, HU-18) es una decisión pendiente del equipo.
   - Las tarjetas de "Ofertas cerca de ti" del Home siguen siendo de ejemplo y su botón de agregar todavía avisa "próximamente".
+- **HU-19 (ubicación, radio y mapa):**
+  - Necesita `docs/sql/sprint3_hu19.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu19_politicas.sql` dio las 16 líneas en `OK`. La primera ejecución reveló que `comercio.latitud` y `longitud` son `numeric` en nuestra base; `comercios_en_radio()` ya las convierte. Falta probarla en un dispositivo Android.
+  - El radio va de 1 a 20 km (`RadioReglas` y el SQL); empieza en 5 km.
+  - Buscar una dirección usa el geocodificador del teléfono: no funciona en Windows y puede fallar en emuladores sin Google Play.
+  - El mapa descarga las teselas de OpenStreetMap: sin internet se ven el círculo y los puntos, pero no las calles.
 - La app declara el permiso `INTERNET` en el manifiesto de Android: sin él, una versión *release* no se conecta a Supabase.
 - `pubspec.lock` se regenera con `flutter pub get` (se agregaron `flutter_bloc`, `get_it`, `file_picker` en la HU-10, `mobile_scanner` en la HU-12 y `geolocator`, `image_picker` y `permission_handler` en la HU-14).
 

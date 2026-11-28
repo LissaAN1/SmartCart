@@ -1,29 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
-import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/entities/establecimiento_cercano.dart';
 
-/// Un establecimiento donde el colaborador puede reportar un precio: un
-/// comercio aprobado que ya guardó su ubicación.
-class EstablecimientoCercano {
-  final String id;
-  final String nombre;
-  final String direccion;
-  final String ciudad;
-  final Ubicacion ubicacion;
-
-  /// Distancia en metros desde donde estaba el colaborador al buscar.
-  final double distanciaM;
-
-  const EstablecimientoCercano({
-    required this.id,
-    required this.nombre,
-    required this.direccion,
-    required this.ciudad,
-    required this.ubicacion,
-    required this.distanciaM,
-  });
-}
+// La entidad pasó a `ubicacion/` porque también la usa el mapa del cliente
+// (HU-19); la exportamos aquí para no cambiar los imports de la HU-14.
+export 'package:smartcart/features/ubicacion/domain/entities/establecimiento_cercano.dart';
 
 /// Cómo se busca el producto dentro de un establecimiento: por nombre o
 /// marca (texto libre) o por el código de barras escaneado.

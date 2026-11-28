@@ -6,6 +6,7 @@ import 'package:smartcart/features/catalog/data/source/supabase_catalogo_data_so
 import 'package:smartcart/features/catalog/domain/entities/producto.dart';
 import 'package:smartcart/features/reportes/domain/entities/mi_reporte.dart';
 import 'package:smartcart/features/reportes/domain/entities/reporte.dart';
+import 'package:smartcart/features/ubicacion/data/source/establecimiento_cercano_mapper.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -37,7 +38,7 @@ class SupabaseReportesDataSource {
         },
       ) as List<dynamic>;
       return PagedResult.fromRows(
-        [for (final row in rows) _toEstablecimiento(row as Map<String, dynamic>)],
+        [for (final row in rows) establecimientoCercanoFromRow(row as Map<String, dynamic>)],
         request,
       );
     });
@@ -197,20 +198,6 @@ class SupabaseReportesDataSource {
       creadoEn: DateTime.parse(
         row[SupabaseColumns.misReporteCreadoEn].toString(),
       ).toLocal(),
-    );
-  }
-
-  EstablecimientoCercano _toEstablecimiento(Map<String, dynamic> row) {
-    return EstablecimientoCercano(
-      id: row[SupabaseColumns.comercioId].toString(),
-      nombre: row[SupabaseColumns.comercioNombre] as String? ?? '',
-      direccion: row[SupabaseColumns.comercioDireccion] as String? ?? '',
-      ciudad: row[SupabaseColumns.comercioCiudad] as String? ?? '',
-      ubicacion: Ubicacion(
-        latitud: (row[SupabaseColumns.comercioLatitud] as num).toDouble(),
-        longitud: (row[SupabaseColumns.comercioLongitud] as num).toDouble(),
-      ),
-      distanciaM: (row[SupabaseColumns.cercanoDistancia] as num).toDouble(),
     );
   }
 }
