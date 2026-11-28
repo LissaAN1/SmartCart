@@ -28,6 +28,10 @@ class SupabaseTables {
 
   // HU-19. Ver docs/sql/sprint3_hu19.sql
   static const ubicacionCliente = 'ubicacion_cliente';
+
+  // HU-20 y HU-23. Ver docs/sql/sprint3_hu20_hu25.sql y sprint3_hu23.sql
+  static const ordenItem = 'orden_item';
+  static const ordenEstado = 'orden_estado';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
@@ -100,6 +104,18 @@ class SupabaseFunctions {
   static const previsualizarCompra = 'previsualizar_compra';
   static const confirmarCompra = 'confirmar_compra';
   static const misOrdenes = 'mis_ordenes';
+
+  /// HU-23: órdenes "En curso" o del "Historial", cuántas hay en curso, el
+  /// detalle de una orden y la confirmación de la recogida o la recepción.
+  /// Ver docs/sql/sprint3_hu23.sql.
+  static const ordenesCliente = 'ordenes_cliente';
+  static const ordenesEnCurso = 'ordenes_en_curso';
+  static const detalleOrden = 'detalle_orden';
+  static const confirmarRecepcion = 'confirmar_recepcion';
+
+  /// HU-23: token de Firebase del teléfono para las notificaciones push.
+  static const registrarDispositivo = 'registrar_dispositivo';
+  static const quitarDispositivo = 'quitar_dispositivo';
 
   /// HU-25: califica al comercio o al repartidor de una orden completada y
   /// devuelve su promedio y su total de calificaciones.
@@ -312,6 +328,26 @@ class SupabaseColumns {
   static const ordenTieneRepartidor = 'tiene_repartidor';
   static const ordenCalificadaComercio = 'calificada_comercio';
   static const ordenCalificadaRepartidor = 'calificada_repartidor';
+
+  // Columnas extra de ordenes_cliente y detalle_orden (HU-23)
+  static const ordenActualizadoEn = 'actualizado_en';
+  static const ordenCerradaEn = 'cerrada_en';
+  static const ordenProductos = 'productos';
+  static const ordenDireccionEntrega = 'direccion_entrega';
+  static const ordenComercioDireccion = 'comercio_direccion';
+  static const ordenComercioCiudad = 'comercio_ciudad';
+  static const ordenComercioLatitud = 'comercio_latitud';
+  static const ordenComercioLongitud = 'comercio_longitud';
+
+  // orden_item (HU-20) y orden_estado (HU-23)
+  static const itemOrden = 'id_orden';
+  static const itemNombre = 'nombre';
+  static const itemMarca = 'marca';
+  static const itemCantidad = 'cantidad';
+  static const itemPrecioUnitario = 'precio_unitario';
+  static const ordenEstadoOrden = 'id_orden';
+  static const ordenEstadoEstado = 'estado';
+  static const ordenEstadoCreadoEn = 'creado_en';
 
   // Columnas que devuelve calificar_orden (HU-25)
   static const calificacionPromedio = 'promedio';
