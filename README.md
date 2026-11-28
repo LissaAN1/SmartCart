@@ -31,6 +31,7 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | **HU-28** | **Estadísticas reales del panel del administrador** | **Implementada en la rama `feat/hu28-estadisticas-admin` y probada con dobles (1093 pruebas en total). El SQL ya se ejecutó en Supabase y sus 11 pruebas dan `OK`. Falta probarla en Android.** Ver [docs/HU28_informe_implementacion.md](docs/HU28_informe_implementacion.md) y [docs/HU28_informe_pruebas.md](docs/HU28_informe_pruebas.md) |
 | **HU-20** | **Confirmación del carrito y generación de órdenes** | **Implementada e integrada con la HU-18 y la HU-19, probada con dobles. El SQL ya se ejecutó en Supabase y sus 48 pruebas dan `OK`. Falta probarla en Android.** Ver [docs/HU20_HU25_informe_implementacion.md](docs/HU20_HU25_informe_implementacion.md) |
 | **HU-25** | **Calificaciones de comercios y repartidores** | **Implementada y probada con dobles; su SQL (el mismo de la HU-20) ya se ejecutó en Supabase y sus pruebas dan `OK`. Calificar necesita órdenes completadas (HU-21 y HU-22).** |
+| **HU-23** | **Seguimiento y notificaciones de órdenes** | **Implementada en la rama `feat/hu23-seguimiento-ordenes` con el diseño del prototipo (Mis órdenes y Detalle de orden) y probada con dobles (1110 pruebas en total). Falta ejecutar su SQL en Supabase, configurar Firebase para el push y probarla en Android.** Ver [docs/HU23_informe_implementacion.md](docs/HU23_informe_implementacion.md) |
 | **HU-19** | **Ubicación, radio de búsqueda y mapa** | **Implementada en la rama `feat/hu19-ubicacion-mapa` y probada con dobles (933 pruebas en total). El SQL ya se ejecutó en Supabase y sus 16 pruebas de políticas dan `OK`. Falta probarla en Android.** Ver [docs/HU19_informe_implementacion.md](docs/HU19_informe_implementacion.md) y [docs/HU19_informe_pruebas.md](docs/HU19_informe_pruebas.md) |
 
 **Para probar las diez historias en orden**, seguir el [recorrido para probar el Sprint 2](#recorrido-para-probar-el-sprint-2).
@@ -307,6 +308,14 @@ Las cifras se vuelven a consultar al abrir el panel, al volver de Aprobaciones y
 
 3. **Mis órdenes** se abre en **Perfil → Historial de compras**. El botón para calificar aparece cuando una orden está **Recogida** o **Entregada**; mientras no existan las pantallas del comercio y del repartidor, se puede cambiar a mano para probar: `update public.orden set estado = 'recogida' where numero = <número>;`. El promedio se ve en el Perfil del comercio (al volver a entrar) y en el detalle de las alternativas.
 
+### Probar el seguimiento de órdenes (HU-23)
+
+1. Ejecutamos `docs/sql/sprint3_hu23.sql` en Supabase (pasos 25 y 26 de la tabla de scripts) y `flutter pub get` (se agregaron `firebase_core` y `firebase_messaging`).
+2. Con una cuenta de **Cliente** que ya haya confirmado una compra (HU-20) abrimos **Mis órdenes**: pestañas **En curso** (con el número) e **Historial**, cada orden con su estado y su barra de progreso. Sin compras dice "Aún no tienes órdenes".
+3. Mientras no exista la pantalla del comercio (HU-21), cambiamos el estado a mano: `update public.orden set estado = 'lista_para_recoger' where numero = <número>;`. Al volver al Home aparece el aviso "¡Tu orden #… está lista para recoger!" y en Mis órdenes el recuadro naranja.
+4. En el detalle vemos el código de recogida, la línea de tiempo con las horas y los productos. **Confirmar recogida** cierra la orden y la pasa al Historial, donde se puede calificar (HU-25).
+5. El push necesita configurar Firebase y la Edge Function `enviar-push`: los pasos están en [docs/HU23_informe_implementacion.md](docs/HU23_informe_implementacion.md#5-cómo-ponerla-en-marcha). Sin eso la app funciona igual, con los avisos dentro de la app.
+
 ### Probar la ubicación y el mapa (HU-19)
 
 1. Ejecutar `docs/sql/sprint3_hu19.sql` en Supabase (paso 15 de la tabla de scripts) y correr `flutter pub get` (se agregaron `flutter_map`, `latlong2` y `geocoding`).
@@ -336,6 +345,7 @@ Al cerrar y volver a abrir la app, el mapa recupera la misma ubicación y el mis
 | mobile_scanner | Escáner de códigos de barras con la cámara: reporte de precio (HU-14) y búsqueda (HU-12); solo Android, iOS y web |
 | flutter_map, latlong2 | Mapa de OpenStreetMap (sin llave) con el radio y los comercios cercanos (HU-19) |
 | geocoding | Convierte la dirección escrita por el cliente en coordenadas (HU-19); solo Android e iOS |
+| firebase_core, firebase_messaging | Notificaciones push cuando cambia el estado de una orden (HU-23) |
 | flutter_dotenv | Variables de entorno desde `.env` |
 | Clean Architecture por feature | Organización del código (presentación, dominio y datos) |
 
@@ -454,6 +464,8 @@ order by u.correo;
 | 22 | `pruebas_hu20_hu25_politicas.sql` | Pruebas de las órdenes, las calificaciones y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 | 23 | `sprint3_hu28.sql` | `estadisticas_panel()`: las cifras del panel, solo para el administrador |
 | 24 | `pruebas_hu28_estadisticas.sql` | 11 pruebas de las cifras y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 25 | `sprint3_hu23.sql` | Historial de estados (`orden_estado`), aviso al cliente en cada cambio de estado, `confirmar_recepcion()`, `ordenes_cliente()`, `detalle_orden()` y los dispositivos para push |
+| 26 | `pruebas_hu23_politicas.sql` | Pruebas del seguimiento y los avisos (termina en `ROLLBACK`) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, sin el 11, las del carrito y los favoritos, y sin el 13, el reporte de precio incorrecto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -515,6 +527,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/busqueda/` | HU-12: búsqueda por nombre y marca, código escaneado, paginado, detalle por establecimiento y accesos desde el Home del cliente |
 | `test/comparacion/` | HU-18: algoritmo de las alternativas (los seis escenarios, empates y distancia máxima), Blocs, la comparación, el detalle y los precios del carrito (incluye 320 px) |
 | `test/estadisticas/` | HU-28: lectura de las cifras, permiso del caso de uso, `EstadisticasBloc` y el panel (los escenarios, recarga al volver, error, carga y 320 px) |
+| `test/seguimiento/` | HU-23: reglas del seguimiento, casos de uso, Blocs de la lista, el detalle y el push, y las pantallas Mis órdenes y Detalle de orden (escenarios 1, 2 y 3; incluye 320 px) |
 | `test/ubicacion/` | HU-19: reglas del radio, casos de uso, `MapaComerciosBloc` (los tres escenarios, errores y doble toque) y la pantalla del mapa (incluye 320 px) |
 | `test/prices/`, `test/catalog/catalogo_hu11_test.dart`, `test/catalog/catalogo_diseno_test.dart` | HU-11: formato COP y de fechas, validaciones, vigencia de promociones, casos de uso, Blocs, historial y las pantallas Catálogo y Editar Producto con el diseño (incluye 320 px) |
 
@@ -556,6 +569,7 @@ lib/
     ├── cart/                      HU-17: carrito del cliente (domain, data, presentation)
     ├── comparacion/               HU-18: precios del carrito y alternativas según el criterio
     ├── orders/                    HU-20: confirmar la compra y las órdenes del cliente
+    ├── seguimiento/               HU-23: seguimiento de las órdenes del cliente y notificaciones push
     ├── calificaciones/            HU-25: calificar al comercio y al repartidor
     ├── estadisticas/              HU-28: cifras reales del panel del administrador
     ├── favoritos/                 HU-17: favoritos de productos y comercios
@@ -718,6 +732,11 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
   - La entrega usa como destino la ubicación guardada del cliente (HU-19). "Confirmar compra" del carrito compra el carrito tal cual; las alternativas se confirman desde su detalle.
   - Los estados de la orden solo cambian cuando existan la gestión del comercio (HU-21) y la entrega (HU-22); avisar al comercio de una orden nueva es de la HU-21.
   - Si una cuenta fuera a la vez dueña de un comercio y repartidora, sus dos promedios se mezclarían (se guardan en `usuario`).
+- **HU-23 (seguimiento y notificaciones):**
+  - Necesita `docs/sql/sprint3_hu23.sql` en Supabase (después del de la HU-20). El aviso de cada cambio de estado lo escribe un trigger, así que la HU-21 y la HU-22 no tienen que crear avisos.
+  - El push necesita un proyecto de Firebase, los archivos de configuración (`flutterfire configure`) y la Edge Function `enviar-push` con su webhook. No se suben llaves al repositorio.
+  - El código de recogida es `SC-<número de la orden>`; el comercio lo comprobará en su lista (HU-21).
+  - Si el push llega mientras ya está abierto el diálogo de avisos, al cerrarlo se marcan como leídos también los que llegaron después.
 - **HU-19 (ubicación, radio y mapa):**
   - Necesita `docs/sql/sprint3_hu19.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu19_politicas.sql` dio las 16 líneas en `OK`. La primera ejecución reveló que `comercio.latitud` y `longitud` son `numeric` en nuestra base; `comercios_en_radio()` ya las convierte. Falta probarla en un dispositivo Android.
   - El radio va de 1 a 20 km (`RadioReglas` y el SQL); empieza en 5 km.

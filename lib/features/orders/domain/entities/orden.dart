@@ -23,6 +23,16 @@ class Orden {
   final bool calificadaComercio;
   final bool calificadaRepartidor;
 
+  /// HU-23: último cambio de estado (si se sabe).
+  final DateTime? actualizadoEn;
+
+  /// HU-23: cuándo el cliente confirmó la recogida o la recepción; `null`
+  /// mientras no la confirme.
+  final DateTime? cerradaEn;
+
+  /// HU-23: unidades compradas en esta orden.
+  final int productos;
+
   const Orden({
     required this.id,
     required this.numero,
@@ -34,6 +44,9 @@ class Orden {
     this.tieneRepartidor = false,
     this.calificadaComercio = false,
     this.calificadaRepartidor = false,
+    this.actualizadoEn,
+    this.cerradaEn,
+    this.productos = 0,
   });
 
   /// Solo una orden completada se califica, y una sola vez.

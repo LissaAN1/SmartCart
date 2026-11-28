@@ -289,8 +289,9 @@ void main() {
         (tester) async {
       await pumpOrdenes(tester, [ordenDePrueba()]);
 
-      expect(find.text('Orden #1001'), findsOneWidget);
-      expect(find.text('Entregada'), findsOneWidget);
+      // HU-23: la tarjeta sigue el diseño (número y estado en mayúsculas).
+      expect(find.text('ORDEN #1001'), findsOneWidget);
+      expect(find.text('ENTREGADA'), findsOneWidget);
       expect(find.text('Calificar al comercio'), findsOneWidget);
       // Sin repartidor no hay a quién calificar de más.
       expect(find.text('Calificar al repartidor'), findsNothing);
@@ -312,8 +313,9 @@ void main() {
             id: 'o3', numero: 1003, estado: EstadoOrden.enCamino, tieneRepartidor: true),
       ]);
 
-      expect(find.text('Orden generada'), findsOneWidget);
-      expect(find.text('En camino'), findsOneWidget);
+      // HU-23: mientras se prepara, la etiqueta dice "EN PROCESO".
+      expect(find.text('EN PROCESO'), findsOneWidget);
+      expect(find.text('EN CAMINO'), findsOneWidget);
       expect(find.textContaining('Calificar al'), findsNothing);
       expect(find.textContaining('Ya calificaste'), findsNothing);
     });
