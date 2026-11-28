@@ -43,17 +43,20 @@ class MapaEstablecimientos extends StatelessWidget {
 
   static LatLng _latLng(Ubicacion u) => LatLng(u.latitud, u.longitud);
 
-  /// El cuadro que contiene el círculo del radio (o un kilómetro alrededor
-  /// del centro si no hay radio).
+  /// El cuadro que contiene el círculo del radio. Sin radio, el que contiene
+  /// el centro y todos los puntos, con al menos un kilómetro alrededor del
+  /// centro (HU-18: los comercios de una alternativa).
   LatLngBounds _encuadre() {
     final metros = (radioM ?? 1000).toDouble();
     final dLat = metros / 111320;
     final dLon =
         metros / (111320 * math.cos(centro.latitud * math.pi / 180)).abs();
-    return LatLngBounds(
+    return LatLngBounds.fromPoints([
       LatLng(centro.latitud - dLat, centro.longitud - dLon),
       LatLng(centro.latitud + dLat, centro.longitud + dLon),
-    );
+      if (radioM == null)
+        for (final p in puntos) _latLng(p.ubicacion),
+    ]);
   }
 
   @override
@@ -65,7 +68,7 @@ class MapaEstablecimientos extends StatelessWidget {
         height: alto,
         child: FlutterMap(
           // Al cambiar el centro o el radio se vuelve a encuadrar.
-          key: ValueKey((centro, radioM)),
+          key: ValueKey((centro, radioM, puntos.length)),
           options: MapOptions(
             initialCenter: _latLng(centro),
             initialCameraFit: CameraFit.bounds(

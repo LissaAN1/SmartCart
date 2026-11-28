@@ -22,6 +22,10 @@ class ClienteHomeScreen extends StatefulWidget {
   /// cliente; sin él, la abre sin ellos.
   final ValueChanged<String>? onBuscar;
 
+  /// HU-18: abre la comparación del carrito ("Comparar"). Sin él avisa
+  /// "próximamente".
+  final VoidCallback? onComparar;
+
   /// HU-19: abre el mapa con la ubicación, el radio y los comercios
   /// cercanos. Sin él avisa "próximamente".
   final VoidCallback? onAbrirMapa;
@@ -34,6 +38,7 @@ class ClienteHomeScreen extends StatefulWidget {
     this.onAbrirExplorar,
     this.onBuscar,
     this.onAbrirMapa,
+    this.onComparar,
   });
 
   @override
@@ -115,7 +120,8 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: BuscadorComparar(
               onBuscar: _buscar,
-              onComparar: () => _buscar(),
+              onComparar:
+                  widget.onComparar ?? () => mostrarProximamente(context),
             ),
           ),
 

@@ -213,15 +213,17 @@ void main() {
       expect(find.text('EXPLORAR'), findsOneWidget);
     });
 
-    testWidgets('"Comparar" abre la búsqueda (HU-12), no la exploración',
+    testWidgets('HU-18: "Comparar" abre la comparación del carrito',
         (tester) async {
-      await _pumpShell(tester);
+      RouteSettings? abierta;
+      await _pumpShell(tester, alNavegar: (r) => abierta = r);
 
       await tester.tap(find.text('Comparar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('BUSQUEDA'), findsOneWidget);
-      expect(find.text('EXPLORAR'), findsNothing);
+      expect(find.text('COMPARACION'), findsOneWidget);
+      expect(abierta?.arguments, isA<ClienteBlocs>());
+      expect(find.text('BUSQUEDA'), findsNothing);
     });
 
     testWidgets('HU-19: el botón de ubicación del Home abre el mapa',

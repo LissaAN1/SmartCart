@@ -66,6 +66,10 @@ import 'package:smartcart/features/reportes/presentation/pages/reporte_estableci
 import 'package:smartcart/features/reportes/presentation/pages/reporte_form_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/reporte_producto_page.dart';
 import 'package:smartcart/features/reportes/presentation/pages/sugerir_establecimiento_page.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/comparacion_bloc.dart';
+import 'package:smartcart/features/comparacion/presentation/bloc/precios_carrito_bloc.dart';
+import 'package:smartcart/features/comparacion/presentation/pages/alternativa_detalle_page.dart';
+import 'package:smartcart/features/comparacion/presentation/pages/comparacion_page.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/mapa_comercios_bloc.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 import 'package:smartcart/features/ubicacion/presentation/pages/mapa_comercios_page.dart';
@@ -207,8 +211,25 @@ abstract final class AppRouter {
       AppRoutes.reporteEscaner => const EscanerCodigoPage(),
       // HU-17: pantallas del cliente. Reciben el carrito y los favoritos ya
       // creados por el RolShell y no los cierran.
-      AppRoutes.carrito when args is ClienteBlocs =>
-        _conBlocsDelCliente(args, const CarritoPage()),
+      // HU-18: el carrito muestra el precio de cada producto y el total.
+      AppRoutes.carrito when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          BlocProvider(
+            create: (_) =>
+                sl<PreciosCarritoBloc>()..add(PreciosCarritoSolicitados()),
+            child: const CarritoPage(),
+          ),
+        ),
+      // HU-18: comparación del carrito completo y detalle de una alternativa.
+      AppRoutes.comparacion when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          BlocProvider(
+            create: (_) => sl<ComparacionBloc>()..add(ComparacionIniciada()),
+            child: const ComparacionPage(),
+          ),
+        ),
+      AppRoutes.comparacionDetalle when args is AlternativaArgs =>
+        AlternativaDetallePage(args: args),
       AppRoutes.favoritos when args is ClienteBlocs => _conBlocsDelCliente(
           args,
           FavoritosPage(
