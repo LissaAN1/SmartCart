@@ -73,6 +73,17 @@ abstract final class AppRoutes {
   /// HU-18: detalle de una alternativa. Recibe un `AlternativaArgs`.
   static const comparacionDetalle = '/cliente/comparacion/alternativa';
 
+  /// HU-20: elegir recogida o entrega por comercio y confirmar la compra.
+  /// Recibe un `ClienteBlocs` (la compra vacía el carrito).
+  static const confirmarCompra = '/cliente/compra';
+
+  /// HU-20: las órdenes del cliente (lista paginada).
+  static const misOrdenes = '/cliente/ordenes';
+
+  /// HU-25: calificar al comercio o al repartidor de una orden completada.
+  /// Recibe un `CalificarOrdenArgs` y devuelve `true` si se envió.
+  static const calificarOrden = '/cliente/ordenes/calificar';
+
   /// HU-19: ubicación y radio del cliente, con los comercios cercanos en un
   /// mapa.
   static const mapaComercios = '/cliente/mapa';

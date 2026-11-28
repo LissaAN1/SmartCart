@@ -7,6 +7,8 @@ import 'package:smartcart/features/comparacion/domain/entities/alternativa.dart'
 import 'package:smartcart/features/comparacion/presentation/bloc/comparacion_bloc.dart';
 import 'package:smartcart/features/comparacion/presentation/pages/alternativa_detalle_page.dart';
 import 'package:smartcart/features/comparacion/presentation/pages/comparacion_page.dart';
+import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
+import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/prices/domain/entities/precio.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/preferencia_ubicacion.dart';
 import 'package:smartcart/features/ubicacion/presentation/widgets/mapa_establecimientos.dart';
@@ -205,6 +207,50 @@ void main() {
       await pumpDetalle(tester, ancho: 320);
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('sin el carrito del cliente no se ofrece elegirla',
+        (tester) async {
+      await pumpDetalle(tester);
+
+      expect(find.text('Elegir esta alternativa'), findsNothing);
+    });
+
+    testWidgets('HU-20: "Elegir esta alternativa" lleva a confirmar con sus '
+        'productos', (tester) async {
+      setScreenSize(tester, 420, 2400);
+      final env = TestEnv()..iniciarSesionComoClienteConComercios();
+      final blocs = env.clienteBlocs();
+      addTearDown(blocs.cerrar);
+      RouteSettings? abierta;
+      final r = ComparadorCarrito.comparar(lineas: carritoEjemplo());
+      await tester.pumpWidget(MaterialApp(
+        onGenerateRoute: (settings) {
+          abierta = settings;
+          return stubRoutes(settings);
+        },
+        home: AlternativaDetallePage(
+          args: AlternativaArgs(
+            alternativa: r.alternativas[CriterioCompra.ahorro]!,
+            blocs: blocs,
+          ),
+          reloj: () => ahoraComparacion,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Elegir esta alternativa'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Elegir esta alternativa'));
+      await tester.pumpAndSettle();
+
+      expect(abierta?.name, AppRoutes.confirmarCompra);
+      final args = abierta?.arguments as ConBlocsDelCliente;
+      final seleccion = args.argumento as SeleccionCompra;
+      expect(seleccion.lineas.map((l) => l.idProducto),
+          unorderedEquals(['arroz-c', 'leche-b', 'cafe-b', 'pan-a']));
+      expect(seleccion.productosDelCarrito,
+          unorderedEquals(['arroz-a', 'leche-a', 'cafe-b', 'pan-a']));
     });
   });
 }

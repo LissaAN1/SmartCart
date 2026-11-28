@@ -179,6 +179,9 @@ class _RolShellState extends State<RolShell> {
   void _abrirComparacion() => Navigator.of(context)
       .pushNamed(AppRoutes.comparacion, arguments: _cliente);
 
+  /// HU-20: las órdenes del cliente (y desde ahí, calificarlas, HU-25).
+  void _abrirOrdenes() => Navigator.of(context).pushNamed(AppRoutes.misOrdenes);
+
   /// HU-19: ubicación, radio y comercios cercanos del cliente.
   void _abrirMapa() => Navigator.of(context).pushNamed(AppRoutes.mapaComercios);
 
@@ -308,6 +311,7 @@ class _RolShellState extends State<RolShell> {
               onActivarColaborador: _activarColaborador,
               itemsCarrito: itemsCarrito,
               onAbrirFavoritos: _cliente == null ? null : _abrirFavoritos,
+              onAbrirOrdenes: _abrirOrdenes,
               onAbrirUbicacion: _cliente == null ? null : _abrirMapa)),
       (RolTema.colaborador, false) => _conMisReportes(),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(

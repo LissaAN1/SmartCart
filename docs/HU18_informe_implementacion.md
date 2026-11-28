@@ -27,7 +27,7 @@ Es la propuesta de valor de SmartCart. Todo sale de datos reales de la base: los
 
 Los seis escenarios tienen prueba automática y los de la base, prueba SQL. Ver `docs/HU18_informe_pruebas.md`.
 
-**Fuera de alcance:** elegir una alternativa y confirmar el carrito es la HU-20. La alternativa queda como objeto de dominio (`Alternativa`: comercio, producto, cantidad y precio) para que la HU-20 la reciba; por eso el detalle no tiene todavía un botón "Elegir".
+**Confirmación:** al integrar la HU-20, el detalle ganó el botón **Elegir esta alternativa**: `Alternativa.seleccion` lleva a la confirmación los productos elegidos y los del carrito que cubre.
 
 ## 3. Decisiones (el backlog las deja al equipo)
 
@@ -93,6 +93,6 @@ Presentación → caso de uso → contrato → repositorio → data source. El a
 
 - El SQL ya se ejecutó en Supabase y sus 10 pruebas dan `OK`. **Falta probarla en Android** con datos reales; las pruebas de Flutter usan dobles.
 - **Calidad/precio depende de la HU-25** (calificaciones). Está implementado y probado con calificaciones de prueba; con datos reales se cierra cuando la HU-25 guarde `calificacion_promedio` y `total_calificaciones` en `usuario`. Si la HU-25 decide guardarlas en otro lugar, solo cambia la consulta de `ofertas_del_carrito()`.
-- Elegir y confirmar una alternativa es de la HU-20.
+- Confirmar la compra y generar las órdenes es de la HU-20.
 - La distancia es en línea recta (como pide el backlog), no por calles.
 - Dos líneas del carrito con el mismo producto de comercios distintos se comparan como líneas separadas.

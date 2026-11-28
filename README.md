@@ -28,6 +28,8 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU | Título | Estado |
 |---|---|---|
 | **HU-18** | **Alternativas de carrito según el criterio** | **Implementada en la rama `feat/hu18-alternativas-carrito` y probada con dobles (981 pruebas en total). El SQL ya se ejecutó en Supabase y sus 10 pruebas dan `OK`. Falta probarla en Android. El criterio Calidad/precio queda listo y se cierra con las calificaciones de la HU-25.** Ver [docs/HU18_informe_implementacion.md](docs/HU18_informe_implementacion.md) y [docs/HU18_informe_pruebas.md](docs/HU18_informe_pruebas.md) |
+| **HU-20** | **Confirmación del carrito y generación de órdenes** | **Implementada e integrada con la HU-18 y la HU-19, probada con dobles. El SQL ya se ejecutó en Supabase y sus 48 pruebas dan `OK`. Falta probarla en Android.** Ver [docs/HU20_HU25_informe_implementacion.md](docs/HU20_HU25_informe_implementacion.md) |
+| **HU-25** | **Calificaciones de comercios y repartidores** | **Implementada y probada con dobles; su SQL (el mismo de la HU-20) ya se ejecutó en Supabase y sus pruebas dan `OK`. Calificar necesita órdenes completadas (HU-21 y HU-22).** |
 | **HU-19** | **Ubicación, radio de búsqueda y mapa** | **Implementada en la rama `feat/hu19-ubicacion-mapa` y probada con dobles (933 pruebas en total). El SQL ya se ejecutó en Supabase y sus 16 pruebas de políticas dan `OK`. Falta probarla en Android.** Ver [docs/HU19_informe_implementacion.md](docs/HU19_informe_implementacion.md) y [docs/HU19_informe_pruebas.md](docs/HU19_informe_pruebas.md) |
 
 **Para probar las diez historias en orden**, seguir el [recorrido para probar el Sprint 2](#recorrido-para-probar-el-sprint-2).
@@ -276,6 +278,20 @@ Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio ord
 
 **Ver detalle** muestra el mapa con los comercios y, por comercio, cada producto con su precio, fuente, fecha y confianza (HU-13).
 
+### Probar la compra y las calificaciones (HU-20 y HU-25)
+
+1. Ejecutar `docs/sql/sprint3_hu20_hu25.sql` en Supabase (paso 21 de la tabla de scripts; necesita antes los de HU-15/16, HU-17 y HU-19) y `docs/sql/pruebas_hu20_hu25_politicas.sql` (paso 22: todas las filas en `OK`).
+2. Como **Cliente**, con productos de comercios aprobados en el carrito: en **Carrito**, **Confirmar compra** (compra el carrito tal cual) o **Comparar carrito** → **Ver detalle** → **Elegir esta alternativa** (HU-18).
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Varios comercios | Confirmar con productos de dos comercios | "Se generaron 2 órdenes", cada una en "Orden generada" con su lista de compra; los productos salen del carrito |
+| 2. Entrega no disponible | Con un comercio cuyo servicio es solo recogida | Solo aparece "Recogida en tienda" |
+| 3. Entrega sin ubicación | Elegir "Entrega a domicilio" sin ubicación guardada | Pide **Configurar ubicación** (mapa de la HU-19) y no deja confirmar hasta tenerla |
+| 4. Carrito vacío | Intentar confirmar sin productos | No se generan órdenes |
+
+3. **Mis órdenes** se abre en **Perfil → Historial de compras**. El botón para calificar aparece cuando una orden está **Recogida** o **Entregada**; mientras no existan las pantallas del comercio y del repartidor, se puede cambiar a mano para probar: `update public.orden set estado = 'recogida' where numero = <número>;`. El promedio se ve en el Perfil del comercio (al volver a entrar) y en el detalle de las alternativas.
+
 ### Probar la ubicación y el mapa (HU-19)
 
 1. Ejecutar `docs/sql/sprint3_hu19.sql` en Supabase (paso 15 de la tabla de scripts) y correr `flutter pub get` (se agregaron `flutter_map`, `latlong2` y `geocoding`).
@@ -417,6 +433,10 @@ order by u.correo;
 | 16 | `pruebas_hu19_politicas.sql` | 16 pruebas de la ubicación del cliente, el radio y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 | 17 | `sprint3_hu18.sql` | `ofertas_del_carrito()` y la fecha de Colombia en `ofertas_publicadas()` para las promociones |
 | 18 | `pruebas_hu18_ofertas.sql` | 10 pruebas de las ofertas del carrito, las promociones y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 19 | `sprint3_hu15_hu16.sql` | Validación de reportes, puntos, niveles y reputación (HU-15 y HU-16) |
+| 20 | `pruebas_hu15_hu16_politicas.sql` | Pruebas de la validación y los puntos (termina en `ROLLBACK`) |
+| 21 | `sprint3_hu20_hu25.sql` | `compra`, `orden`, `orden_item` y `calificacion` con RLS; `previsualizar_compra()`, `confirmar_compra()`, `mis_ordenes()`, `calificar_orden()` y la protección de la calificación en `usuario` |
+| 22 | `pruebas_hu20_hu25_politicas.sql` | Pruebas de las órdenes, las calificaciones y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, sin el 11, las del carrito y los favoritos, y sin el 13, el reporte de precio incorrecto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -517,10 +537,12 @@ lib/
     ├── notificaciones/            HU-24: aviso al solicitante
     ├── cart/                      HU-17: carrito del cliente (domain, data, presentation)
     ├── comparacion/               HU-18: precios del carrito y alternativas según el criterio
+    ├── orders/                    HU-20: confirmar la compra y las órdenes del cliente
+    ├── calificaciones/            HU-25: calificar al comercio y al repartidor
     ├── favoritos/                 HU-17: favoritos de productos y comercios
     ├── explorar/                  HU-17: lista provisional de productos y comercios para el cliente
     └── admin | cliente | colaborador | comercio | repartidor
-        (orders/ y notifications/ están vacías: son de HU futuras)
+        (notifications/ está vacía: es de HU futuras)
 ```
 
 Reglas de capas (las mismas de los laboratorios 5 y 6, con la lección de Clean Architecture):
@@ -666,7 +688,12 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
   - Necesita `docs/sql/sprint3_hu18.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu18_ofertas.sql` dio las 10 líneas en `OK`. Falta probarla en un dispositivo Android.
   - **Calidad/precio depende de la HU-25.** Lee `calificacion_promedio` y `total_calificaciones` del dueño del comercio en `usuario`; mientras no existan, todos los comercios cuentan como neutros y se muestra "Sin calificaciones". La fórmula (`ComparacionReglas`): `precio × (1 + 0,20 × (5 − calificación) / 4)`, y un comercio sin calificaciones cuenta como 3.
   - El ahorro se calcula sobre los productos que tienen precio en el carrito actual y en la alternativa; nunca es negativo.
-  - Elegir y confirmar una alternativa es de la HU-20. La distancia es en línea recta.
+  - Una alternativa se elige en su detalle y se confirma con la HU-20. La distancia es en línea recta.
+- **HU-20 y HU-25 (órdenes y calificaciones):**
+  - Necesitan `docs/sql/sprint3_hu20_hu25.sql` en Supabase (después del de la HU-19); en nuestro proyecto ya se ejecutó y `pruebas_hu20_hu25_politicas.sql` dio las 48 líneas en `OK`. Falta probarlas en un dispositivo Android.
+  - La entrega usa como destino la ubicación guardada del cliente (HU-19). "Confirmar compra" del carrito compra el carrito tal cual; las alternativas se confirman desde su detalle.
+  - Los estados de la orden solo cambian cuando existan la gestión del comercio (HU-21) y la entrega (HU-22); avisar al comercio de una orden nueva es de la HU-21.
+  - Si una cuenta fuera a la vez dueña de un comercio y repartidora, sus dos promedios se mezclarían (se guardan en `usuario`).
 - **HU-19 (ubicación, radio y mapa):**
   - Necesita `docs/sql/sprint3_hu19.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu19_politicas.sql` dio las 16 líneas en `OK`. La primera ejecución reveló que `comercio.latitud` y `longitud` son `numeric` en nuestra base; `comercios_en_radio()` ya las convierte. Falta probarla en un dispositivo Android.
   - El radio va de 1 a 20 km (`RadioReglas` y el SQL); empieza en 5 km.

@@ -282,6 +282,20 @@ void main() {
     });
   });
 
+  group('Alternativa.seleccion (HU-20)', () {
+    test('suma las unidades si dos líneas terminan en el mismo producto', () {
+      final r = ComparadorCarrito.comparar(lineas: [
+        linea('x', 'X', 2, [oferta('x', 'A', 1000), oferta('x2', 'B', 500)]),
+        linea('y', 'X', 3, [oferta('y', 'C', 900), oferta('x2', 'B', 500)]),
+      ]);
+      final seleccion = _alt(r, CriterioCompra.ahorro).seleccion;
+
+      expect(seleccion.lineas.single.idProducto, 'x2');
+      expect(seleccion.lineas.single.cantidad, 5);
+      expect(seleccion.productosDelCarrito, unorderedEquals(['x', 'y']));
+    });
+  });
+
   group('ValorCarrito', () {
     ItemCarrito item(String id, int cantidad) => ItemCarrito(
           producto: ProductoConComercio(

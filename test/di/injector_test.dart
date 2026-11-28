@@ -59,6 +59,16 @@ import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dar
 import 'package:smartcart/features/explorar/data/repository/explorar_repository_impl.dart';
 import 'package:smartcart/features/explorar/domain/repository/explorar_repository.dart';
 import 'package:smartcart/features/explorar/domain/usecases/explorar_usecases.dart';
+import 'package:smartcart/features/calificaciones/data/repository/calificaciones_repository_impl.dart';
+import 'package:smartcart/features/calificaciones/domain/entities/calificacion.dart';
+import 'package:smartcart/features/calificaciones/domain/repository/calificaciones_repository.dart';
+import 'package:smartcart/features/calificaciones/domain/usecases/calificar_orden_usecase.dart';
+import 'package:smartcart/features/calificaciones/presentation/bloc/calificar_orden_bloc.dart';
+import 'package:smartcart/features/orders/data/repository/compras_repository_impl.dart';
+import 'package:smartcart/features/orders/domain/entities/orden.dart';
+import 'package:smartcart/features/orders/domain/repository/compras_repository.dart';
+import 'package:smartcart/features/orders/domain/usecases/compras_usecases.dart';
+import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_bloc.dart';
 import 'package:smartcart/features/favoritos/data/repository/favoritos_repository_impl.dart';
 import 'package:smartcart/features/favoritos/domain/repository/favoritos_repository.dart';
 import 'package:smartcart/features/favoritos/domain/usecases/favoritos_usecases.dart';
@@ -339,6 +349,34 @@ void main() {
         reason: nombre,
       );
     }
+  });
+
+  test('HU-20 y HU-25: compras, órdenes y calificaciones se registran con '
+      'el tipo del contrato', () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<ComprasRepository>(), isA<ComprasRepositoryImpl>());
+    expect(
+        sl<CalificacionesRepository>(), isA<CalificacionesRepositoryImpl>());
+    expect(sl.isRegistered<GetPlanCompraUseCase>(), isTrue);
+    expect(sl.isRegistered<ConfirmarCompraUseCase>(), isTrue);
+    expect(sl.isRegistered<GetMisOrdenesUseCase>(), isTrue);
+    expect(sl.isRegistered<CalificarOrdenUseCase>(), isTrue);
+    // Los Blocs son fábricas: cada pantalla recibe uno nuevo.
+    expect(identical(sl<ConfirmarCompraBloc>(), sl<ConfirmarCompraBloc>()),
+        isFalse);
+    expect(
+        identical(
+            sl<PaginatedBloc<Orden>>(), sl<PaginatedBloc<Orden>>()),
+        isFalse);
+    final calificar = sl<CalificarOrdenBloc>(
+        param1: 'o1', param2: TipoCalificacion.repartidor);
+    expect(calificar.idOrden, 'o1');
+    expect(calificar.tipo, TipoCalificacion.repartidor);
   });
 
   group('HU-17: el localizador arma la cadena completa del cliente', () {

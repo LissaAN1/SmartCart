@@ -77,6 +77,10 @@ extension NavegacionCliente on BuildContext {
   Future<void> abrirCarrito() =>
       Navigator.of(this).pushNamed(AppRoutes.carrito, arguments: _clienteBlocs);
 
+  /// HU-20: elegir recogida o entrega y confirmar la compra.
+  Future<void> abrirConfirmarCompra() => Navigator.of(this)
+      .pushNamed(AppRoutes.confirmarCompra, arguments: _clienteBlocs);
+
   Future<void> abrirFavoritos() => Navigator.of(this)
       .pushNamed(AppRoutes.favoritos, arguments: _clienteBlocs);
 

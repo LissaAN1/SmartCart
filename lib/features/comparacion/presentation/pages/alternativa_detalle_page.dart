@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:smartcart/core/routes/app_routes.dart';
 import 'package:smartcart/core/ui/roles/roles_ui.dart';
 import 'package:smartcart/core/utils/format_helpers.dart';
+import 'package:smartcart/features/cliente/presentation/cliente_blocs.dart';
 import 'package:smartcart/features/comparacion/domain/entities/alternativa.dart';
 import 'package:smartcart/features/comparacion/presentation/comparacion_formato.dart';
 import 'package:smartcart/features/confianza/presentation/widgets/confianza_del_precio.dart';
@@ -13,7 +15,15 @@ class AlternativaArgs {
   final Alternativa alternativa;
   final Ubicacion? cliente;
 
-  const AlternativaArgs({required this.alternativa, this.cliente});
+  /// El carrito del cliente, para confirmar la alternativa (HU-20). Sin él no
+  /// se ofrece elegirla.
+  final ClienteBlocs? blocs;
+
+  const AlternativaArgs({
+    required this.alternativa,
+    this.cliente,
+    this.blocs,
+  });
 }
 
 /// HU-18: el detalle de una alternativa. Los comercios en el mapa y, por
@@ -86,6 +96,15 @@ class AlternativaDetallePage extends StatelessWidget {
           ),
           const TituloSeccion(titulo: 'DESGLOSE POR COMERCIO'),
           for (final c in a.comercios) _Comercio(compra: c, ahora: ahora),
+          if (args.blocs case final blocs?)
+            BotonPrimario(
+              texto: 'Elegir esta alternativa',
+              iconoFinal: Icons.arrow_forward,
+              onTap: () => Navigator.of(context).pushNamed(
+                AppRoutes.confirmarCompra,
+                arguments: ConBlocsDelCliente(a.seleccion, blocs),
+              ),
+            ),
         ],
       ),
     );

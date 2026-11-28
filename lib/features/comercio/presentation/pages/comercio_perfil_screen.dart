@@ -44,6 +44,13 @@ class ComercioPerfilScreen extends StatelessWidget {
             etiquetas: [
               EtiquetaEstado.marca(comercio.servicio.label),
               const EtiquetaEstado.exito('Aprobado'),
+              // HU-25: el promedio de las calificaciones de los clientes.
+              if (profile.rating != null && profile.ratingCount > 0)
+                Calificacion(
+                    valor: profile.rating!,
+                    detalle: '(${profile.ratingCount})')
+              else
+                EtiquetaEstado.marca('Sin calificaciones'),
             ],
           ),
           const SizedBox(height: 20),

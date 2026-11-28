@@ -193,6 +193,7 @@ class _Comparacion extends StatelessWidget {
                 arguments: AlternativaArgs(
                   alternativa: a,
                   cliente: state.ubicacion?.ubicacion,
+                  blocs: clienteBlocsOrNull(context),
                 ),
               ),
             ),

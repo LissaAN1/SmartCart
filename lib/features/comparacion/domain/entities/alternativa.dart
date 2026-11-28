@@ -1,4 +1,5 @@
 import 'package:smartcart/features/comparacion/domain/entities/linea_comparable.dart';
+import 'package:smartcart/features/orders/domain/entities/plan_compra.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
 
 /// Qué prioriza el cliente al comparar su carrito (HU-18).
@@ -90,6 +91,24 @@ class Alternativa {
   int get establecimientos => comercios.length;
 
   Iterable<ItemAlternativa> get items => comercios.expand((c) => c.items);
+
+  /// Lo que se confirma al elegir esta alternativa (HU-20): cada producto en
+  /// el comercio elegido (si dos líneas del carrito terminan en el mismo, se
+  /// suman sus unidades) y los productos del carrito que quedan cubiertos.
+  SeleccionCompra get seleccion {
+    final cantidades = <String, int>{};
+    for (final i in items) {
+      cantidades[i.oferta.idProducto] =
+          (cantidades[i.oferta.idProducto] ?? 0) + i.linea.cantidad;
+    }
+    return SeleccionCompra(
+      lineas: [
+        for (final e in cantidades.entries)
+          LineaSolicitud(idProducto: e.key, cantidad: e.value),
+      ],
+      productosDelCarrito: [for (final i in items) i.linea.idProducto],
+    );
+  }
 
   /// Diferencia entre el carrito actual y la alternativa, sobre los mismos
   /// productos. Si la alternativa cuesta más, el ahorro es 0.
