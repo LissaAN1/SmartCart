@@ -32,6 +32,7 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.confirmarCompra => 'CONFIRMAR COMPRA',
     AppRoutes.misOrdenes => 'MIS ORDENES',
     AppRoutes.busqueda => 'BUSQUEDA',
+    AppRoutes.mapaComercios => 'MAPA',
     AppRoutes.catalogoProducto => 'PRODUCTO NUEVO',
     AppRoutes.profileSelection => 'SELECTION',
     AppRoutes.onboarding => 'INICIO',

@@ -22,6 +22,10 @@ class ClienteHomeScreen extends StatefulWidget {
   /// cliente; sin él, la abre sin ellos.
   final ValueChanged<String>? onBuscar;
 
+  /// HU-19: abre el mapa con la ubicación, el radio y los comercios
+  /// cercanos. Sin él avisa "próximamente".
+  final VoidCallback? onAbrirMapa;
+
   const ClienteHomeScreen({
     super.key,
     this.onTab,
@@ -29,6 +33,7 @@ class ClienteHomeScreen extends StatefulWidget {
     this.itemsCarrito = 0,
     this.onAbrirExplorar,
     this.onBuscar,
+    this.onAbrirMapa,
   });
 
   @override
@@ -93,6 +98,9 @@ class _ClienteHomeScreenState extends State<ClienteHomeScreen> {
         nombre: widget.nombre,
         acciones: [
           BotonCircular(icono: Icons.search, onTap: _buscar),
+          BotonCircular(
+              icono: Icons.place_outlined,
+              onTap: widget.onAbrirMapa ?? () => mostrarProximamente(context)),
           BotonCircular(
               icono: Icons.notifications_none,
               conPunto: true,

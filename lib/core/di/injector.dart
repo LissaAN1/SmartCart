@@ -108,10 +108,17 @@ import 'package:smartcart/features/reportes/domain/usecases/sugerir_establecimie
 import 'package:smartcart/features/reportes/domain/usecases/tomar_foto_usecase.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/reporte_form_bloc.dart';
 import 'package:smartcart/features/reportes/presentation/bloc/sugerencia_bloc.dart';
+import 'package:smartcart/features/ubicacion/data/repository/ubicacion_cliente_repository_impl.dart';
+import 'package:smartcart/features/ubicacion/data/source/geocoding_geocodificador.dart';
 import 'package:smartcart/features/ubicacion/data/source/geolocator_servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/data/source/supabase_ubicacion_cliente_data_source.dart';
 import 'package:smartcart/features/ubicacion/domain/entities/ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/geocodificador.dart';
 import 'package:smartcart/features/ubicacion/domain/repository/servicio_ubicacion.dart';
+import 'package:smartcart/features/ubicacion/domain/repository/ubicacion_cliente_repository.dart';
 import 'package:smartcart/features/ubicacion/domain/usecases/obtener_ubicacion_usecase.dart';
+import 'package:smartcart/features/ubicacion/domain/usecases/ubicacion_cliente_usecases.dart';
+import 'package:smartcart/features/ubicacion/presentation/bloc/mapa_comercios_bloc.dart';
 import 'package:smartcart/features/ubicacion/presentation/bloc/ubicacion_bloc.dart';
 import 'package:smartcart/features/cart/data/repository/carrito_repository_impl.dart';
 import 'package:smartcart/features/cart/data/source/supabase_carrito_data_source.dart';
@@ -245,6 +252,12 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseReporteIncorrectoDataSource>(
     () => SupabaseReporteIncorrectoDataSource(client: sl()),
   );
+  // HU-19: ubicación del cliente. El geocodificador se registra con el tipo
+  // del contrato; solo esta línea conoce el paquete `geocoding`.
+  sl.registerLazySingleton<SupabaseUbicacionClienteDataSource>(
+    () => SupabaseUbicacionClienteDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<Geocodificador>(() => GeocodingGeocodificador());
 
   // ── Repositorios: se registran con el tipo del contrato del dominio ──
   sl.registerLazySingleton<AuthRepository>(
@@ -298,6 +311,9 @@ void setupDependencies() {
   );
   sl.registerLazySingleton<ReporteIncorrectoRepository>(
     () => ReporteIncorrectoRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<UbicacionClienteRepository>(
+    () => UbicacionClienteRepositoryImpl(dataSource: sl()),
   );
 
   // ── Casos de uso ──
@@ -409,6 +425,19 @@ void setupDependencies() {
   // HU-17: todos parten de GetClienteActivoUseCase.
   sl.registerLazySingleton(
     () => GetClienteActivoUseCase(auth: sl(), profiles: sl()),
+  );
+  // HU-19: ubicación y radio del cliente.
+  sl.registerLazySingleton(
+    () => GetMiUbicacionUseCase(cliente: sl(), repositorio: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GuardarMiUbicacionUseCase(cliente: sl(), repositorio: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetComerciosEnRadioUseCase(cliente: sl(), repositorio: sl()),
+  );
+  sl.registerLazySingleton(
+    () => BuscarDireccionUseCase(geocodificador: sl()),
   );
   sl.registerLazySingleton(
     () => GetCarritoUseCase(cliente: sl(), carrito: sl()),
@@ -542,6 +571,16 @@ void setupDependencies() {
 
   // HU-14: el reporte de precio y la ubicación no necesitan datos.
   sl.registerFactory(() => UbicacionBloc(obtener: sl()));
+  // HU-19: el mapa de comercios del cliente.
+  sl.registerFactory(
+    () => MapaComerciosBloc(
+      miUbicacion: sl(),
+      guardar: sl(),
+      comercios: sl(),
+      gps: sl(),
+      buscarDireccion: sl(),
+    ),
+  );
   sl.registerFactory(() => ReporteFormBloc(tomarFoto: sl(), enviar: sl()));
   sl.registerFactory(() => SugerenciaBloc(sugerir: sl()));
   // HU-15 y HU-16.

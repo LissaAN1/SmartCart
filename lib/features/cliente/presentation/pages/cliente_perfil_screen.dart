@@ -25,6 +25,10 @@ class ClientePerfilScreen extends StatelessWidget {
   /// HU-20: abre "Mis órdenes". Sin él avisa "próximamente".
   final VoidCallback? onAbrirOrdenes;
 
+  /// HU-19: abre la ubicación y el radio de búsqueda. Sin él avisa
+  /// "próximamente".
+  final VoidCallback? onAbrirUbicacion;
+
   const ClientePerfilScreen({
     super.key,
     this.onTab,
@@ -34,6 +38,8 @@ class ClientePerfilScreen extends StatelessWidget {
     this.itemsCarrito = 0,
     this.onAbrirFavoritos,
     this.onAbrirOrdenes,
+
+    this.onAbrirUbicacion,
   });
 
   @override
@@ -129,6 +135,12 @@ class ClientePerfilScreen extends StatelessWidget {
           GrupoMenu(
             conTarjeta: false,
             items: [
+              ItemMenu(
+                  icono: Icons.place_outlined,
+                  titulo: 'Mi ubicación',
+                  subtitulo: 'Dirección y radio de búsqueda',
+                  onTap:
+                      onAbrirUbicacion ?? () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.notifications_none,
                   titulo: 'Notificaciones',

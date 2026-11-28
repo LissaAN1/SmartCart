@@ -25,6 +25,9 @@ class SupabaseTables {
 
   // HU-13. Ver docs/sql/sprint2_hu13.sql
   static const reportePrecioIncorrecto = 'reporte_precio_incorrecto';
+
+  // HU-19. Ver docs/sql/sprint3_hu19.sql
+  static const ubicacionCliente = 'ubicacion_cliente';
 }
 
 /// Funciones (RPC) de la base. Ver docs/sql/sprint2_hu24.sql.
@@ -36,6 +39,11 @@ class SupabaseFunctions {
 
   /// HU-14: comercios aprobados con ubicación, de menor a mayor distancia.
   static const comerciosCercanos = 'comercios_cercanos';
+
+  /// HU-19: guarda la ubicación y el radio del cliente, y los comercios
+  /// aprobados dentro de ese radio. Ver docs/sql/sprint3_hu19.sql.
+  static const guardarUbicacionCliente = 'guardar_ubicacion_cliente';
+  static const comerciosEnRadio = 'comercios_en_radio';
 
   /// HU-14: guarda un reporte de precio pendiente si el colaborador está en
   /// el establecimiento.
@@ -224,8 +232,15 @@ class SupabaseColumns {
   static const comercioLatitud = 'latitud';
   static const comercioLongitud = 'longitud';
 
-  // Columnas que devuelve comercios_cercanos (HU-14)
+  // Columnas que devuelven comercios_cercanos (HU-14) y comercios_en_radio
+  // (HU-19)
   static const cercanoDistancia = 'distancia_m';
+
+  // ubicacion_cliente (HU-19)
+  static const ubicacionClienteLatitud = 'latitud';
+  static const ubicacionClienteLongitud = 'longitud';
+  static const ubicacionClienteDireccion = 'direccion';
+  static const ubicacionClienteRadio = 'radio_m';
 
   // Columnas que devuelve mis_reportes (HU-14)
   static const misReporteId = 'id_reporte';
