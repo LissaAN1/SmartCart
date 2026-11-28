@@ -175,6 +175,9 @@ class _RolShellState extends State<RolShell> {
     );
   }
 
+  /// HU-20: las órdenes del cliente (y desde ahí, calificarlas, HU-25).
+  void _abrirOrdenes() => Navigator.of(context).pushNamed(AppRoutes.misOrdenes);
+
   void _abrirFavoritos() =>
       Navigator.of(context).pushNamed(AppRoutes.favoritos, arguments: _cliente);
 
@@ -298,7 +301,8 @@ class _RolShellState extends State<RolShell> {
               profile: p,
               onActivarColaborador: _activarColaborador,
               itemsCarrito: itemsCarrito,
-              onAbrirFavoritos: _cliente == null ? null : _abrirFavoritos)),
+              onAbrirFavoritos: _cliente == null ? null : _abrirFavoritos,
+              onAbrirOrdenes: _abrirOrdenes)),
       (RolTema.colaborador, false) => _conMisReportes(),
       (RolTema.colaborador, true) => ColaboradorPerfilScreen(
           onTab: _onTab,

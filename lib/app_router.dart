@@ -41,6 +41,13 @@ import 'package:smartcart/features/profile_selection/presentation/pages/profile_
 import 'package:smartcart/features/register/ui/bloc/register_bloc.dart';
 import 'package:smartcart/features/register/ui/screens/register_screen.dart';
 import 'package:smartcart/features/repartidor/presentation/bloc/disponibilidad_bloc.dart';
+import 'package:smartcart/features/calificaciones/presentation/bloc/calificar_orden_bloc.dart';
+import 'package:smartcart/features/calificaciones/presentation/pages/calificar_orden_args.dart';
+import 'package:smartcart/features/calificaciones/presentation/pages/calificar_orden_page.dart';
+import 'package:smartcart/features/orders/domain/entities/orden.dart';
+import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_bloc.dart';
+import 'package:smartcart/features/orders/presentation/pages/confirmar_compra_page.dart';
+import 'package:smartcart/features/orders/presentation/pages/mis_ordenes_page.dart';
 import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
 import 'package:smartcart/features/cart/presentation/pages/carrito_page.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto_con_comercio.dart';
@@ -207,6 +214,27 @@ abstract final class AppRouter {
       // creados por el RolShell y no los cierran.
       AppRoutes.carrito when args is ClienteBlocs =>
         _conBlocsDelCliente(args, const CarritoPage()),
+      // HU-20: confirmar la compra; al terminar relee el carrito (ya vacío).
+      AppRoutes.confirmarCompra when args is ClienteBlocs => _conBlocsDelCliente(
+          args,
+          BlocProvider(
+            create: (_) =>
+                sl<ConfirmarCompraBloc>()..add(ConfirmarCompraStarted()),
+            child: const ConfirmarCompraPage(),
+          ),
+        ),
+      AppRoutes.misOrdenes => BlocProvider(
+          create: (_) => sl<PaginatedBloc<Orden>>()..add(PaginatedStarted()),
+          child: const MisOrdenesPage(),
+        ),
+      // HU-25: calificar al comercio o al repartidor.
+      AppRoutes.calificarOrden when args is CalificarOrdenArgs => BlocProvider(
+          create: (_) => sl<CalificarOrdenBloc>(
+            param1: args.idOrden,
+            param2: args.tipo,
+          ),
+          child: CalificarOrdenPage(args: args),
+        ),
       AppRoutes.favoritos when args is ClienteBlocs => _conBlocsDelCliente(
           args,
           FavoritosPage(
@@ -332,6 +360,9 @@ abstract final class AppRouter {
       AppRoutes.reporteEscaner ||
       AppRoutes.escaner =>
         MaterialPageRoute<String>(builder: (_) => page, settings: settings),
+      // Calificar devuelve `true` si se envió, para que la lista se relea.
+      AppRoutes.calificarOrden =>
+        MaterialPageRoute<bool>(builder: (_) => page, settings: settings),
       // El detalle de una solicitud devuelve la decisión tomada.
       AppRoutes.adminSolicitudDetalle => MaterialPageRoute<ApprovalStatus>(
           builder: (_) => page, settings: settings),

@@ -155,6 +155,13 @@ class _Lista extends StatelessWidget {
           icono: Icons.add,
           onTap: () => context.abrirExplorar(),
         ),
+        const SizedBox(height: 12),
+        // HU-20: elegir recogida o entrega y generar las órdenes.
+        BotonPrimario(
+          texto: 'Confirmar compra',
+          iconoFinal: Icons.arrow_forward,
+          onTap: () => context.abrirConfirmarCompra(),
+        ),
       ],
     );
   }

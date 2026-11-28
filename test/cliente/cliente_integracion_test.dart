@@ -224,6 +224,20 @@ void main() {
       expect(find.text('EXPLORAR'), findsNothing);
     });
 
+    testWidgets('"Historial de compras" del Perfil abre Mis órdenes (HU-20)',
+        (tester) async {
+      await _pumpShell(tester);
+      await tester.tap(find.text('Perfil'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Historial de compras'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Historial de compras'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('MIS ORDENES'), findsOneWidget);
+    });
+
     testWidgets('"Mis favoritos" del Perfil abre los favoritos', (tester) async {
       await _pumpShell(tester);
       await tester.tap(find.text('Perfil'));

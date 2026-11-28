@@ -29,6 +29,8 @@ Route<dynamic>? stubRoutes(RouteSettings settings) {
     AppRoutes.carrito => 'CARRITO',
     AppRoutes.favoritos => 'FAVORITOS',
     AppRoutes.explorar => 'EXPLORAR',
+    AppRoutes.confirmarCompra => 'CONFIRMAR COMPRA',
+    AppRoutes.misOrdenes => 'MIS ORDENES',
     AppRoutes.busqueda => 'BUSQUEDA',
     AppRoutes.catalogoProducto => 'PRODUCTO NUEVO',
     AppRoutes.profileSelection => 'SELECTION',

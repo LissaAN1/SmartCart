@@ -122,6 +122,18 @@ import 'package:smartcart/features/cart/domain/usecases/get_carrito_usecase.dart
 import 'package:smartcart/features/cart/domain/usecases/quitar_del_carrito_usecase.dart';
 import 'package:smartcart/features/cart/presentation/bloc/carrito_bloc.dart';
 import 'package:smartcart/features/catalog/domain/entities/producto_con_comercio.dart';
+import 'package:smartcart/features/calificaciones/data/repository/calificaciones_repository_impl.dart';
+import 'package:smartcart/features/calificaciones/data/source/supabase_calificaciones_data_source.dart';
+import 'package:smartcart/features/calificaciones/domain/entities/calificacion.dart';
+import 'package:smartcart/features/calificaciones/domain/repository/calificaciones_repository.dart';
+import 'package:smartcart/features/calificaciones/domain/usecases/calificar_orden_usecase.dart';
+import 'package:smartcart/features/calificaciones/presentation/bloc/calificar_orden_bloc.dart';
+import 'package:smartcart/features/orders/data/repository/compras_repository_impl.dart';
+import 'package:smartcart/features/orders/data/source/supabase_compras_data_source.dart';
+import 'package:smartcart/features/orders/domain/entities/orden.dart';
+import 'package:smartcart/features/orders/domain/repository/compras_repository.dart';
+import 'package:smartcart/features/orders/domain/usecases/compras_usecases.dart';
+import 'package:smartcart/features/orders/presentation/bloc/confirmar_compra_bloc.dart';
 import 'package:smartcart/features/cliente/domain/usecases/get_cliente_activo_usecase.dart';
 import 'package:smartcart/features/comercio/domain/entities/comercio_resumen.dart';
 import 'package:smartcart/features/explorar/data/repository/explorar_repository_impl.dart';
@@ -204,6 +216,13 @@ void setupDependencies() {
   sl.registerLazySingleton<SupabaseCarritoDataSource>(
     () => SupabaseCarritoDataSource(client: sl()),
   );
+  // HU-20 y HU-25: compras, órdenes y calificaciones.
+  sl.registerLazySingleton<SupabaseComprasDataSource>(
+    () => SupabaseComprasDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<SupabaseCalificacionesDataSource>(
+    () => SupabaseCalificacionesDataSource(client: sl()),
+  );
   sl.registerLazySingleton<SupabaseFavoritosDataSource>(
     () => SupabaseFavoritosDataSource(client: sl()),
   );
@@ -249,6 +268,12 @@ void setupDependencies() {
   // HU-17: carrito, favoritos y exploración del cliente.
   sl.registerLazySingleton<CarritoRepository>(
     () => CarritoRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<ComprasRepository>(
+    () => ComprasRepositoryImpl(dataSource: sl()),
+  );
+  sl.registerLazySingleton<CalificacionesRepository>(
+    () => CalificacionesRepositoryImpl(dataSource: sl()),
   );
   sl.registerLazySingleton<FavoritosRepository>(
     () => FavoritosRepositoryImpl(dataSource: sl()),
@@ -397,6 +422,20 @@ void setupDependencies() {
   sl.registerLazySingleton(
     () => QuitarDelCarritoUseCase(cliente: sl(), carrito: sl()),
   );
+  // HU-20: armar el plan con el carrito, confirmar y listar las órdenes.
+  sl.registerLazySingleton(
+    () => GetPlanCompraUseCase(carrito: sl(), compras: sl()),
+  );
+  sl.registerLazySingleton(
+    () => ConfirmarCompraUseCase(cliente: sl(), compras: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetMisOrdenesUseCase(cliente: sl(), compras: sl()),
+  );
+  // HU-25: calificar una orden completada.
+  sl.registerLazySingleton(
+    () => CalificarOrdenUseCase(cliente: sl(), calificaciones: sl()),
+  );
   sl.registerLazySingleton(
     () => GetFavoritosIdsUseCase(cliente: sl(), favoritos: sl()),
   );
@@ -526,6 +565,25 @@ void setupDependencies() {
     ),
   );
   sl.registerFactory(() => FavoritosBloc(obtener: sl(), cambiar: sl()));
+
+  // HU-20: confirmar la compra y la lista de órdenes del cliente.
+  sl.registerFactory(
+    () => ConfirmarCompraBloc(obtenerPlan: sl(), confirmar: sl()),
+  );
+  sl.registerFactory<PaginatedBloc<Orden>>(
+    () => PaginatedBloc<Orden>(
+      fetchPage: sl<GetMisOrdenesUseCase>().call,
+      errorMessageFor: mensajeDeFallo,
+    ),
+  );
+  // HU-25: la orden y a quién se califica llegan de la pantalla.
+  sl.registerFactoryParam<CalificarOrdenBloc, String, TipoCalificacion>(
+    (idOrden, tipo) => CalificarOrdenBloc(
+      calificar: sl(),
+      idOrden: idOrden,
+      tipo: tipo,
+    ),
+  );
 
   // HU-17: listas paginadas de la exploración (con el texto buscado como
   // `param1`) y de los favoritos. Todas llevan nombre porque comparten tipo.

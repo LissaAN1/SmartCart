@@ -22,6 +22,9 @@ class ClientePerfilScreen extends StatelessWidget {
   /// HU-17: abre los favoritos del cliente. Sin él avisa "próximamente".
   final VoidCallback? onAbrirFavoritos;
 
+  /// HU-20: abre "Mis órdenes". Sin él avisa "próximamente".
+  final VoidCallback? onAbrirOrdenes;
+
   const ClientePerfilScreen({
     super.key,
     this.onTab,
@@ -30,6 +33,7 @@ class ClientePerfilScreen extends StatelessWidget {
     this.onActivarColaborador,
     this.itemsCarrito = 0,
     this.onAbrirFavoritos,
+    this.onAbrirOrdenes,
   });
 
   @override
@@ -110,8 +114,8 @@ class ClientePerfilScreen extends StatelessWidget {
               ItemMenu(
                   icono: Icons.history,
                   titulo: 'Historial de compras',
-                  subtitulo: 'Ver transacciones pasadas',
-                  onTap: () => mostrarProximamente(context)),
+                  subtitulo: 'Tus órdenes y calificaciones',
+                  onTap: onAbrirOrdenes ?? () => mostrarProximamente(context)),
               ItemMenu(
                   icono: Icons.chat_bubble_outline,
                   titulo: 'Reportar una queja',

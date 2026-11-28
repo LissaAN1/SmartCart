@@ -82,6 +82,17 @@ class SupabaseFunctions {
   static const resumenPuntos = 'resumen_puntos';
   static const misMovimientosPuntos = 'mis_movimientos_puntos';
 
+  /// HU-20: la vista previa de la compra (cada producto con su comercio y el
+  /// precio de hoy), la confirmación (una orden por comercio) y las órdenes
+  /// del cliente. Ver docs/sql/sprint3_hu20_hu25.sql.
+  static const previsualizarCompra = 'previsualizar_compra';
+  static const confirmarCompra = 'confirmar_compra';
+  static const misOrdenes = 'mis_ordenes';
+
+  /// HU-25: califica al comercio o al repartidor de una orden completada y
+  /// devuelve su promedio y su total de calificaciones.
+  static const calificarOrden = 'calificar_orden';
+
   /// HU-24: aprueba o rechaza una solicitud y notifica al solicitante en una
   /// sola transacción.
   static const decidirSolicitud = 'decidir_solicitud';
@@ -244,6 +255,41 @@ class SupabaseColumns {
   static const movimientoTipo = 'tipo';
   static const movimientoMotivo = 'motivo';
   static const movimientoCreadoEn = 'creado_en';
+
+  // Columnas que devuelve previsualizar_compra (HU-20)
+  static const lineaProducto = 'id_producto';
+  static const lineaNombre = 'nombre';
+  static const lineaMarca = 'marca';
+  static const lineaCantidad = 'cantidad';
+  static const lineaComercioId = 'id_comercio';
+  static const lineaComercio = 'comercio';
+  static const lineaServicio = 'tipo_servicio';
+  static const lineaPrecio = 'precio';
+  static const lineaDisponible = 'disponible';
+
+  // Columnas que devuelve confirmar_compra (HU-20)
+  static const compraOrdenId = 'id_orden';
+  static const compraOrdenNumero = 'numero';
+  static const compraComercioId = 'id_comercio';
+  static const compraComercio = 'comercio';
+  static const compraTipoEntrega = 'tipo_entrega';
+  static const compraTotal = 'total';
+
+  // Columnas que devuelve mis_ordenes (HU-20 y HU-25)
+  static const ordenId = 'id_orden';
+  static const ordenNumero = 'numero';
+  static const ordenComercio = 'comercio';
+  static const ordenEstado = 'estado';
+  static const ordenTipoEntrega = 'tipo_entrega';
+  static const ordenTotal = 'total';
+  static const ordenCreadoEn = 'creado_en';
+  static const ordenTieneRepartidor = 'tiene_repartidor';
+  static const ordenCalificadaComercio = 'calificada_comercio';
+  static const ordenCalificadaRepartidor = 'calificada_repartidor';
+
+  // Columnas que devuelve calificar_orden (HU-25)
+  static const calificacionPromedio = 'promedio';
+  static const calificacionTotal = 'total';
 
   // carrito_item y favoritos (HU-17)
   static const carritoUsuario = 'id_usuario';
