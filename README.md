@@ -28,6 +28,7 @@ Este es nuestro proyecto del curso **Aplicaciones Móviles** (Universidad Icesi)
 | HU | Título | Estado |
 |---|---|---|
 | **HU-18** | **Alternativas de carrito según el criterio** | **Implementada en la rama `feat/hu18-alternativas-carrito` y probada con dobles (981 pruebas en total). El SQL ya se ejecutó en Supabase y sus 10 pruebas dan `OK`. Falta probarla en Android. El criterio Calidad/precio queda listo y se cierra con las calificaciones de la HU-25.** Ver [docs/HU18_informe_implementacion.md](docs/HU18_informe_implementacion.md) y [docs/HU18_informe_pruebas.md](docs/HU18_informe_pruebas.md) |
+| **HU-28** | **Estadísticas reales del panel del administrador** | **Implementada en la rama `feat/hu28-estadisticas-admin` y probada con dobles (1093 pruebas en total). El SQL ya se ejecutó en Supabase y sus 11 pruebas dan `OK`. Falta probarla en Android.** Ver [docs/HU28_informe_implementacion.md](docs/HU28_informe_implementacion.md) y [docs/HU28_informe_pruebas.md](docs/HU28_informe_pruebas.md) |
 | **HU-20** | **Confirmación del carrito y generación de órdenes** | **Implementada e integrada con la HU-18 y la HU-19, probada con dobles. El SQL ya se ejecutó en Supabase y sus 48 pruebas dan `OK`. Falta probarla en Android.** Ver [docs/HU20_HU25_informe_implementacion.md](docs/HU20_HU25_informe_implementacion.md) |
 | **HU-25** | **Calificaciones de comercios y repartidores** | **Implementada y probada con dobles; su SQL (el mismo de la HU-20) ya se ejecutó en Supabase y sus pruebas dan `OK`. Calificar necesita órdenes completadas (HU-21 y HU-22).** |
 | **HU-19** | **Ubicación, radio de búsqueda y mapa** | **Implementada en la rama `feat/hu19-ubicacion-mapa` y probada con dobles (933 pruebas en total). El SQL ya se ejecutó en Supabase y sus 16 pruebas de políticas dan `OK`. Falta probarla en Android.** Ver [docs/HU19_informe_implementacion.md](docs/HU19_informe_implementacion.md) y [docs/HU19_informe_pruebas.md](docs/HU19_informe_pruebas.md) |
@@ -278,6 +279,20 @@ Para ver lo guardado, en el SQL Editor: `select * from public.reporte_precio ord
 
 **Ver detalle** muestra el mapa con los comercios y, por comercio, cada producto con su precio, fuente, fecha y confianza (HU-13).
 
+### Probar el panel del administrador (HU-28)
+
+1. Ejecutar `docs/sql/sprint3_hu28.sql` en Supabase (paso 23 de la tabla de scripts; necesita los de HU-24, HU-14 y HU-20) y `docs/sql/pruebas_hu28_estadisticas.sql` (paso 24: todas las filas en `OK`).
+2. Entrar con `admin@gmail.com`.
+
+| Escenario | Cómo probarlo | Resultado esperado |
+|---|---|---|
+| 1. Cifras de la base | Abrir el **Panel de control** y comparar con, por ejemplo, `select estado, count(*) from public.comercio group by estado;` | Usuarios registrados por rol, comercios por estado, repartidores aprobados y en línea, pendientes de revisión y órdenes coinciden con las tablas |
+| 2. Actualización | Con un comercio pendiente, tocar **Aprobaciones**, aprobarlo y volver | Baja "Pendientes" y sube "Aprobados" |
+| 3. Sin órdenes | Con una base sin órdenes | La sección de órdenes dice "No hay información disponible" |
+| 4. Sin permiso | Lo comprueba `pruebas_hu28_estadisticas.sql` (E1 y E2) | La base rechaza a quien no es administrador |
+
+Las cifras se vuelven a consultar al abrir el panel, al volver de Aprobaciones y al tocar la pestaña **Panel**.
+
 ### Probar la compra y las calificaciones (HU-20 y HU-25)
 
 1. Ejecutar `docs/sql/sprint3_hu20_hu25.sql` en Supabase (paso 21 de la tabla de scripts; necesita antes los de HU-15/16, HU-17 y HU-19) y `docs/sql/pruebas_hu20_hu25_politicas.sql` (paso 22: todas las filas en `OK`).
@@ -437,6 +452,8 @@ order by u.correo;
 | 20 | `pruebas_hu15_hu16_politicas.sql` | Pruebas de la validación y los puntos (termina en `ROLLBACK`) |
 | 21 | `sprint3_hu20_hu25.sql` | `compra`, `orden`, `orden_item` y `calificacion` con RLS; `previsualizar_compra()`, `confirmar_compra()`, `mis_ordenes()`, `calificar_orden()` y la protección de la calificación en `usuario` |
 | 22 | `pruebas_hu20_hu25_politicas.sql` | Pruebas de las órdenes, las calificaciones y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
+| 23 | `sprint3_hu28.sql` | `estadisticas_panel()`: las cifras del panel, solo para el administrador |
+| 24 | `pruebas_hu28_estadisticas.sql` | 11 pruebas de las cifras y los permisos (termina en `ROLLBACK`; devuelve una tabla de resultados) |
 
 Sin el paso 3 la app no encuentra las tablas del catálogo; sin el 5 la lista del catálogo falla porque también pide el precio de cada producto; sin el 7, la búsqueda del cliente; sin el 9, las del reporte de precios, sin el 11, las del carrito y los favoritos, y sin el 13, el reporte de precio incorrecto. Los demás archivos de `docs/sql/` (`perfiles_reales.sql`, `pruebas_hu24_politicas.sql`, `verificar_esquema.sql`, `sprint2_hu24_ajuste.sql`) son de apoyo a las historias anteriores.
 
@@ -497,6 +514,7 @@ Lo que estas pruebas **no** comprueban: las políticas RLS reales de Supabase (p
 | `test/catalog/` | HU-10: validadores, lectura del CSV, casos de uso, Blocs, pantallas del catálogo y accesos desde el Home del comercio |
 | `test/busqueda/` | HU-12: búsqueda por nombre y marca, código escaneado, paginado, detalle por establecimiento y accesos desde el Home del cliente |
 | `test/comparacion/` | HU-18: algoritmo de las alternativas (los seis escenarios, empates y distancia máxima), Blocs, la comparación, el detalle y los precios del carrito (incluye 320 px) |
+| `test/estadisticas/` | HU-28: lectura de las cifras, permiso del caso de uso, `EstadisticasBloc` y el panel (los escenarios, recarga al volver, error, carga y 320 px) |
 | `test/ubicacion/` | HU-19: reglas del radio, casos de uso, `MapaComerciosBloc` (los tres escenarios, errores y doble toque) y la pantalla del mapa (incluye 320 px) |
 | `test/prices/`, `test/catalog/catalogo_hu11_test.dart`, `test/catalog/catalogo_diseno_test.dart` | HU-11: formato COP y de fechas, validaciones, vigencia de promociones, casos de uso, Blocs, historial y las pantallas Catálogo y Editar Producto con el diseño (incluye 320 px) |
 
@@ -539,6 +557,7 @@ lib/
     ├── comparacion/               HU-18: precios del carrito y alternativas según el criterio
     ├── orders/                    HU-20: confirmar la compra y las órdenes del cliente
     ├── calificaciones/            HU-25: calificar al comercio y al repartidor
+    ├── estadisticas/              HU-28: cifras reales del panel del administrador
     ├── favoritos/                 HU-17: favoritos de productos y comercios
     ├── explorar/                  HU-17: lista provisional de productos y comercios para el cliente
     └── admin | cliente | colaborador | comercio | repartidor
@@ -638,7 +657,7 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
 ## Limitaciones conocidas y pasos pendientes
 
 - **Continuar con Google** y **¿Olvidaste tu contraseña?** están en el diseño pero no están implementados: muestran un aviso. Google requiere configurar el proveedor y los enlaces de retorno en Supabase.
-- Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes. Siguen siendo **datos de ejemplo**: las ventas y órdenes del Home del comercio, los pedidos disponibles del repartidor, las "Misiones" del colaborador, las estadísticas del panel del administrador y las tarjetas "Ofertas cerca de ti" del cliente. Lo que sí es real en el Sprint 2: el registro y la aprobación de comercios y repartidores, el catálogo y los precios, la búsqueda y el detalle del precio, el carrito y los favoritos, y los reportes del colaborador.
+- Varios botones de los Home y Perfil muestran "próximamente": son funciones de sprints siguientes. Siguen siendo **datos de ejemplo**: las ventas y órdenes del Home del comercio, los pedidos disponibles del repartidor, las "Misiones" del colaborador y las tarjetas "Ofertas cerca de ti" del cliente. Lo que sí es real en el Sprint 2: el registro y la aprobación de comercios y repartidores, el catálogo y los precios, la búsqueda y el detalle del precio, el carrito y los favoritos, y los reportes del colaborador.
 - **HU-07, HU-08 y HU-24 (registro y aprobación):**
   - Un comercio o un repartidor rechazado no puede volver a enviar su registro desde la app.
   - La decisión del administrador le llega a la persona cuando vuelve a entrar al Home: no hay notificaciones push ni en tiempo real.
@@ -689,6 +708,11 @@ grep -rn -E "(=>|=|return|\(|,|:)\s*(const )?[A-Z][A-Za-z]*(Bloc|UseCase|Reposit
   - **Calidad/precio depende de la HU-25.** Lee `calificacion_promedio` y `total_calificaciones` del dueño del comercio en `usuario`; mientras no existan, todos los comercios cuentan como neutros y se muestra "Sin calificaciones". La fórmula (`ComparacionReglas`): `precio × (1 + 0,20 × (5 − calificación) / 4)`, y un comercio sin calificaciones cuenta como 3.
   - El ahorro se calcula sobre los productos que tienen precio en el carrito actual y en la alternativa; nunca es negativo.
   - Una alternativa se elige en su detalle y se confirma con la HU-20. La distancia es en línea recta.
+- **HU-28 (panel del administrador):**
+  - Necesita `docs/sql/sprint3_hu28.sql` en Supabase; en nuestro proyecto ya se ejecutó y `pruebas_hu28_estadisticas.sql` dio las 11 líneas en `OK`. Falta probarla en un dispositivo Android.
+  - "Reportes de precio" pendientes cuenta la tabla `reporte_precio`, como cita el backlog; los reportes de precio incorrecto de los clientes (HU-13) se revisan en la HU-27 y no se suman.
+  - "Usuarios registrados" va por rol: una cuenta con dos perfiles cuenta en ambos, por eso no se muestra un total.
+  - Las cifras no se actualizan solas mientras el panel está abierto; se consultan al abrirlo o volver a él.
 - **HU-20 y HU-25 (órdenes y calificaciones):**
   - Necesitan `docs/sql/sprint3_hu20_hu25.sql` en Supabase (después del de la HU-19); en nuestro proyecto ya se ejecutó y `pruebas_hu20_hu25_politicas.sql` dio las 48 líneas en `OK`. Falta probarlas en un dispositivo Android.
   - La entrega usa como destino la ubicación guardada del cliente (HU-19). "Confirmar compra" del carrito compra el carrito tal cual; las alternativas se confirman desde su detalle.

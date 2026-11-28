@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:smartcart/core/domain/approval_status.dart';
 import 'package:smartcart/core/domain/user_role.dart';
 import 'package:smartcart/core/di/injector.dart';
+import 'package:smartcart/features/estadisticas/presentation/bloc/estadisticas_bloc.dart';
 import 'package:smartcart/features/aprobaciones/domain/entities/solicitud.dart';
 import 'package:smartcart/features/aprobaciones/presentation/bloc/decision_solicitud_bloc.dart';
 import 'package:smartcart/features/aprobaciones/presentation/pages/admin_solicitudes_page.dart';
@@ -134,6 +135,10 @@ abstract final class AppRouter {
             child: RolShell(
               rol: args.role,
               profile: args.profile,
+              // HU-28: las cifras reales del panel del administrador.
+              crearEstadisticas: args.role == UserRole.administrador
+                  ? () => sl<EstadisticasBloc>()
+                  : null,
               // HU-14: el Home del colaborador muestra sus últimos reportes
               // reales (los más recientes).
               // HU-17: el carrito y los favoritos del cliente, compartidos por

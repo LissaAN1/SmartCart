@@ -1,6 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smartcart/core/di/injector.dart';
 import 'package:smartcart/core/pagination/paginated_bloc.dart';
+import 'package:smartcart/features/estadisticas/data/repository/estadisticas_repository_impl.dart';
+import 'package:smartcart/features/estadisticas/domain/repository/estadisticas_repository.dart';
+import 'package:smartcart/features/estadisticas/domain/usecases/get_estadisticas_usecase.dart';
+import 'package:smartcart/features/estadisticas/presentation/bloc/estadisticas_bloc.dart';
 import 'package:smartcart/features/aprobaciones/domain/entities/solicitud.dart';
 import 'package:smartcart/features/aprobaciones/domain/repository/solicitudes_repository.dart';
 import 'package:smartcart/features/aprobaciones/domain/usecases/decidir_solicitud_usecase.dart';
@@ -610,6 +614,20 @@ void main() {
     expect(identical(sl<ComparacionBloc>(), sl<ComparacionBloc>()), isFalse);
     expect(identical(sl<PreciosCarritoBloc>(), sl<PreciosCarritoBloc>()),
         isFalse);
+  });
+
+  test('HU-28: las estadísticas del panel se arman con el repositorio real',
+      () {
+    setupDependencies();
+    sl.unregister<SupabaseClient>();
+    sl.registerLazySingleton<SupabaseClient>(
+      () => SupabaseClient('http://localhost:54321', 'llave-de-prueba'),
+    );
+
+    expect(sl<EstadisticasRepository>(), isA<EstadisticasRepositoryImpl>());
+    expect(sl<GetEstadisticasUseCase>(), same(sl<GetEstadisticasUseCase>()));
+    expect(
+        identical(sl<EstadisticasBloc>(), sl<EstadisticasBloc>()), isFalse);
   });
 
   test('llamar dos veces a setupDependencies no duplica los registros', () {
